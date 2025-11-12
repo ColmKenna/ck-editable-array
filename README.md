@@ -1,6 +1,6 @@
-# Web Component Library
+# CK Editable Array Web Component
 
-A modern web component library built with TypeScript and Rollup, designed to be lightweight, reusable, and easy to integrate into any web project. Published to GitHub Packages for easy distribution and version management.
+A modern web component library built with TypeScript and Rollup, featuring the ck-editable-array component. Designed to be lightweight, reusable, and easy to integrate into any web project. Published to GitHub Packages for easy distribution and version management.
 
 ## 🚀 Features
 
@@ -24,42 +24,42 @@ First, configure npm to use GitHub Packages for this scope. Create or update you
 Then install the package:
 
 ```bash
-npm install @colmkenna/ck-webcomponents
+npm install @colmkenna/ck-webcomponents/ck-editable-array
 ```
 
 ### Via CDN (if published to a CDN)
 
 ```html
-<script src="https://unpkg.com/@colmkenna/ck-webcomponents@latest/dist/hello-world/hello-world.min.js"></script>
+<script src="https://unpkg.com/@colmkenna/ck-webcomponents/ck-editable-array@latest/dist/ck-editable-array/ck-editable-array.min.js"></script>
 ```
 
 Then import in your JavaScript:
 
 ```javascript
-import '@colmkenna/ck-webcomponents';
+import '@colmkenna/ck-webcomponents/ck-editable-array';
 ```
 
 Or import specific components:
 
 ```javascript
-import { HelloWorld } from '@colmkenna/ck-webcomponents';
+import { CkEditableArray } from '@colmkenna/ck-webcomponents/ck-editable-array';
 ```
 
 ## 🧩 Components
 
-### HelloWorld Component
+### CkEditableArray Component
 
 A simple greeting component with customizable name and color.
 
 ```html
 <!-- Basic usage -->
-<hello-world></hello-world>
+<ck-editable-array></ck-editable-array>
 
 <!-- With custom name -->
-<hello-world name="Developer"></hello-world>
+<ck-editable-array name="Developer"></ck-editable-array>
 
 <!-- With custom name and color -->
-<hello-world name="Developer" color="#ff6b6b"></hello-world>
+<ck-editable-array name="Developer" color="#ff6b6b"></ck-editable-array>
 ```
 
 #### Attributes
@@ -74,9 +74,9 @@ A simple greeting component with customizable name and color.
 The component also supports JavaScript property access:
 
 ```javascript
-const helloWorld = document.querySelector('hello-world');
-helloWorld.name = 'New Name';
-helloWorld.color = '#blue';
+const ckEditableArray = document.querySelector('ck-editable-array');
+ckEditableArray.name = 'New Name';
+ckEditableArray.color = '#blue';
 ```
 
 ## 🛠️ Development
@@ -90,8 +90,8 @@ helloWorld.color = '#blue';
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/ColmKenna/ckWebComponents.git
-cd ckWebComponents
+git clone https://github.com/ColmKenna/ck-editable-array-webcomponent.git
+cd ck-editable-array-webcomponent
 ```
 
 2. Install dependencies:
@@ -122,15 +122,16 @@ npm run serve
 webcomponent-library/
 ├── src/
 │   ├── components/
-│   │   └── hello-world/
-│   │       └── hello.world.ts
+│   │   └── ck-editable-array/
+│   │       ├── ck-editable-array.ts
+│   │       └── ck-editable-array.styles.ts
 │   └── index.ts
 ├── dist/
 │   ├── index.html (demo page)
-│   ├── hello-world/
-│   │   ├── hello-world.js (UMD build)
-│   │   ├── hello-world.esm.js (ES module build)
-│   │   └── hello-world.min.js (minified UMD build)
+│   ├── ck-editable-array/
+│   │   ├── ck-editable-array.js (UMD build)
+│   │   ├── ck-editable-array.esm.js (ES module build)
+│   │   └── ck-editable-array.min.js (minified UMD build)
 │   └── index.d.ts (TypeScript definitions)
 ├── package.json
 ├── rollup.config.js
@@ -292,11 +293,11 @@ After installing, you can use the components in your HTML:
 <html>
 <head>
     <script type="module">
-      import '@colmkenna/ck-webcomponents';
+      import '@colmkenna/ck-webcomponents/ck-editable-array';
     </script>
 </head>
 <body>
-    <hello-world name="GitHub Packages"></hello-world>
+    <ck-editable-array name="GitHub Packages"></ck-editable-array>
 </body>
 </html>
 ```

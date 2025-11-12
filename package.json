@@ -1,13 +1,13 @@
 {
-  "name": "@colmkenna/ck-webcomponents",
+  "name": "@colmkenna/ck-editable-array",
   "version": "1.0.0",
   "type": "module",
-  "description": "A web component library built with Rollup",
+  "description": "A web component library featuring ck-editable-array.",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
-  "main": "dist/hello-world/hello-world.js",
-  "module": "dist/hello-world/hello-world.esm.js",
+  "main": "dist/ck-editable-array/ck-editable-array.js",
+  "module": "dist/ck-editable-array/ck-editable-array.esm.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
@@ -58,10 +58,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ColmKenna/ckWebComponents.git"
+    "url": "https://github.com/ColmKenna/ck-editable-array-webcomponent.git"
   },
   "bugs": {
-    "url": "https://github.com/ColmKenna/ckWebComponents/issues"
+    "url": "https://github.com/ColmKenna/ck-editable-array-webcomponent/issues"
   },
-  "homepage": "https://github.com/ColmKenna/ckWebComponents#readme"
+  "homepage": "https://github.com/ColmKenna/ck-editable-array-webcomponent#readme"
 }
