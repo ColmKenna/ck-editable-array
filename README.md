@@ -2,6 +2,8 @@
 
 A modern web component library built with TypeScript and Rollup, featuring the ck-editable-array component. Designed to be lightweight, reusable, and easy to integrate into any web project. Published to GitHub Packages for easy distribution and version management.
 
+Experiment with generating the component using TDD with AI generating most of the code and me doing some checks and edits.
+
 ## 🚀 Features
 
 - **Modern Web Components**: Built using native Custom Elements API

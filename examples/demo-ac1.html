@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ck-editable-array — AC-1 demo</title>
+    <style>
+      body { font-family: system-ui, Arial, sans-serif; padding: 16px; }
+      ck-editable-array { display: block; border: 1px solid #ddd; padding: 12px; max-width: 540px; }
+      .row-display { padding: 6px 0; }
+      .row-edit input { margin-right: 8px; }
+      .hint { color: #666; font-size: 13px; margin-bottom: 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>ck-editable-array — AC-1 demo</h1>
+    <p class="hint">This demo shows how to provide light-DOM templates for <code>slot="display"</code> and <code>slot="edit"</code> and set the <code>data</code> property. Build the project and include the component module for a live demo.</p>
+
+    <!-- Example usage: provide light DOM templates for display and edit -->
+    <ck-editable-array id="demo" name="person">
+      <template slot="display">
+        <div class="row-display">
+          <strong><span data-bind="address1"></span></strong>
+          <span> — </span>
+          <span data-bind="address2"></span>
+        </div>
+      </template>
+
+      <template slot="edit">
+        <div class="row-edit">
+          <input data-bind="address1" placeholder="Address 1" />
+          <input data-bind="address2" placeholder="Address 2" />
+        </div>
+      </template>
+    </ck-editable-array>
+
+    <script type="module">
+      // Import the built ESM module which registers the custom element.
+      // Adjust the path if you output the build to a different location.
+      // Try dynamic import first (standard way). If after import the element
+      // is not registered (some environments or file:// access may behave
+      // differently), fall back to injecting a module script tag and waiting
+      // for its load event.
+      const demo = document.getElementById('demo');
+
+      async function ensureModuleAndSetData() {
+        const path = '../dist/ck-editable-array/ck-editable-array.esm.js';
+        try {
+          await import(path);
+        } catch (err) {
+          console.warn('Dynamic import failed for', path, err);
+        }
+
+        // next microtask: check registration
+        await Promise.resolve();
+
+        if (!customElements.get('ck-editable-array')) {
+          // Injection fallback
+          await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.type = 'module';
+            s.src = path;
+            s.onload = () => resolve(undefined);
+            s.onerror = () => reject(new Error('failed to load module script ' + path));
+            document.head.appendChild(s);
+          }).catch(e => {
+            console.warn('Could not load module script fallback:', e);
+          });
+        }
+
+        if (customElements.get('ck-editable-array')) {
+          demo.data = [ { address1: 'A1', address2: 'A2' }, { address1: 'B1', address2: 'B2' } ];
+        } else {
+          console.warn('ck-editable-array is not registered after import.');
+        }
+      }
+
+      ensureModuleAndSetData();
+    </script>
+  </body>
+</html>
