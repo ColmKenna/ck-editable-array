@@ -51,35 +51,46 @@ import { CkEditableArray } from '@colmkenna/ck-webcomponents/ck-editable-array';
 
 ### CkEditableArray Component
 
-A simple greeting component with customizable name and color.
+`ck-editable-array` renders an editable list based on the data you provide. Supply two light-DOM templates:
+
+- `template[slot="display"]` – how each row should look in read-only mode
+- `template[slot="edit"]` – how each row should look when editing (usually inputs)
+
+Each template can use `[data-bind="fieldName"]` markers which are populated from the matching entry of the component's `data` array.
 
 ```html
-<!-- Basic usage -->
-<ck-editable-array></ck-editable-array>
+<ck-editable-array id="addresses">
+  <template slot="display">
+    <div class="row-display">
+      <span data-bind="value"></span>
+    </div>
+  </template>
 
-<!-- With custom name -->
-<ck-editable-array name="Developer"></ck-editable-array>
+  <template slot="edit">
+    <div class="row-edit">
+      <input data-bind="value" />
+    </div>
+  </template>
+</ck-editable-array>
 
-<!-- With custom name and color -->
-<ck-editable-array name="Developer" color="#ff6b6b"></ck-editable-array>
+<script type="module">
+  import '@colmkenna/ck-webcomponents/ck-editable-array';
+  const el = document.getElementById('addresses');
+  el.data = ['A', 'B', 'C'];
+  el.addEventListener('datachanged', event => {
+    console.log('updated array', event.detail.data);
+  });
+</script>
 ```
 
-#### Attributes
+#### API surface
 
-| Attribute | Type   | Default | Description                    |
-|-----------|--------|---------|--------------------------------|
-| `name`    | string | "World" | The name to display in the greeting |
-| `color`   | string | "#333"  | Text color for the message     |
+| Item | Type | Description |
+| --- | --- | --- |
+| `data` property | `unknown[]` | Array of rows to render. Primitives are treated as the entire row value, objects expose their keys to `data-bind`. `null` / `undefined` normalize to `[]`. |
+| `datachanged` event | `CustomEvent<{ data: unknown[] }>` | Bubbles + composed; fired whenever a user edit changes a row. |
 
-#### Properties
-
-The component also supports JavaScript property access:
-
-```javascript
-const ckEditableArray = document.querySelector('ck-editable-array');
-ckEditableArray.name = 'New Name';
-ckEditableArray.color = '#blue';
-```
+The component keeps the shadow DOM display rows and edit rows in sync. After each edit it re-renders the view and emits a fresh snapshot in the event detail.
 
 ## 🛠️ Development
 

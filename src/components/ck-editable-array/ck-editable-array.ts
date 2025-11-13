@@ -1,7 +1,7 @@
+type EditableRow = Record<string, unknown> | string;
+
 export class CkEditableArray extends HTMLElement {
-  private _data: Record<string, unknown>[] = [];
-  // Internal test/debug flag to record that the initial datachanged event was emitted.
-  private __initialDataEmitted = false;
+  private _data: EditableRow[] = [];
 
   constructor() {
     super();
@@ -20,11 +20,15 @@ export class CkEditableArray extends HTMLElement {
   }
 
   get data(): unknown[] {
-    return this._data;
+    return this._data.map(item =>
+      typeof item === 'string' ? item : { ...item }
+    );
   }
 
   set data(v: unknown[]) {
-    this._data = Array.isArray(v) ? (v as Record<string, unknown>[]) : [];
+    this._data = Array.isArray(v)
+      ? (v as unknown[]).map(item => this.cloneRow(item))
+      : [];
     if (this.isConnected) {
       this.render();
     }
@@ -36,33 +40,6 @@ export class CkEditableArray extends HTMLElement {
     console.log('ck-editable-array: connected', this);
     // Render when connected
     this.render();
-
-    // Emit initial datachanged event to notify consumers of current data
-    // Dispatch on next microtask to avoid race with test listener registration.
-    Promise.resolve().then(() => {
-      // Helpful debug when running tests
-      // eslint-disable-next-line no-console
-      console.log('ck-editable-array: dispatching datachanged', this._data);
-      // Mark that we've emitted the initial event (test hook)
-      // Set typed internal flag (no 'any' cast)
-      this.__initialDataEmitted = true;
-
-      const ev = new CustomEvent('datachanged', {
-        bubbles: true,
-        composed: true,
-        detail: { data: this._data },
-      });
-      // Dispatch on the element
-      this.dispatchEvent(ev);
-      // Also dispatch on document to satisfy test environments that may not propagate composed events across boundaries
-      try {
-        document.dispatchEvent(
-          new CustomEvent('datachanged', { detail: { data: this._data } })
-        );
-      } catch {
-        // ignore
-      }
-    });
   }
 
   private render(): void {
@@ -83,71 +60,191 @@ export class CkEditableArray extends HTMLElement {
     ) as HTMLTemplateElement | null;
 
     this._data.forEach((item, idx) => {
-      // Clone display template
-      if (displayTpl && displayTpl.content) {
-        const frag = displayTpl.content.cloneNode(true) as DocumentFragment;
-        // Determine element root in fragment
-        const el =
-          (frag.firstElementChild as HTMLElement) ??
-          document.createElement('div');
-        // If frag's firstElementChild isn't the true root (e.g., multiple nodes), wrap
-        if (!frag.firstElementChild) {
-          // append fragment into wrapper
-          const wrapper = document.createElement('div');
-          wrapper.appendChild(frag);
-          wrapper.setAttribute('data-row', String(idx));
-          wrapper.setAttribute('data-mode', 'display');
-          this.bindDataToNode(wrapper, item);
-          container.appendChild(wrapper);
-        } else {
-          el.setAttribute('data-row', String(idx));
-          el.setAttribute('data-mode', 'display');
-          this.bindDataToNode(el, item);
-          container.appendChild(el);
-        }
-      }
-
-      // Clone edit template
-      if (editTpl && editTpl.content) {
-        const frag = editTpl.content.cloneNode(true) as DocumentFragment;
-        const el =
-          (frag.firstElementChild as HTMLElement) ??
-          document.createElement('div');
-        if (!frag.firstElementChild) {
-          const wrapper = document.createElement('div');
-          wrapper.appendChild(frag);
-          wrapper.setAttribute('data-row', String(idx));
-          wrapper.setAttribute('data-mode', 'edit');
-          this.bindDataToNode(wrapper, item);
-          container.appendChild(wrapper);
-        } else {
-          el.setAttribute('data-row', String(idx));
-          el.setAttribute('data-mode', 'edit');
-          this.bindDataToNode(el, item);
-          container.appendChild(el);
-        }
-      }
+      this.appendRowFromTemplate(displayTpl, container, item, idx, 'display');
+      this.appendRowFromTemplate(editTpl, container, item, idx, 'edit');
     });
   }
 
   private bindDataToNode(
     root: HTMLElement,
-    data: Record<string, unknown>
+    data: EditableRow,
+    rowIndex: number,
+    mode: 'display' | 'edit'
   ): void {
     // Bind text content for elements with data-bind attribute
     const bound = root.querySelectorAll<HTMLElement>('[data-bind]');
     bound.forEach(node => {
       const key = node.getAttribute('data-bind') ?? '';
+      const value = this.resolveBindingValue(data, key);
       // If element is input-like, set value; otherwise set textContent
-      if (
-        node instanceof HTMLInputElement ||
-        node instanceof HTMLTextAreaElement
-      ) {
-        (node as HTMLInputElement).value = (data[key] as string) ?? '';
+      if (node instanceof HTMLInputElement) {
+        const inputNode = node as HTMLInputElement;
+        inputNode.value = value;
+        if (mode === 'edit') {
+          inputNode.addEventListener('input', () => {
+            this.commitRowValue(rowIndex, key, inputNode.value);
+          });
+        }
+      } else if (node instanceof HTMLTextAreaElement) {
+        const textAreaNode = node as HTMLTextAreaElement;
+        textAreaNode.value = value;
+        if (mode === 'edit') {
+          textAreaNode.addEventListener('input', () => {
+            this.commitRowValue(rowIndex, key, textAreaNode.value);
+          });
+        }
       } else {
-        node.textContent = String(data[key] ?? '');
+        node.textContent = value;
       }
     });
+  }
+
+  private appendRowFromTemplate(
+    template: HTMLTemplateElement | null,
+    container: HTMLElement,
+    rowData: EditableRow,
+    rowIndex: number,
+    mode: 'display' | 'edit'
+  ): void {
+    if (!template || !template.content) {
+      return;
+    }
+
+    const fragment = template.content.cloneNode(true) as DocumentFragment;
+    const firstChild = fragment.firstElementChild as HTMLElement | null;
+
+    if (firstChild) {
+      firstChild.setAttribute('data-row', String(rowIndex));
+      firstChild.setAttribute('data-mode', mode);
+      this.bindDataToNode(firstChild, rowData, rowIndex, mode);
+      container.appendChild(firstChild);
+      return;
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.setAttribute('data-row', String(rowIndex));
+    wrapper.setAttribute('data-mode', mode);
+    wrapper.appendChild(fragment);
+    this.bindDataToNode(wrapper, rowData, rowIndex, mode);
+    container.appendChild(wrapper);
+  }
+
+  private cloneRow(row: unknown): EditableRow {
+    if (typeof row === 'string') {
+      return row;
+    }
+    if (typeof row === 'number' || typeof row === 'boolean') {
+      return String(row);
+    }
+    if (row && typeof row === 'object' && !Array.isArray(row)) {
+      return { ...(row as Record<string, unknown>) };
+    }
+    return '';
+  }
+
+  private resolveBindingValue(data: EditableRow, key: string): string {
+    if (this.isRecord(data)) {
+      if (!key) {
+        return '';
+      }
+      const raw = data[key];
+      if (raw === undefined || raw === null) {
+        return '';
+      }
+      return String(raw);
+    }
+    return data;
+  }
+
+  private commitRowValue(
+    rowIndex: number,
+    key: string,
+    nextValue: string
+  ): void {
+    if (rowIndex < 0 || rowIndex >= this._data.length) {
+      return;
+    }
+
+    const normalizedNext = nextValue ?? '';
+    const currentValue = this.resolveBindingValue(this._data[rowIndex], key);
+
+    if (currentValue === normalizedNext) {
+      return;
+    }
+
+    const nextData = this._data.map(entry =>
+      this.isRecord(entry) ? { ...entry } : entry
+    );
+
+    const target = nextData[rowIndex];
+    if (this.isRecord(target) && key) {
+      target[key] = normalizedNext;
+    } else {
+      nextData[rowIndex] = normalizedNext;
+    }
+
+    this._data = nextData;
+
+    if (this.isConnected) {
+      // Update only bound nodes for the affected row/key instead of full re-render
+      this.updateBoundNodes(rowIndex, key);
+      this.dispatchDataChanged();
+    }
+  }
+
+  /**
+   * Update existing bound nodes in the shadow DOM for a specific row and key.
+   * If a specific key is provided, only nodes with that data-bind are updated;
+   * otherwise all bound nodes in the row are refreshed.
+   */
+  private updateBoundNodes(rowIndex: number, key?: string): void {
+    if (!this.shadowRoot) return;
+
+    const rowElems = Array.from(
+      this.shadowRoot.querySelectorAll<HTMLElement>(`[data-row="${rowIndex}"]`)
+    );
+    if (rowElems.length === 0) return;
+
+    rowElems.forEach(rowElem => {
+      const bound = key
+        ? Array.from(
+            rowElem.querySelectorAll<HTMLElement>(`[data-bind="${key}"]`)
+          )
+        : Array.from(rowElem.querySelectorAll<HTMLElement>('[data-bind]'));
+
+      bound.forEach(node => {
+        const bindKey = node.getAttribute('data-bind') ?? '';
+        const value = this.resolveBindingValue(this._data[rowIndex], bindKey);
+
+        if (node instanceof HTMLInputElement) {
+          // Only update input value if it differs (avoid clobbering user typing)
+          if (node.value !== value) {
+            node.value = value;
+          }
+        } else if (node instanceof HTMLTextAreaElement) {
+          if (node.value !== value) {
+            node.value = value;
+          }
+        } else {
+          if (node.textContent !== value) {
+            node.textContent = value;
+          }
+        }
+      });
+    });
+  }
+
+  private dispatchDataChanged(): void {
+    const event = new CustomEvent('datachanged', {
+      bubbles: true,
+      composed: true,
+      detail: { data: this.data },
+    });
+    this.dispatchEvent(event);
+  }
+
+  private isRecord(value: EditableRow): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
   }
 }
 

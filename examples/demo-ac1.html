@@ -10,11 +10,15 @@
       .row-display { padding: 6px 0; }
       .row-edit input { margin-right: 8px; }
       .hint { color: #666; font-size: 13px; margin-bottom: 12px; }
+      .event-log { background: #111; color: #9ef; padding: 12px; border-radius: 4px; min-height: 48px; font-size: 13px; }
+      .event-log strong { color: #fff; display: block; margin-bottom: 4px; }
+      .event-log pre { margin: 0; white-space: pre-wrap; color: #9ef; }
     </style>
   </head>
   <body>
-    <h1>ck-editable-array — AC-1 demo</h1>
+    <h1>ck-editable-array – AC-1 demo</h1>
     <p class="hint">This demo shows how to provide light-DOM templates for <code>slot="display"</code> and <code>slot="edit"</code> and set the <code>data</code> property. Build the project and include the component module for a live demo.</p>
+    <p class="hint">Edit any input below to see the <code>datachanged</code> event payload.</p>
 
     <!-- Example usage: provide light DOM templates for display and edit -->
     <ck-editable-array id="demo" name="person">
@@ -33,6 +37,10 @@
         </div>
       </template>
     </ck-editable-array>
+    <div class="event-log">
+      <strong>datachanged detail</strong>
+      <pre id="event-log">Waiting for edit…</pre>
+    </div>
 
     <script type="module">
       // Import the built ESM module which registers the custom element.
@@ -42,6 +50,13 @@
       // differently), fall back to injecting a module script tag and waiting
       // for its load event.
       const demo = document.getElementById('demo');
+
+      const log = document.getElementById('event-log');
+
+      function updateLog(detail) {
+        if (!log) return;
+        log.textContent = JSON.stringify(detail, null, 2);
+      }
 
       async function ensureModuleAndSetData() {
         const path = '../dist/ck-editable-array/ck-editable-array.esm.js';
@@ -70,6 +85,9 @@
 
         if (customElements.get('ck-editable-array')) {
           demo.data = [ { address1: 'A1', address2: 'A2' }, { address1: 'B1', address2: 'B2' } ];
+          demo.addEventListener('datachanged', event => {
+            updateLog(event.detail.data);
+          });
         } else {
           console.warn('ck-editable-array is not registered after import.');
         }
