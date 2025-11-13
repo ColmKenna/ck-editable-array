@@ -426,14 +426,18 @@ describe('CkEditableArray rendering', () => {
     await waitForRender();
     expect(await noChangeEvent).toBeNull();
 
+    // Clear data - this will fire a datachanged event
+    el.data = [];
+    await waitForRender();
+
+    // Now start listening for stale events AFTER the data clear event has fired
     const staleEvent = captureEventOrTimeout<CustomEvent>(
       el,
       'datachanged',
       50
     );
-    el.data = [];
-    await waitForRender();
 
+    // This input event should be ignored because the row no longer exists
     input!.value = 'New';
     input!.dispatchEvent(new Event('input', { bubbles: true }));
     await waitForRender();
@@ -567,12 +571,12 @@ function createComponent(
 ):
   | (InstanceType<typeof CkEditableArray> & { data: unknown[] })
   | (HTMLElement & { data?: unknown[] }) {
-  const el = new (CkEditableArray as typeof HTMLElement)() as any;
+  const el = new (CkEditableArray as typeof HTMLElement)() as unknown;
   el.setAttribute('name', 'letters');
   el.appendChild(createDisplayTemplate());
   el.appendChild(createEditTemplate());
   if (initialValue !== undefined) {
-    (el as any).data = initialValue;
+    (el as CkEditableArray).data = initialValue as unknown[];
   }
   return el;
 }

@@ -2,7 +2,7 @@ type EditableRow = Record<string, unknown> | string;
 
 export class CkEditableArray extends HTMLElement {
   private _data: EditableRow[] = [];
-  public schema: unknown = null;
+  private _schema: unknown = null;
   public newItemFactory: () => EditableRow = () => '';
 
   constructor() {
@@ -46,6 +46,15 @@ export class CkEditableArray extends HTMLElement {
       this.render();
       this.dispatchDataChanged();
     }
+  }
+
+  get schema(): unknown {
+    return this._schema;
+  }
+
+  set schema(v: unknown) {
+    // Normalize undefined to null for consistency
+    this._schema = v === undefined ? null : v;
   }
 
   connectedCallback(): void {

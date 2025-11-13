@@ -369,4 +369,56 @@ describe('CkEditableArray - Step 2: Public API', () => {
       });
     });
   });
+
+  describe('Test 2.3 — schema (getter/setter)', () => {
+    describe('Test 11 — Schema accepts and returns objects', () => {
+      test('Given a <ck-editable-array> element, When I set el.schema = { type: "object" }, And I then read el.schema, Then it returns the schema object', () => {
+        // Arrange
+        const el = new CkEditableArray() as CkEditableArray & {
+          schema: unknown;
+        };
+        const testSchema = { type: 'object' };
+
+        // Act
+        el.schema = testSchema;
+        const result = el.schema;
+
+        // Assert
+        expect(result).toEqual(testSchema);
+      });
+    });
+
+    describe('Test 12 — Schema accepts null/undefined', () => {
+      test('Given a <ck-editable-array> element with a non-null schema already assigned, When I set el.schema = null, And I then read el.schema, Then it returns null', () => {
+        // Arrange
+        const el = new CkEditableArray() as CkEditableArray & {
+          schema: unknown;
+        };
+        el.schema = { type: 'object' };
+
+        // Act
+        el.schema = null;
+        const result = el.schema;
+
+        // Assert
+        expect(result).toBeNull();
+      });
+
+      test('Given a <ck-editable-array> element with a non-null schema already assigned, When I set el.schema = undefined, And I then read el.schema, Then it returns null (normalized sentinel)', () => {
+        // Arrange
+        const el = new CkEditableArray() as CkEditableArray & {
+          schema: unknown;
+        };
+        el.schema = { type: 'object' };
+
+        // Act
+        el.schema = undefined;
+        const result = el.schema;
+
+        // Assert
+        // Using null as the "no schema" sentinel for consistency
+        expect(result).toBeNull();
+      });
+    });
+  });
 });
