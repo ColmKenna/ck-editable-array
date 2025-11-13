@@ -38,3 +38,16 @@ Test status: all tests pass locally (see run in test log).
 - GREEN: taught `src/components/ck-editable-array/ck-editable-array.ts` to normalize primitive/object rows, bind `[data-bind]` nodes with row-level input handlers, and emit `datachanged` only when edits occur.
 - REFACTOR: introduced helpers for template instantiation, data cloning, and change dispatch so render/input logic stays focused on behavior.
 - Test status: `npm test` on 2025-11-13 passes (3 suites / 9 tests).
+
+## 2025-11-13 - Step 2: Shadow root scaffolding
+
+- Goal: ensure the component's shadow root contains proper scaffolding with dedicated containers for rows and add-button functionality.
+- RED: added Test 2 in `tests/ck-editable-array/ck-editable-array.step2.public-api.test.ts` asserting shadow root exists with `[part="rows"]` and `[part="add-button"]` containers.
+- GREEN: updated constructor in `src/components/ck-editable-array/ck-editable-array.ts` to create both containers within the root container.
+- REFACTOR: kept implementation minimal and consistent with existing shadow DOM patterns.
+
+Files touched:
+- `src/components/ck-editable-array/ck-editable-array.ts` — added rows and add-button containers to shadow root scaffolding.
+- `tests/ck-editable-array/ck-editable-array.step2.public-api.test.ts` — added shadow root setup tests.
+
+Test status: all tests pass locally (3 suites / 26 tests).

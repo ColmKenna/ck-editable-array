@@ -17,6 +17,17 @@ export class CkEditableArray extends HTMLElement {
     if (this.shadowRoot && this.shadowRoot.children.length === 0) {
       const container = document.createElement('div');
       container.setAttribute('part', 'root');
+
+      // Create rows container
+      const rowsContainer = document.createElement('div');
+      rowsContainer.setAttribute('part', 'rows');
+      container.appendChild(rowsContainer);
+
+      // Create add-button container
+      const addButtonContainer = document.createElement('div');
+      addButtonContainer.setAttribute('part', 'add-button');
+      container.appendChild(addButtonContainer);
+
       this.shadowRoot.appendChild(container);
     }
   }

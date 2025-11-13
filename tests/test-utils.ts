@@ -2,7 +2,7 @@
  * Test utilities for ck-editable-array component testing.
  */
 
-export async function waitForRender(element: HTMLElement): Promise<void> {
+export async function waitForRender(): Promise<void> {
   await Promise.resolve();
   await new Promise<void>(resolve => setTimeout(resolve, 0));
   // Ensure pending microtasks flush.
@@ -68,10 +68,7 @@ export function getRow(
   return rows[index] ?? null;
 }
 
-export async function clickAndWait(
-  target: HTMLElement,
-  component: HTMLElement
-): Promise<void> {
+export async function clickAndWait(target: HTMLElement): Promise<void> {
   target.click();
-  await waitForRender(component);
+  await waitForRender();
 }

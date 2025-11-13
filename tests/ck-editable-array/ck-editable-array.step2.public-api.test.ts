@@ -36,5 +36,36 @@ describe('CkEditableArray - Step 2: Public API', () => {
         expect(typeof el.newItemFactory).toBe('function');
       });
     });
+
+    describe('Test 2 — Shadow root setup', () => {
+      test('Given a newly constructed <ck-editable-array> element, When I access el.shadowRoot, Then it exists and is an open shadow root', () => {
+        // Arrange & Act
+        const el = new CkEditableArray();
+
+        // Assert
+        expect(el.shadowRoot).not.toBeNull();
+        expect(el.shadowRoot?.mode).toBe('open');
+      });
+
+      test('Given a newly constructed <ck-editable-array> element, When I access el.shadowRoot, Then it contains the basic scaffolding for the component (e.g. a rows container and an add-button container)', () => {
+        // Arrange & Act
+        const el = new CkEditableArray();
+
+        // Assert
+        expect(el.shadowRoot).not.toBeNull();
+
+        // Check for rows container
+        const rowsContainer = el.shadowRoot?.querySelector('[part="rows"]');
+        expect(rowsContainer).not.toBeNull();
+        expect(rowsContainer?.tagName.toLowerCase()).toBe('div');
+
+        // Check for add-button container
+        const addButtonContainer = el.shadowRoot?.querySelector(
+          '[part="add-button"]'
+        );
+        expect(addButtonContainer).not.toBeNull();
+        expect(addButtonContainer?.tagName.toLowerCase()).toBe('div');
+      });
+    });
   });
 });

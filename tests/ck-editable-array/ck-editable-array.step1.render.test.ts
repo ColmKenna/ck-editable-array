@@ -1,4 +1,4 @@
-import { CkEditableArray } from '../../src/components/ck-editable-array/ck-editable-array';
+﻿import { CkEditableArray } from '../../src/components/ck-editable-array/ck-editable-array';
 import {
   waitForRender,
   getShadowRoot,
@@ -45,7 +45,7 @@ describe('CkEditableArray rendering', () => {
     document.body.appendChild(el);
 
     // Wait for render microtasks
-    await waitForRender(el);
+    await waitForRender();
 
     // Note: we avoid asserting the composed/bubbled event here because some test
     // environments (jsdom) do not propagate composed events in the same way a
@@ -77,7 +77,7 @@ describe('CkEditableArray rendering', () => {
     const el = createComponent(['A', 'B', 'C']);
     document.body.appendChild(el);
 
-    await waitForRender(el);
+    await waitForRender();
 
     const root = getShadowRoot(el);
     expect(root).not.toBeNull();
@@ -109,7 +109,7 @@ describe('CkEditableArray rendering', () => {
     );
 
     document.body.appendChild(el);
-    await waitForRender(el);
+    await waitForRender();
 
     const root = getShadowRoot(el);
     expect(root).not.toBeNull();
@@ -135,7 +135,7 @@ describe('CkEditableArray rendering', () => {
       );
 
       document.body.appendChild(el);
-      await waitForRender(el);
+      await waitForRender();
 
       const root = getShadowRoot(el);
       expect(root).not.toBeNull();
@@ -153,7 +153,7 @@ describe('CkEditableArray rendering', () => {
   test('editing an existing item updates data and fires change event', async () => {
     const el = createComponent(['A', 'B', 'C']);
     document.body.appendChild(el);
-    await waitForRender(el);
+    await waitForRender();
 
     const root = getShadowRoot(el);
     expect(root).not.toBeNull();
@@ -168,7 +168,7 @@ describe('CkEditableArray rendering', () => {
     );
 
     simulateInput(firstInput!, 'A1');
-    await waitForRender(el);
+    await waitForRender();
 
     const changeEvent = await changeEventPromise;
     expect(changeEvent.detail.data).toEqual(['A1', 'B', 'C']);
@@ -183,7 +183,7 @@ describe('CkEditableArray rendering', () => {
   test('editing the only item updates data and display', async () => {
     const el = createComponent(['A']);
     document.body.appendChild(el);
-    await waitForRender(el);
+    await waitForRender();
 
     const root = getShadowRoot(el);
     expect(root).not.toBeNull();
@@ -198,7 +198,7 @@ describe('CkEditableArray rendering', () => {
     );
 
     simulateInput(input!, 'B');
-    await waitForRender(el);
+    await waitForRender();
 
     const changeEvent = await changeEventPromise;
     expect(changeEvent.detail.data).toEqual(['B']);
@@ -213,7 +213,7 @@ describe('CkEditableArray rendering', () => {
   test('editing an item to empty string updates data and fires change event', async () => {
     const el = createComponent(['A', 'B']);
     document.body.appendChild(el);
-    await waitForRender(el);
+    await waitForRender();
 
     const root = getShadowRoot(el);
     expect(root).not.toBeNull();
@@ -229,7 +229,7 @@ describe('CkEditableArray rendering', () => {
     );
 
     simulateInput(secondInput!, '');
-    await waitForRender(el);
+    await waitForRender();
 
     const changeEvent = await changeEventPromise;
     expect(changeEvent.detail.data).toEqual(['A', '']);
@@ -259,10 +259,10 @@ describe('CkEditableArray rendering', () => {
     el.appendChild(displayTpl);
 
     document.body.appendChild(el);
-    await waitForRender(el);
+    await waitForRender();
 
     el.data = [1, true, { value: 'OBJ', other: 'keep' }, null];
-    await waitForRender(el);
+    await waitForRender();
 
     const root = getShadowRoot(el);
     expect(root).not.toBeNull();
@@ -304,7 +304,7 @@ describe('CkEditableArray rendering', () => {
     (el as any).data = ['x'];
 
     document.body.appendChild(el);
-    await waitForRender(el);
+    await waitForRender();
 
     const root = getShadowRoot(el);
     expect(root).not.toBeNull();
@@ -346,7 +346,7 @@ describe('CkEditableArray rendering', () => {
     (el as any).data = ['Alpha'];
 
     document.body.appendChild(el);
-    await waitForRender(el);
+    await waitForRender();
 
     const root = getShadowRoot(el);
     expect(root).not.toBeNull();
@@ -363,7 +363,7 @@ describe('CkEditableArray rendering', () => {
 
     editor!.value = 'Bravo';
     editor!.dispatchEvent(new Event('input', { bubbles: true }));
-    await waitForRender(el);
+    await waitForRender();
 
     const changeEvent = await changeEventPromise;
     expect(changeEvent.detail.data).toEqual(['Bravo']);
@@ -379,7 +379,7 @@ describe('CkEditableArray rendering', () => {
   test('updates only targeted keys when editing object rows', async () => {
     const el = createComponent([{ value: 'First', extra: 'keep' }]);
     document.body.appendChild(el);
-    await waitForRender(el);
+    await waitForRender();
 
     const root = getShadowRoot(el);
     expect(root).not.toBeNull();
@@ -395,7 +395,7 @@ describe('CkEditableArray rendering', () => {
     );
 
     simulateInput(input!, 'Second');
-    await waitForRender(el);
+    await waitForRender();
 
     const changeEvent = await changeEventPromise;
     expect(changeEvent.detail.data).toEqual([
@@ -407,7 +407,7 @@ describe('CkEditableArray rendering', () => {
   test('ignores redundant and stale input events', async () => {
     const el = createComponent(['Persist']);
     document.body.appendChild(el);
-    await waitForRender(el);
+    await waitForRender();
 
     const root = getShadowRoot(el);
     expect(root).not.toBeNull();
@@ -423,7 +423,7 @@ describe('CkEditableArray rendering', () => {
       50
     );
     simulateInput(input!, 'Persist');
-    await waitForRender(el);
+    await waitForRender();
     expect(await noChangeEvent).toBeNull();
 
     const staleEvent = captureEventOrTimeout<CustomEvent>(
@@ -432,11 +432,11 @@ describe('CkEditableArray rendering', () => {
       50
     );
     el.data = [];
-    await waitForRender(el);
+    await waitForRender();
 
     input!.value = 'New';
     input!.dispatchEvent(new Event('input', { bubbles: true }));
-    await waitForRender(el);
+    await waitForRender();
 
     expect(await staleEvent).toBeNull();
   });
@@ -447,7 +447,7 @@ describe('CkEditableArray rendering', () => {
 
     const el = createComponent(['Rootless']);
     document.body.appendChild(el);
-    await waitForRender(el);
+    await waitForRender();
 
     el.shadowRoot?.querySelector('[part="root"]')?.remove();
     expect(() => renderFn.call(el)).not.toThrow();
@@ -502,7 +502,7 @@ describe('CkEditableArray rendering', () => {
     (el as any).data = ['Zero'];
 
     document.body.appendChild(el);
-    await waitForRender(el);
+    await waitForRender();
 
     const root = getShadowRoot(el);
     expect(root).not.toBeNull();
@@ -516,7 +516,7 @@ describe('CkEditableArray rendering', () => {
     );
 
     simulateInput(input!, 'All');
-    await waitForRender(el);
+    await waitForRender();
 
     const changeEvent = await changeEventPromise;
     expect(changeEvent.detail.data).toEqual(['All']);
