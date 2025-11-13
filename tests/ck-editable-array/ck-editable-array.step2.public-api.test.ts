@@ -68,4 +68,24 @@ describe('CkEditableArray - Step 2: Public API', () => {
       });
     });
   });
+
+  describe('Test 2.2 — data (getter/setter)', () => {
+    describe('Test 3 — Getter reflects last set value', () => {
+      test('Given a <ck-editable-array> element, When I set el.data = [{ id: 1 }, { id: 2 }], And I then read el.data, Then it returns an array of two items with id 1 and 2', () => {
+        // Arrange
+        const el = new CkEditableArray();
+        const testData = [{ id: 1 }, { id: 2 }];
+
+        // Act
+        el.data = testData;
+        const result = el.data;
+
+        // Assert
+        expect(Array.isArray(result)).toBe(true);
+        expect(result).toHaveLength(2);
+        expect(result[0]).toEqual({ id: 1 });
+        expect(result[1]).toEqual({ id: 2 });
+      });
+    });
+  });
 });
