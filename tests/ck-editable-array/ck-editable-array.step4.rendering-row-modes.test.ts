@@ -184,3 +184,181 @@ describe('CkEditableArray - Step 4: Core Rendering & Row Modes', () => {
     });
   });
 });
+
+describe('Test 4.2 — Slot & wrapper wiring (display/edit content)', () => {
+  describe('Test 4.2.1 — Each row has display and edit wrappers', () => {
+    test('Given a <ck-editable-array> element with both a slot="display" and a slot="edit" template defined in the light DOM, And data set to at least one item, When the component renders, Then each row in the shadow DOM contains a .display-content wrapper for the display template, And a .edit-content wrapper for the edit template', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span data-bind="name"></span>
+          </div>
+        `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+          <div class="row-edit">
+            <input data-bind="name" />
+          </div>
+        `;
+      el.appendChild(tplEdit);
+
+      // Set data to at least one item
+      el.data = [{ name: 'Item 1' }];
+
+      // Act - Attach to document
+      document.body.appendChild(el);
+
+      // Assert
+      const rowsContainer = el.shadowRoot?.querySelector('[part="rows"]');
+      expect(rowsContainer).not.toBeNull();
+
+      // Each row should have a .display-content wrapper
+      const displayWrappers =
+        el.shadowRoot?.querySelectorAll('.display-content');
+      expect(displayWrappers?.length).toBe(1);
+
+      // Each row should have a .edit-content wrapper
+      const editWrappers = el.shadowRoot?.querySelectorAll('.edit-content');
+      expect(editWrappers?.length).toBe(1);
+
+      // Verify the wrappers contain the cloned template content
+      const displayContent = displayWrappers?.[0];
+      expect(displayContent?.querySelector('.row-display')).not.toBeNull();
+
+      const editContent = editWrappers?.[0];
+      expect(editContent?.querySelector('.row-edit')).not.toBeNull();
+    });
+  });
+
+  describe('Test 4.2.2 — Display template is cloned per row', () => {
+    test("Given a display template that contains some distinctive structure or text (e.g. \"Display {{name}}\"), And data contains 2 items with different name values, When the component renders, Then each row's .display-content contains its own cloned version of the display template, And the content for row 0 includes the first item's name, And the content for row 1 includes the second item's name", () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with distinctive structure
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span class="prefix">Display: </span>
+            <span data-bind="name"></span>
+          </div>
+        `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+          <div class="row-edit">
+            <input data-bind="name" />
+          </div>
+        `;
+      el.appendChild(tplEdit);
+
+      // Set data with 2 items with different names
+      el.data = [{ name: 'Alice' }, { name: 'Bob' }];
+
+      // Act - Attach to document
+      document.body.appendChild(el);
+
+      // Assert
+      const displayWrappers =
+        el.shadowRoot?.querySelectorAll('.display-content');
+      expect(displayWrappers?.length).toBe(2);
+
+      // Row 0 should contain first item's name
+      const row0Display = displayWrappers?.[0];
+      const row0NameSpan = row0Display?.querySelector(
+        '[data-bind="name"]'
+      ) as HTMLElement;
+      expect(row0NameSpan?.textContent).toBe('Alice');
+
+      // Verify distinctive structure is present
+      const row0Prefix = row0Display?.querySelector('.prefix') as HTMLElement;
+      expect(row0Prefix?.textContent).toBe('Display: ');
+
+      // Row 1 should contain second item's name
+      const row1Display = displayWrappers?.[1];
+      const row1NameSpan = row1Display?.querySelector(
+        '[data-bind="name"]'
+      ) as HTMLElement;
+      expect(row1NameSpan?.textContent).toBe('Bob');
+
+      // Verify distinctive structure is present
+      const row1Prefix = row1Display?.querySelector('.prefix') as HTMLElement;
+      expect(row1Prefix?.textContent).toBe('Display: ');
+    });
+  });
+
+  describe('Test 4.2.3 — Edit template is cloned per row', () => {
+    test("Given an edit template with inputs (for example, <input data-bind=\"name\">), And data has at least 2 items with different name values, When the component renders, Then each row's .edit-content contains its own cloned version of the edit template, And the input in row 0 is bound to the first item's name, And the input in row 1 is bound to the second item's name", () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span data-bind="name"></span>
+          </div>
+        `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template with input
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+          <div class="row-edit">
+            <label>Name:</label>
+            <input data-bind="name" type="text" />
+          </div>
+        `;
+      el.appendChild(tplEdit);
+
+      // Set data with 2 items with different names
+      el.data = [{ name: 'Charlie' }, { name: 'Diana' }];
+
+      // Act - Attach to document
+      document.body.appendChild(el);
+
+      // Assert
+      const editWrappers = el.shadowRoot?.querySelectorAll('.edit-content');
+      expect(editWrappers?.length).toBe(2);
+
+      // Row 0 input should be bound to first item's name
+      const row0Edit = editWrappers?.[0];
+      const row0Input = row0Edit?.querySelector(
+        '[data-bind="name"]'
+      ) as HTMLInputElement;
+      expect(row0Input).not.toBeNull();
+      expect(row0Input?.value).toBe('Charlie');
+
+      // Verify distinctive structure is present
+      const row0Label = row0Edit?.querySelector('label') as HTMLElement;
+      expect(row0Label?.textContent).toBe('Name:');
+
+      // Row 1 input should be bound to second item's name
+      const row1Edit = editWrappers?.[1];
+      const row1Input = row1Edit?.querySelector(
+        '[data-bind="name"]'
+      ) as HTMLInputElement;
+      expect(row1Input).not.toBeNull();
+      expect(row1Input?.value).toBe('Diana');
+
+      // Verify distinctive structure is present
+      const row1Label = row1Edit?.querySelector('label') as HTMLElement;
+      expect(row1Label?.textContent).toBe('Name:');
+    });
+  });
+});

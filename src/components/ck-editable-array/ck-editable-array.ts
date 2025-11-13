@@ -306,34 +306,27 @@ export class CkEditableArray extends HTMLElement {
     }
 
     const fragment = template.content.cloneNode(true) as DocumentFragment;
-    const firstChild = fragment.firstElementChild as HTMLElement | null;
 
-    if (firstChild) {
-      firstChild.setAttribute('data-row', String(rowIndex));
-      firstChild.setAttribute('data-mode', mode);
-      
-      // Mark deleted items with data-deleted="true"
-      if (this.isRecord(rowData) && rowData.deleted === true) {
-        firstChild.setAttribute('data-deleted', 'true');
-      }
-      
-      this.bindDataToNode(firstChild, rowData, rowIndex, mode);
-      container.appendChild(firstChild);
-      return;
-    }
+    // Create a wrapper div with the appropriate class
+    const contentWrapper = document.createElement('div');
+    contentWrapper.className =
+      mode === 'display' ? 'display-content' : 'edit-content';
+    contentWrapper.setAttribute('data-row', String(rowIndex));
+    contentWrapper.setAttribute('data-mode', mode);
 
-    const wrapper = document.createElement('div');
-    wrapper.setAttribute('data-row', String(rowIndex));
-    wrapper.setAttribute('data-mode', mode);
-    
     // Mark deleted items with data-deleted="true"
     if (this.isRecord(rowData) && rowData.deleted === true) {
-      wrapper.setAttribute('data-deleted', 'true');
+      contentWrapper.setAttribute('data-deleted', 'true');
     }
-    
-    wrapper.appendChild(fragment);
-    this.bindDataToNode(wrapper, rowData, rowIndex, mode);
-    container.appendChild(wrapper);
+
+    // Append the cloned template content to the wrapper
+    contentWrapper.appendChild(fragment);
+
+    // Bind data to the wrapper's content
+    this.bindDataToNode(contentWrapper, rowData, rowIndex, mode);
+
+    // Append the wrapper to the container
+    container.appendChild(contentWrapper);
   }
 
   private cloneRow(row: unknown): EditableRow {
