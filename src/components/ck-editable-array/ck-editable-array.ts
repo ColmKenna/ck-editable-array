@@ -4,6 +4,7 @@ export class CkEditableArray extends HTMLElement {
   private _data: EditableRow[] = [];
   private _schema: unknown = null;
   private _newItemFactory: () => EditableRow = () => ({});
+  private _styleObserver: MutationObserver | null = null;
 
   constructor() {
     super();
@@ -76,8 +77,18 @@ export class CkEditableArray extends HTMLElement {
     console.log('ck-editable-array: connected', this);
     // Mirror styles from light DOM to shadow DOM
     this.mirrorStyles();
+    // Set up MutationObserver to watch for style changes
+    this.observeStyleChanges();
     // Render when connected
     this.render();
+  }
+
+  disconnectedCallback(): void {
+    // Clean up MutationObserver when element is removed from DOM
+    if (this._styleObserver) {
+      this._styleObserver.disconnect();
+      this._styleObserver = null;
+    }
   }
 
   private mirrorStyles(): void {
@@ -111,6 +122,72 @@ export class CkEditableArray extends HTMLElement {
 
     // Insert at the beginning of shadow root
     this.shadowRoot.insertBefore(mirroredStyle, this.shadowRoot.firstChild);
+  }
+
+  private observeStyleChanges(): void {
+    // Disconnect existing observer if any
+    if (this._styleObserver) {
+      this._styleObserver.disconnect();
+    }
+
+    // Create a new MutationObserver to watch for changes to style elements
+    this._styleObserver = new MutationObserver(mutations => {
+      let shouldRemirror = false;
+
+      for (const mutation of mutations) {
+        // Check if any added/removed nodes are style elements with slot="styles"
+        if (mutation.type === 'childList') {
+          // Check if the mutation target is a style element with slot="styles"
+          // (this catches textContent changes on the style element itself)
+          if (
+            mutation.target instanceof HTMLStyleElement &&
+            mutation.target.getAttribute('slot') === 'styles'
+          ) {
+            shouldRemirror = true;
+            break;
+          }
+
+          // Check if any added/removed nodes are style elements with slot="styles"
+          const hasStyleChanges =
+            Array.from(mutation.addedNodes).some(
+              node =>
+                node instanceof HTMLStyleElement &&
+                node.getAttribute('slot') === 'styles'
+            ) ||
+            Array.from(mutation.removedNodes).some(
+              node =>
+                node instanceof HTMLStyleElement &&
+                node.getAttribute('slot') === 'styles'
+            );
+
+          if (hasStyleChanges) {
+            shouldRemirror = true;
+            break;
+          }
+        }
+
+        // Check if the text content of a style element changed
+        if (
+          mutation.type === 'characterData' &&
+          mutation.target.parentElement instanceof HTMLStyleElement &&
+          mutation.target.parentElement.getAttribute('slot') === 'styles'
+        ) {
+          shouldRemirror = true;
+          break;
+        }
+      }
+
+      if (shouldRemirror) {
+        this.mirrorStyles();
+      }
+    });
+
+    // Observe the light DOM for changes
+    this._styleObserver.observe(this, {
+      childList: true, // Watch for added/removed children
+      characterData: true, // Watch for text content changes
+      subtree: true, // Watch all descendants
+    });
   }
 
   private render(): void {

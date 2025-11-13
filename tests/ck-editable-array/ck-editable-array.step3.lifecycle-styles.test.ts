@@ -293,4 +293,121 @@ describe('CkEditableArray - Step 3: Lifecycle & Styles', () => {
       });
     });
   });
+
+  describe('Test 3.3 — Live style updates — MutationObserver behaviour', () => {
+    describe('Test 3.3.1 — Editing light DOM style updates shadow DOM style', () => {
+      test('Given a <ck-editable-array> element with a <style slot="styles"> child, And this child initially contains .run { color: green; }, And the element is attached to document.body, When I change the text content of the <style slot="styles"> in the light DOM to .run { color: purple; }, And I allow any observers/microtasks to run, Then the corresponding <style> inside the shadow root now contains .run { color: purple; }, And it no longer contains the previous green CSS', async () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Create style element with initial CSS
+        const styleEl = document.createElement('style');
+        styleEl.setAttribute('slot', 'styles');
+        styleEl.textContent = '.run { color: green; }';
+        el.appendChild(styleEl);
+
+        // Attach to DOM
+        document.body.appendChild(el);
+
+        // Verify initial state
+        let allStyleText = Array.from(
+          el.shadowRoot?.querySelectorAll('style') || []
+        )
+          .map(s => s.textContent)
+          .join('\n');
+        expect(allStyleText).toContain('.run { color: green; }');
+
+        // Act - Change the style content
+        styleEl.textContent = '.run { color: purple; }';
+
+        // Allow observers/microtasks to run
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        // Assert
+        // 1. Shadow root now contains the updated CSS
+        allStyleText = Array.from(
+          el.shadowRoot?.querySelectorAll('style') || []
+        )
+          .map(s => s.textContent)
+          .join('\n');
+        expect(allStyleText).toContain('.run { color: purple; }');
+
+        // 2. No longer contains the previous green CSS
+        expect(allStyleText).not.toContain('.run { color: green; }');
+      });
+    });
+
+    describe('Test 3.3.2 — Adding a new <style slot="styles"> after connect is mirrored', () => {
+      test('Given a <ck-editable-array> element attached to document.body, And it initially has no <style slot="styles"> children, When I append a new <style slot="styles"> child with content .extra { padding: 4px; } into the light DOM, And I allow observers/microtasks to run, Then the shadow root contains a <style> element whose text includes .extra { padding: 4px; }', async () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Attach to DOM without any styles
+        document.body.appendChild(el);
+
+        // Verify no mirrored styles initially
+        let mirroredStyles = el.shadowRoot?.querySelectorAll(
+          'style[data-mirrored]'
+        );
+        expect(mirroredStyles?.length || 0).toBe(0);
+
+        // Act - Add a new style element
+        const styleEl = document.createElement('style');
+        styleEl.setAttribute('slot', 'styles');
+        styleEl.textContent = '.extra { padding: 4px; }';
+        el.appendChild(styleEl);
+
+        // Allow observers/microtasks to run
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        // Assert
+        // Shadow root now contains the new CSS
+        const allStyleText = Array.from(
+          el.shadowRoot?.querySelectorAll('style') || []
+        )
+          .map(s => s.textContent)
+          .join('\n');
+        expect(allStyleText).toContain('.extra { padding: 4px; }');
+      });
+    });
+
+    describe('Test 3.3.3 — Removing a <style slot="styles"> child removes its CSS from shadow DOM', () => {
+      test('Given a <ck-editable-array> element attached to document.body, And it has a <style slot="styles"> child containing .temp { margin: 1px; }, When I remove that <style slot="styles"> node from the light DOM, And I allow observers/microtasks to run, Then the shadow root\'s <style> text no longer includes .temp { margin: 1px; }', async () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Create style element
+        const styleEl = document.createElement('style');
+        styleEl.setAttribute('slot', 'styles');
+        styleEl.textContent = '.temp { margin: 1px; }';
+        el.appendChild(styleEl);
+
+        // Attach to DOM
+        document.body.appendChild(el);
+
+        // Verify initial state - style is mirrored
+        let allStyleText = Array.from(
+          el.shadowRoot?.querySelectorAll('style') || []
+        )
+          .map(s => s.textContent)
+          .join('\n');
+        expect(allStyleText).toContain('.temp { margin: 1px; }');
+
+        // Act - Remove the style element
+        el.removeChild(styleEl);
+
+        // Allow observers/microtasks to run
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        // Assert
+        // Shadow root no longer contains the removed CSS
+        allStyleText = Array.from(
+          el.shadowRoot?.querySelectorAll('style') || []
+        )
+          .map(s => s.textContent)
+          .join('\n');
+        expect(allStyleText).not.toContain('.temp { margin: 1px; }');
+      });
+    });
+  });
 });
