@@ -3,7 +3,7 @@ type EditableRow = Record<string, unknown> | string;
 export class CkEditableArray extends HTMLElement {
   private _data: EditableRow[] = [];
   private _schema: unknown = null;
-  public newItemFactory: () => EditableRow = () => '';
+  public newItemFactory: () => EditableRow = () => ({});
 
   constructor() {
     super();

@@ -450,4 +450,23 @@ describe('CkEditableArray - Step 2: Public API', () => {
       });
     });
   });
+
+  describe('Test 2.4 — newItemFactory (getter/setter)', () => {
+    describe('Test 14 — Default factory produces an empty object', () => {
+      test('Given a fresh <ck-editable-array> element, When I call el.newItemFactory(), Then it returns an empty object (e.g. {})', () => {
+        // Arrange
+        const el = new CkEditableArray() as CkEditableArray & {
+          newItemFactory: () => unknown;
+        };
+
+        // Act
+        const result = el.newItemFactory();
+
+        // Assert
+        expect(result).toEqual({});
+        expect(typeof result).toBe('object');
+        expect(result).not.toBeNull();
+      });
+    });
+  });
 });
