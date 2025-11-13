@@ -172,5 +172,22 @@ describe('CkEditableArray - Step 2: Public API', () => {
         expect(result).toHaveLength(0);
       });
     });
+
+    describe('Test 6 — Primitive items are preserved', () => {
+      test('Given a <ck-editable-array> element, When I set el.data = ["a", "b"], And I then read el.data, Then it returns an array of two items equal to "a" and "b"', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Act
+        el.data = ['a', 'b'];
+        const result = el.data;
+
+        // Assert
+        expect(Array.isArray(result)).toBe(true);
+        expect(result).toHaveLength(2);
+        expect(result[0]).toBe('a');
+        expect(result[1]).toBe('b');
+      });
+    });
   });
 });
