@@ -543,4 +543,98 @@ describe('CkEditableArray - Step 3: Lifecycle & Styles', () => {
       });
     });
   });
+
+  describe('Test 3.5  Attribute-driven lifecycle nuances', () => {
+    describe('Test 3.5.1  Changing name attribute triggers a re-render with updated input names', () => {
+      test('Given a <ck-editable-array> element attached to document.body with data set to at least one item, And the rendered edit inputs use the current name attribute as a base (e.g. person[0].field), When I change el.setAttribute("name", "contact"), And allow the component to react, Then the rendered edit inputs in the shadow DOM now have names based on contact[0]... instead of the old base', async () => {
+        const el = new CkEditableArray();
+        const tplEdit = document.createElement('template');
+        tplEdit.setAttribute('slot', 'edit');
+        tplEdit.innerHTML =
+          '<div class="row-edit"><input data-bind="label" /></div>';
+        el.appendChild(tplEdit);
+        el.setAttribute('name', 'person');
+        el.data = [{ label: 'Item 1' }];
+        document.body.appendChild(el);
+        const initialInput = el.shadowRoot?.querySelector(
+          '[data-mode="edit"] input[data-bind="label"]'
+        ) as HTMLInputElement;
+        expect(initialInput).not.toBeNull();
+        expect(initialInput?.name).toBe('person[0].label');
+        el.setAttribute('name', 'contact');
+        await new Promise(resolve => setTimeout(resolve, 0));
+        const updatedInput = el.shadowRoot?.querySelector(
+          '[data-mode="edit"] input[data-bind="label"]'
+        ) as HTMLInputElement;
+        expect(updatedInput).not.toBeNull();
+        expect(updatedInput?.name).toBe('contact[0].label');
+        expect(updatedInput?.name).not.toContain('person');
+      });
+    });
+
+    describe('Test 3.5.2  Toggling readonly attribute disables interactivity', () => {
+      test('Given a <ck-editable-array> element attached to document.body with at least one rendered row, And initially, the user can focus and edit the row\'s inputs and use row toggle / add buttons, When I set el.setAttribute("readonly", ""), And allow the component to react, Then the rows appear in a non-editable state, And inputs are not editable (disabled or otherwise prevented), And interactive controls like the toggle and add button are disabled or have no effect', async () => {
+        const el = new CkEditableArray();
+        const tplEdit = document.createElement('template');
+        tplEdit.setAttribute('slot', 'edit');
+        tplEdit.innerHTML =
+          '<div class="row-edit"><input data-bind="label" /></div>';
+        el.appendChild(tplEdit);
+        el.data = [{ label: 'Item 1' }];
+        document.body.appendChild(el);
+        const initialInput = el.shadowRoot?.querySelector(
+          '[data-mode="edit"] input[data-bind="label"]'
+        ) as HTMLInputElement;
+        expect(initialInput).not.toBeNull();
+        expect(initialInput?.disabled).toBe(false);
+        expect(initialInput?.readOnly).toBe(false);
+        el.setAttribute('readonly', '');
+        await new Promise(resolve => setTimeout(resolve, 0));
+        const updatedInput = el.shadowRoot?.querySelector(
+          '[data-mode="edit"] input[data-bind="label"]'
+        ) as HTMLInputElement;
+        expect(updatedInput).not.toBeNull();
+        const isNonEditable = updatedInput?.disabled || updatedInput?.readOnly;
+        expect(isNonEditable).toBe(true);
+        const addButton = el.shadowRoot?.querySelector(
+          '[part="add-button"] button'
+        ) as HTMLButtonElement | null;
+        expect(addButton === null || addButton.disabled).toBe(true);
+      });
+    });
+
+    describe('Test 3.5.3  Removing readonly restores interactivity', () => {
+      test('Given the same <ck-editable-array> element in a readonly state from the previous test, When I remove the attribute with el.removeAttribute("readonly"), And allow the component to react, Then inputs become editable again, And row toggle and add actions become active once more', async () => {
+        const el = new CkEditableArray();
+        const tplEdit = document.createElement('template');
+        tplEdit.setAttribute('slot', 'edit');
+        tplEdit.innerHTML =
+          '<div class="row-edit"><input data-bind="label" /></div>';
+        el.appendChild(tplEdit);
+        el.data = [{ label: 'Item 1' }];
+        document.body.appendChild(el);
+        el.setAttribute('readonly', '');
+        await new Promise(resolve => setTimeout(resolve, 0));
+        const readonlyInput = el.shadowRoot?.querySelector(
+          '[data-mode="edit"] input[data-bind="label"]'
+        ) as HTMLInputElement;
+        expect(readonlyInput).not.toBeNull();
+        const wasNonEditable =
+          readonlyInput?.disabled || readonlyInput?.readOnly;
+        expect(wasNonEditable).toBe(true);
+        el.removeAttribute('readonly');
+        await new Promise(resolve => setTimeout(resolve, 0));
+        const editableInput = el.shadowRoot?.querySelector(
+          '[data-mode="edit"] input[data-bind="label"]'
+        ) as HTMLInputElement;
+        expect(editableInput).not.toBeNull();
+        expect(editableInput?.disabled).toBe(false);
+        expect(editableInput?.readOnly).toBe(false);
+        const addButton = el.shadowRoot?.querySelector(
+          '[part="add-button"] button'
+        ) as HTMLButtonElement | null;
+        expect(addButton === null || !addButton.disabled).toBe(true);
+      });
+    });
+  });
 });

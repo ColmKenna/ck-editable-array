@@ -6,14 +6,15 @@ export class CkEditableArray extends HTMLElement {
   private _newItemFactory: () => EditableRow = () => ({});
   private _styleObserver: MutationObserver | null = null;
 
+  static get observedAttributes(): string[] {
+    return ['name', 'readonly'];
+  }
+
   constructor() {
     super();
     if (this.shadowRoot === null) {
       this.attachShadow({ mode: 'open' });
     }
-    // Debug: indicate instance constructed
-
-    console.log('ck-editable-array: constructed', this);
     // Ensure a container exists for rendered rows
     if (this.shadowRoot && this.shadowRoot.children.length === 0) {
       const container = document.createElement('div');
@@ -72,9 +73,6 @@ export class CkEditableArray extends HTMLElement {
   }
 
   connectedCallback(): void {
-    // Debug: indicate connected
-
-    console.log('ck-editable-array: connected', this);
     // Mirror styles from light DOM to shadow DOM
     this.mirrorStyles();
     // Set up MutationObserver to watch for style changes
@@ -88,6 +86,22 @@ export class CkEditableArray extends HTMLElement {
     if (this._styleObserver) {
       this._styleObserver.disconnect();
       this._styleObserver = null;
+    }
+  }
+
+  attributeChangedCallback(
+    name: string,
+    oldValue: string | null,
+    newValue: string | null
+  ): void {
+    // Only react if the element is connected and the value actually changed
+    if (!this.isConnected || oldValue === newValue) {
+      return;
+    }
+
+    if (name === 'name' || name === 'readonly') {
+      // Re-render to apply the new attribute state
+      this.render();
     }
   }
 
@@ -227,6 +241,9 @@ export class CkEditableArray extends HTMLElement {
   ): void {
     // Bind text content for elements with data-bind attribute
     const bound = root.querySelectorAll<HTMLElement>('[data-bind]');
+    const nameBase = this.getAttribute('name') || '';
+    const isReadonly = this.hasAttribute('readonly');
+
     bound.forEach(node => {
       const key = node.getAttribute('data-bind') ?? '';
       const value = this.resolveBindingValue(data, key);
@@ -234,18 +251,42 @@ export class CkEditableArray extends HTMLElement {
       if (node instanceof HTMLInputElement) {
         const inputNode = node as HTMLInputElement;
         inputNode.value = value;
+
+        // Set name attribute based on component's name attribute
+        if (mode === 'edit' && nameBase && key) {
+          inputNode.name = `${nameBase}[${rowIndex}].${key}`;
+        }
+
+        // Handle readonly state
         if (mode === 'edit') {
-          inputNode.addEventListener('input', () => {
-            this.commitRowValue(rowIndex, key, inputNode.value);
-          });
+          if (isReadonly) {
+            inputNode.readOnly = true;
+          } else {
+            inputNode.readOnly = false;
+            inputNode.addEventListener('input', () => {
+              this.commitRowValue(rowIndex, key, inputNode.value);
+            });
+          }
         }
       } else if (node instanceof HTMLTextAreaElement) {
         const textAreaNode = node as HTMLTextAreaElement;
         textAreaNode.value = value;
+
+        // Set name attribute based on component's name attribute
+        if (mode === 'edit' && nameBase && key) {
+          textAreaNode.name = `${nameBase}[${rowIndex}].${key}`;
+        }
+
+        // Handle readonly state
         if (mode === 'edit') {
-          textAreaNode.addEventListener('input', () => {
-            this.commitRowValue(rowIndex, key, textAreaNode.value);
-          });
+          if (isReadonly) {
+            textAreaNode.readOnly = true;
+          } else {
+            textAreaNode.readOnly = false;
+            textAreaNode.addEventListener('input', () => {
+              this.commitRowValue(rowIndex, key, textAreaNode.value);
+            });
+          }
         }
       } else {
         node.textContent = value;
