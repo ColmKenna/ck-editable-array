@@ -319,6 +319,16 @@ export class CkEditableArray extends HTMLElement {
       contentWrapper.setAttribute('data-deleted', 'true');
     }
 
+    // Apply hidden class based on editing state
+    // If row is in editing mode, hide display and show edit
+    // If row is not in editing mode (default), show display and hide edit
+    const isEditing = this.isRecord(rowData) && rowData.editing === true;
+    if (mode === 'display' && isEditing) {
+      contentWrapper.classList.add('hidden');
+    } else if (mode === 'edit' && !isEditing) {
+      contentWrapper.classList.add('hidden');
+    }
+
     // Append the cloned template content to the wrapper
     contentWrapper.appendChild(fragment);
 

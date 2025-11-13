@@ -362,3 +362,167 @@ describe('Test 4.2 — Slot & wrapper wiring (display/edit content)', () => {
     });
   });
 });
+
+describe('Test 4.3 — Display vs edit visibility (hidden class)', () => {
+  describe('Test 4.3.1 — Display mode: show display, hide edit (using hidden class)', () => {
+    test('Given a <ck-editable-array> element attached to document.body, And data set so that the initial mode for all rows is display, When the component renders, Then for each row: The .display-content element is visible and does not have the hidden class, The .edit-content element has the hidden class applied', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span data-bind="name"></span>
+          </div>
+        `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+          <div class="row-edit">
+            <input data-bind="name" />
+          </div>
+        `;
+      el.appendChild(tplEdit);
+
+      // Set data - initial mode should be display for all rows
+      el.data = [{ name: 'Alice' }, { name: 'Bob' }, { name: 'Charlie' }];
+
+      // Act - Attach to document
+      document.body.appendChild(el);
+
+      // Assert
+      const displayWrappers =
+        el.shadowRoot?.querySelectorAll('.display-content');
+      const editWrappers = el.shadowRoot?.querySelectorAll('.edit-content');
+
+      expect(displayWrappers?.length).toBe(3);
+      expect(editWrappers?.length).toBe(3);
+
+      // For each row, display should be visible (no hidden class)
+      // and edit should be hidden (has hidden class)
+      displayWrappers?.forEach((displayWrapper, index) => {
+        expect(displayWrapper.classList.contains('hidden')).toBe(false);
+      });
+
+      editWrappers?.forEach((editWrapper, index) => {
+        expect(editWrapper.classList.contains('hidden')).toBe(true);
+      });
+    });
+  });
+
+  describe('Test 4.3.2 — Edit mode row: show edit, hide display (using hidden class)', () => {
+    test('Given a <ck-editable-array> element attached to document.body, And at least one row is put into edit mode via whatever action or configuration is appropriate (e.g. a new row, or a toggle from another phase), When the component renders that row in edit mode, Then for that row: .edit-content is visible and does not have the hidden class, .display-content has the hidden class applied', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span data-bind="name"></span>
+          </div>
+        `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+          <div class="row-edit">
+            <input data-bind="name" />
+          </div>
+        `;
+      el.appendChild(tplEdit);
+
+      // Set data with one row marked as editing
+      el.data = [{ name: 'Alice', editing: true }];
+
+      // Act - Attach to document
+      document.body.appendChild(el);
+
+      // Assert
+      const displayWrapper = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const editWrapper = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+
+      expect(displayWrapper).not.toBeNull();
+      expect(editWrapper).not.toBeNull();
+
+      // Display should be hidden
+      expect(displayWrapper?.classList.contains('hidden')).toBe(true);
+
+      // Edit should be visible (no hidden class)
+      expect(editWrapper?.classList.contains('hidden')).toBe(false);
+    });
+  });
+
+  describe('Test 4.3.3 — Non-active rows remain in display mode when another row is editing', () => {
+    test('Given a <ck-editable-array> element with 3 data items, And the element is attached to document.body, And row 1 is in edit mode (e.g. after a toggle, or "Add" creating an editable row), When the component renders, Then row 1 shows .edit-content (no hidden) and hides .display-content (with hidden), And rows 0 and 2 remain in display mode: their .display-content is visible with no hidden class, and their .edit-content has hidden', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span data-bind="name"></span>
+          </div>
+        `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+          <div class="row-edit">
+            <input data-bind="name" />
+          </div>
+        `;
+      el.appendChild(tplEdit);
+
+      // Set data with row 1 in edit mode, others in display mode
+      el.data = [
+        { name: 'Alice', editing: false },
+        { name: 'Bob', editing: true },
+        { name: 'Charlie', editing: false },
+      ];
+
+      // Act - Attach to document
+      document.body.appendChild(el);
+
+      // Assert - Row 0 (display mode)
+      const display0 = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const edit0 = el.shadowRoot?.querySelector('.edit-content[data-row="0"]');
+      expect(display0?.classList.contains('hidden')).toBe(false);
+      expect(edit0?.classList.contains('hidden')).toBe(true);
+
+      // Assert - Row 1 (edit mode)
+      const display1 = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      const edit1 = el.shadowRoot?.querySelector('.edit-content[data-row="1"]');
+      expect(display1?.classList.contains('hidden')).toBe(true);
+      expect(edit1?.classList.contains('hidden')).toBe(false);
+
+      // Assert - Row 2 (display mode)
+      const display2 = el.shadowRoot?.querySelector(
+        '.display-content[data-row="2"]'
+      );
+      const edit2 = el.shadowRoot?.querySelector('.edit-content[data-row="2"]');
+      expect(display2?.classList.contains('hidden')).toBe(false);
+      expect(edit2?.classList.contains('hidden')).toBe(true);
+    });
+  });
+});
