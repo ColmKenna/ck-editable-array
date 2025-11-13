@@ -47,5 +47,68 @@ describe('CkEditableArray - Step 3: Lifecycle & Styles', () => {
         expect(rowsContainer?.children.length).toBe(0);
       });
     });
+
+    describe('Test 3.1.2 — Existing data: renders rows on connect', () => {
+      test('Given a <ck-editable-array> element whose data has already been set to an array of items (for example 2 items), And it is not yet attached to the DOM, When I append it to document.body, Then the shadow root contains a rows container, And the rows container has exactly 2 rendered rows corresponding to the 2 data items', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Create display template
+        const tplDisplay = document.createElement('template');
+        tplDisplay.setAttribute('slot', 'display');
+        tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span data-bind="label"></span>
+          </div>
+        `;
+        el.appendChild(tplDisplay);
+
+        // Create edit template
+        const tplEdit = document.createElement('template');
+        tplEdit.setAttribute('slot', 'edit');
+        tplEdit.innerHTML = `
+          <div class="row-edit">
+            <input data-bind="label" />
+          </div>
+        `;
+        el.appendChild(tplEdit);
+
+        // Set data before connecting
+        el.data = [{ label: 'Item 1' }, { label: 'Item 2' }];
+
+        // Verify element is not yet attached
+        expect(el.isConnected).toBe(false);
+
+        // Act
+        document.body.appendChild(el);
+
+        // Assert
+        // 1. Shadow root contains rows container
+        const rowsContainer = el.shadowRoot?.querySelector('[part="rows"]');
+        expect(rowsContainer).not.toBeNull();
+        expect(rowsContainer?.tagName.toLowerCase()).toBe('div');
+
+        // 2. Rows container has exactly 2 rendered rows (display + edit for each item)
+        const displayRows = el.shadowRoot?.querySelectorAll(
+          '[data-mode="display"]'
+        );
+        const editRows = el.shadowRoot?.querySelectorAll('[data-mode="edit"]');
+
+        expect(displayRows?.length).toBe(2);
+        expect(editRows?.length).toBe(2);
+
+        // 3. Verify the rows correspond to the data items
+        const displaySpans = el.shadowRoot?.querySelectorAll(
+          '[data-mode="display"] [data-bind="label"]'
+        );
+        expect(displaySpans?.length).toBe(2);
+        expect(displaySpans?.[0].textContent).toBe('Item 1');
+        expect(displaySpans?.[1].textContent).toBe('Item 2');
+
+        // 4. Verify rows are in the rows container
+        const rowsInContainer = rowsContainer?.querySelectorAll('[data-row]');
+        expect(rowsInContainer?.length).toBe(4); // 2 display + 2 edit = 4 total
+      });
+    });
   });
 });
