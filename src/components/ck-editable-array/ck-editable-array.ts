@@ -96,15 +96,17 @@ export class CkEditableArray extends HTMLElement {
 
     if (lightStyles.length === 0) return;
 
-    // Create a single style element in shadow DOM with combined content
-    const mirroredStyle = document.createElement('style');
-    mirroredStyle.setAttribute('data-mirrored', 'true');
-
     // Combine all style content
     const combinedStyles = Array.from(lightStyles)
       .map(style => style.textContent || '')
       .join('\n');
 
+    // Skip creating mirrored style if content is empty or whitespace-only
+    if (combinedStyles.trim().length === 0) return;
+
+    // Create a single style element in shadow DOM with combined content
+    const mirroredStyle = document.createElement('style');
+    mirroredStyle.setAttribute('data-mirrored', 'true');
     mirroredStyle.textContent = combinedStyles;
 
     // Insert at the beginning of shadow root

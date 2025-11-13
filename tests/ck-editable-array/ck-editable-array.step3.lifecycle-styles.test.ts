@@ -251,5 +251,46 @@ describe('CkEditableArray - Step 3: Lifecycle & Styles', () => {
         expect(allStyleText).toContain('.b { color: blue; }');
       });
     });
+
+    describe('Test 3.2.3 — Style slot with whitespace-only content is effectively ignored', () => {
+      test('Given a <ck-editable-array> element with a <style slot="styles"> that only contains whitespace or an empty string, When I append the element to document.body, Then no extra empty or meaningless styles are added beyond what the component itself defines, And the shadow DOM does not contain duplicate empty <style> tags for each empty slot', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Create empty style element
+        const styleEl1 = document.createElement('style');
+        styleEl1.setAttribute('slot', 'styles');
+        styleEl1.textContent = '';
+        el.appendChild(styleEl1);
+
+        // Create whitespace-only style element
+        const styleEl2 = document.createElement('style');
+        styleEl2.setAttribute('slot', 'styles');
+        styleEl2.textContent = '   \n\t  ';
+        el.appendChild(styleEl2);
+
+        // Act
+        document.body.appendChild(el);
+
+        // Assert
+        // 1. Shadow root should not contain mirrored style elements for empty content
+        const mirroredStyles = el.shadowRoot?.querySelectorAll(
+          'style[data-mirrored]'
+        );
+
+        // With the optimization, no mirrored styles should be created for empty/whitespace content
+        expect(mirroredStyles?.length || 0).toBe(0);
+
+        // 2. Verify we don't have any non-empty style tags
+        const allStyles = el.shadowRoot?.querySelectorAll('style');
+        const nonEmptyStyles = Array.from(allStyles || []).filter(style => {
+          const content = style.textContent || '';
+          return content.trim().length > 0;
+        });
+
+        // Should have no non-empty styles (since we only added empty/whitespace styles)
+        expect(nonEmptyStyles.length).toBe(0);
+      });
+    });
   });
 });
