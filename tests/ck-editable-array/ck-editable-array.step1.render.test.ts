@@ -550,7 +550,7 @@ describe('CkEditableArray rendering', () => {
       resolveBindingValue: () => 'Stable',
     };
 
-    const update = (CkEditableArray.prototype as unknown).updateBoundNodes;
+    const update = (CkEditableArray.prototype as any).updateBoundNodes;
     expect(() => update.call(stub, 0)).not.toThrow();
     expect(nodes[0].textContent).toBe('Stable');
   });

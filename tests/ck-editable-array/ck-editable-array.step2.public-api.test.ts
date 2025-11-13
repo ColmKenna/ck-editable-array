@@ -468,5 +468,24 @@ describe('CkEditableArray - Step 2: Public API', () => {
         expect(result).not.toBeNull();
       });
     });
+
+    describe('Test 15 — Custom factory is used as-is', () => {
+      test("Given a <ck-editable-array> element, And a custom factory function that returns { name: '', email: '' }, When I set el.newItemFactory = factory, And later call el.newItemFactory(), Then the returned value is { name: '', email: '' }", () => {
+        // Arrange
+        const el = new CkEditableArray() as CkEditableArray & {
+          newItemFactory: () => unknown;
+        };
+        const customFactory = () => ({ name: '', email: '' });
+
+        // Act
+        el.newItemFactory = customFactory;
+        const result = el.newItemFactory();
+
+        // Assert
+        expect(result).toEqual({ name: '', email: '' });
+        expect(result).toHaveProperty('name');
+        expect(result).toHaveProperty('email');
+      });
+    });
   });
 });
