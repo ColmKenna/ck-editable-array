@@ -13,7 +13,10 @@ export function getShadowRoot(element: HTMLElement): ShadowRoot | null {
   return element.shadowRoot;
 }
 
-export function getSlottedContent(element: HTMLElement, slotName: string): HTMLElement | null {
+export function getSlottedContent(
+  element: HTMLElement,
+  slotName: string
+): HTMLElement | null {
   return element.querySelector<HTMLElement>(`[slot="${slotName}"]`);
 }
 
@@ -23,7 +26,10 @@ export function simulateInput(input: HTMLInputElement, value: string): void {
   input.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
-export function captureEvent<T = Event>(element: HTMLElement, eventName: string): Promise<T> {
+export function captureEvent<T = Event>(
+  element: HTMLElement,
+  eventName: string
+): Promise<T> {
   return new Promise(resolve => {
     element.addEventListener(
       eventName,
@@ -42,22 +48,30 @@ export function captureEventOrTimeout<T = Event>(
 ): Promise<T | null> {
   return Promise.race([
     captureEvent<T>(element, eventName),
-    new Promise<null>(resolve => setTimeout(() => resolve(null), timeout))
+    new Promise<null>(resolve => setTimeout(() => resolve(null), timeout)),
   ]);
 }
 
 export function getRows(element: HTMLElement): NodeListOf<HTMLElement> {
   const root = getShadowRoot(element);
-  return (root?.querySelectorAll<HTMLElement>('[data-row]') ??
-    ([] as unknown as NodeListOf<HTMLElement>));
+  return (
+    root?.querySelectorAll<HTMLElement>('[data-row]') ??
+    ([] as unknown as NodeListOf<HTMLElement>)
+  );
 }
 
-export function getRow(element: HTMLElement, index: number): HTMLElement | null {
+export function getRow(
+  element: HTMLElement,
+  index: number
+): HTMLElement | null {
   const rows = getRows(element);
   return rows[index] ?? null;
 }
 
-export async function clickAndWait(target: HTMLElement, component: HTMLElement): Promise<void> {
+export async function clickAndWait(
+  target: HTMLElement,
+  component: HTMLElement
+): Promise<void> {
   target.click();
   await waitForRender(component);
 }

@@ -2,6 +2,8 @@ type EditableRow = Record<string, unknown> | string;
 
 export class CkEditableArray extends HTMLElement {
   private _data: EditableRow[] = [];
+  public schema: unknown = null;
+  public newItemFactory: () => EditableRow = () => '';
 
   constructor() {
     super();
@@ -9,7 +11,7 @@ export class CkEditableArray extends HTMLElement {
       this.attachShadow({ mode: 'open' });
     }
     // Debug: indicate instance constructed
-    // eslint-disable-next-line no-console
+
     console.log('ck-editable-array: constructed', this);
     // Ensure a container exists for rendered rows
     if (this.shadowRoot && this.shadowRoot.children.length === 0) {
@@ -36,7 +38,7 @@ export class CkEditableArray extends HTMLElement {
 
   connectedCallback(): void {
     // Debug: indicate connected
-    // eslint-disable-next-line no-console
+
     console.log('ck-editable-array: connected', this);
     // Render when connected
     this.render();
