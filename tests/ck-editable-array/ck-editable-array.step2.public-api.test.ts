@@ -189,5 +189,30 @@ describe('CkEditableArray - Step 2: Public API', () => {
         expect(result[1]).toBe('b');
       });
     });
+
+    describe('Test 7 — "Deleted" flags survive round-trip', () => {
+      test('Given a <ck-editable-array> element, When I set el.data = [{ id: 1, deleted: true }, { id: 2 }], And I then read el.data, Then the first item still has deleted: true, And the second item does not have deleted: true', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Act
+        el.data = [{ id: 1, deleted: true }, { id: 2 }];
+        const result = el.data;
+
+        // Assert
+        expect(Array.isArray(result)).toBe(true);
+        expect(result).toHaveLength(2);
+
+        // First item should have deleted: true
+        const firstItem = result[0] as { id: number; deleted?: boolean };
+        expect(firstItem.id).toBe(1);
+        expect(firstItem.deleted).toBe(true);
+
+        // Second item should not have deleted property (or it should be undefined/false)
+        const secondItem = result[1] as { id: number; deleted?: boolean };
+        expect(secondItem.id).toBe(2);
+        expect(secondItem.deleted).not.toBe(true);
+      });
+    });
   });
 });
