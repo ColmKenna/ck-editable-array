@@ -84,23 +84,27 @@ export class CkEditableArray extends HTMLElement {
     if (!this.shadowRoot) return;
 
     // Remove any existing mirrored styles
-    const existingStyles = this.shadowRoot.querySelectorAll('style[data-mirrored]');
+    const existingStyles = this.shadowRoot.querySelectorAll(
+      'style[data-mirrored]'
+    );
     existingStyles.forEach(style => style.remove());
 
     // Find all <style slot="styles"> elements in light DOM
-    const lightStyles = this.querySelectorAll<HTMLStyleElement>('style[slot="styles"]');
-    
+    const lightStyles = this.querySelectorAll<HTMLStyleElement>(
+      'style[slot="styles"]'
+    );
+
     if (lightStyles.length === 0) return;
 
     // Create a single style element in shadow DOM with combined content
     const mirroredStyle = document.createElement('style');
     mirroredStyle.setAttribute('data-mirrored', 'true');
-    
+
     // Combine all style content
     const combinedStyles = Array.from(lightStyles)
       .map(style => style.textContent || '')
       .join('\n');
-    
+
     mirroredStyle.textContent = combinedStyles;
 
     // Insert at the beginning of shadow root
@@ -125,7 +129,13 @@ export class CkEditableArray extends HTMLElement {
     ) as HTMLTemplateElement | null;
 
     this._data.forEach((item, idx) => {
-      this.appendRowFromTemplate(displayTpl, rowsContainer, item, idx, 'display');
+      this.appendRowFromTemplate(
+        displayTpl,
+        rowsContainer,
+        item,
+        idx,
+        'display'
+      );
       this.appendRowFromTemplate(editTpl, rowsContainer, item, idx, 'edit');
     });
   }
