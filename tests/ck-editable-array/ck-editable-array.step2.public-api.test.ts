@@ -420,5 +420,34 @@ describe('CkEditableArray - Step 2: Public API', () => {
         expect(result).toBeNull();
       });
     });
+
+    describe('Test 13 — Changing schema does not immediately mutate data', () => {
+      test("Given a <ck-editable-array> element with el.data = [{ name: 'Alice' }], When I set el.schema = { fields: ['name'] }, And I then read el.data, Then el.data still returns [{ name: 'Alice' }] (no data rewritten just by setting schema)", () => {
+        // Arrange
+        const el = new CkEditableArray() as CkEditableArray & {
+          schema: unknown;
+        };
+        const initialData = [{ name: 'Alice' }];
+        el.data = initialData;
+
+        // Verify initial state
+        expect(el.data).toEqual([{ name: 'Alice' }]);
+        expect(el.schema).toBeNull();
+
+        // Act
+        el.schema = { fields: ['name'] };
+
+        // Assert
+        // Schema should be set
+        expect(el.schema).toEqual({ fields: ['name'] });
+
+        // Data should remain unchanged
+        expect(el.data).toEqual([{ name: 'Alice' }]);
+
+        // Verify data wasn't mutated (still a different reference due to cloning)
+        expect(el.data).not.toBe(initialData);
+        expect(el.data[0]).toEqual({ name: 'Alice' });
+      });
+    });
   });
 });

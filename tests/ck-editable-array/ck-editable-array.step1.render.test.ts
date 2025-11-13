@@ -550,7 +550,7 @@ describe('CkEditableArray rendering', () => {
       resolveBindingValue: () => 'Stable',
     };
 
-    const update = (CkEditableArray.prototype as any).updateBoundNodes;
+    const update = (CkEditableArray.prototype as unknown).updateBoundNodes;
     expect(() => update.call(stub, 0)).not.toThrow();
     expect(nodes[0].textContent).toBe('Stable');
   });
@@ -571,14 +571,16 @@ function createComponent(
 ):
   | (InstanceType<typeof CkEditableArray> & { data: unknown[] })
   | (HTMLElement & { data?: unknown[] }) {
-  const el = new (CkEditableArray as typeof HTMLElement)() as unknown;
+  const el = new (CkEditableArray as typeof HTMLElement)() as CkEditableArray;
   el.setAttribute('name', 'letters');
   el.appendChild(createDisplayTemplate());
   el.appendChild(createEditTemplate());
   if (initialValue !== undefined) {
-    (el as CkEditableArray).data = initialValue as unknown[];
+    el.data = initialValue as unknown[];
   }
-  return el;
+  return el as
+    | (InstanceType<typeof CkEditableArray> & { data: unknown[] })
+    | (HTMLElement & { data?: unknown[] });
 }
 
 function createDisplayTemplate(): HTMLTemplateElement {
