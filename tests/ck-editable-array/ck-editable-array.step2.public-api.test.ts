@@ -105,5 +105,72 @@ describe('CkEditableArray - Step 2: Public API', () => {
         expect((result[0] as { id: number }).id).not.toBe(99);
       });
     });
+
+    describe('Test 5 — Non-array values normalise to empty array', () => {
+      test('Given a <ck-editable-array> element, When I set el.data to null, And I then read el.data, Then el.data is an empty array', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Act
+        el.data = null as unknown as unknown[];
+        const result = el.data;
+
+        // Assert
+        expect(Array.isArray(result)).toBe(true);
+        expect(result).toHaveLength(0);
+      });
+
+      test('Given a <ck-editable-array> element, When I set el.data to undefined, And I then read el.data, Then el.data is an empty array', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Act
+        el.data = undefined as unknown as unknown[];
+        const result = el.data;
+
+        // Assert
+        expect(Array.isArray(result)).toBe(true);
+        expect(result).toHaveLength(0);
+      });
+
+      test('Given a <ck-editable-array> element, When I set el.data to a string, And I then read el.data, Then el.data is an empty array', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Act
+        el.data = 'not an array' as unknown as unknown[];
+        const result = el.data;
+
+        // Assert
+        expect(Array.isArray(result)).toBe(true);
+        expect(result).toHaveLength(0);
+      });
+
+      test('Given a <ck-editable-array> element, When I set el.data to a number, And I then read el.data, Then el.data is an empty array', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Act
+        el.data = 42 as unknown as unknown[];
+        const result = el.data;
+
+        // Assert
+        expect(Array.isArray(result)).toBe(true);
+        expect(result).toHaveLength(0);
+      });
+
+      test('Given a <ck-editable-array> element, When I set el.data to a plain object, And I then read el.data, Then el.data is an empty array', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Act
+        el.data = { key: 'value' } as unknown as unknown[];
+        const result = el.data;
+
+        // Assert
+        expect(Array.isArray(result)).toBe(true);
+        expect(result).toHaveLength(0);
+      });
+    });
   });
 });
