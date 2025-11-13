@@ -214,5 +214,61 @@ describe('CkEditableArray - Step 2: Public API', () => {
         expect(secondItem.deleted).not.toBe(true);
       });
     });
+
+    describe('Test 8 — Setting data on a connected element re-renders UI', () => {
+      test('Given a <ck-editable-array> element that is attached to document.body, And its data is initially an empty array, When I set el.data = [{ label: "A" }, { label: "B" }], Then the rendered rows in the shadow DOM reflect exactly two items, And the displayed text shows labels "A" and "B"', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Create display template
+        const tplDisplay = document.createElement('template');
+        tplDisplay.setAttribute('slot', 'display');
+        tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span data-bind="label"></span>
+          </div>
+        `;
+        el.appendChild(tplDisplay);
+
+        // Create edit template
+        const tplEdit = document.createElement('template');
+        tplEdit.setAttribute('slot', 'edit');
+        tplEdit.innerHTML = `
+          <div class="row-edit">
+            <input data-bind="label" />
+          </div>
+        `;
+        el.appendChild(tplEdit);
+
+        // Attach to document
+        document.body.appendChild(el);
+
+        // Verify initial state (empty)
+        expect(el.data).toEqual([]);
+
+        // Act
+        el.data = [{ label: 'A' }, { label: 'B' }];
+
+        // Assert
+        expect(el.shadowRoot).not.toBeNull();
+
+        // Check that exactly two rows are rendered (display + edit for each item)
+        const displayRows = el.shadowRoot?.querySelectorAll(
+          '[data-mode="display"]'
+        );
+        const editRows = el.shadowRoot?.querySelectorAll('[data-mode="edit"]');
+
+        expect(displayRows?.length).toBe(2);
+        expect(editRows?.length).toBe(2);
+
+        // Check that the labels are correctly displayed
+        const displaySpans = el.shadowRoot?.querySelectorAll(
+          '[data-mode="display"] [data-bind="label"]'
+        );
+        expect(displaySpans?.length).toBe(2);
+        expect(displaySpans?.[0].textContent).toBe('A');
+        expect(displaySpans?.[1].textContent).toBe('B');
+      });
+    });
   });
 });
