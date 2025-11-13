@@ -87,5 +87,23 @@ describe('CkEditableArray - Step 2: Public API', () => {
         expect(result[1]).toEqual({ id: 2 });
       });
     });
+
+    describe('Test 4 — Input array is cloned (no external mutation leak)', () => {
+      test('Given a <ck-editable-array> element, And a source array const source = [{ id: 1 }], When I set el.data = source, And later mutate source[0].id = 99, And I read el.data, Then the id in el.data[0] is still 1 (not 99)', () => {
+        // Arrange
+        const el = new CkEditableArray();
+        const source = [{ id: 1 }];
+
+        // Act
+        el.data = source;
+        source[0].id = 99; // Mutate the original source
+
+        const result = el.data;
+
+        // Assert
+        expect((result[0] as { id: number }).id).toBe(1);
+        expect((result[0] as { id: number }).id).not.toBe(99);
+      });
+    });
   });
 });

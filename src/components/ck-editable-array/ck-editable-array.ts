@@ -150,7 +150,8 @@ export class CkEditableArray extends HTMLElement {
       return String(row);
     }
     if (row && typeof row === 'object' && !Array.isArray(row)) {
-      return { ...(row as Record<string, unknown>) };
+      // Deep clone using JSON parse/stringify for immutability
+      return JSON.parse(JSON.stringify(row)) as Record<string, unknown>;
     }
     return '';
   }
