@@ -80,13 +80,13 @@ export class CkEditableArray extends HTMLElement {
 
   private render(): void {
     if (!this.shadowRoot) return;
-    const container = this.shadowRoot.querySelector(
-      '[part="root"]'
+    const rowsContainer = this.shadowRoot.querySelector(
+      '[part="rows"]'
     ) as HTMLElement;
-    if (!container) return;
+    if (!rowsContainer) return;
 
-    // Clear previous content
-    container.innerHTML = '';
+    // Clear previous rows content only (preserve scaffolding)
+    rowsContainer.innerHTML = '';
 
     const displayTpl = this.querySelector(
       'template[slot="display"]'
@@ -96,8 +96,8 @@ export class CkEditableArray extends HTMLElement {
     ) as HTMLTemplateElement | null;
 
     this._data.forEach((item, idx) => {
-      this.appendRowFromTemplate(displayTpl, container, item, idx, 'display');
-      this.appendRowFromTemplate(editTpl, container, item, idx, 'edit');
+      this.appendRowFromTemplate(displayTpl, rowsContainer, item, idx, 'display');
+      this.appendRowFromTemplate(editTpl, rowsContainer, item, idx, 'edit');
     });
   }
 
