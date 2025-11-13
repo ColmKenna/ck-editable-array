@@ -74,8 +74,37 @@ export class CkEditableArray extends HTMLElement {
     // Debug: indicate connected
 
     console.log('ck-editable-array: connected', this);
+    // Mirror styles from light DOM to shadow DOM
+    this.mirrorStyles();
     // Render when connected
     this.render();
+  }
+
+  private mirrorStyles(): void {
+    if (!this.shadowRoot) return;
+
+    // Remove any existing mirrored styles
+    const existingStyles = this.shadowRoot.querySelectorAll('style[data-mirrored]');
+    existingStyles.forEach(style => style.remove());
+
+    // Find all <style slot="styles"> elements in light DOM
+    const lightStyles = this.querySelectorAll<HTMLStyleElement>('style[slot="styles"]');
+    
+    if (lightStyles.length === 0) return;
+
+    // Create a single style element in shadow DOM with combined content
+    const mirroredStyle = document.createElement('style');
+    mirroredStyle.setAttribute('data-mirrored', 'true');
+    
+    // Combine all style content
+    const combinedStyles = Array.from(lightStyles)
+      .map(style => style.textContent || '')
+      .join('\n');
+    
+    mirroredStyle.textContent = combinedStyles;
+
+    // Insert at the beginning of shadow root
+    this.shadowRoot.insertBefore(mirroredStyle, this.shadowRoot.firstChild);
   }
 
   private render(): void {

@@ -184,4 +184,72 @@ describe('CkEditableArray - Step 3: Lifecycle & Styles', () => {
       });
     });
   });
+
+  describe('Test 3.2 — Style slot mirroring — initial sync', () => {
+    describe('Test 3.2.1 — Single <style slot="styles"> is mirrored into shadow DOM', () => {
+      test('Given a <ck-editable-array> element in the light DOM, And a <style slot="styles"> child inside it with distinctive CSS text (e.g. .foo { border: 3px solid; }), And the element is not yet attached to the DOM, When I append the <ck-editable-array> element to document.body, Then its shadowRoot contains a <style> element, And that <style> element\'s text includes the distinctive CSS .foo { border: 3px solid; }', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Create style element with distinctive CSS
+        const styleEl = document.createElement('style');
+        styleEl.setAttribute('slot', 'styles');
+        styleEl.textContent = '.foo { border: 3px solid; }';
+        el.appendChild(styleEl);
+
+        // Verify element is not yet attached
+        expect(el.isConnected).toBe(false);
+
+        // Act
+        document.body.appendChild(el);
+
+        // Assert
+        // 1. Shadow root contains a <style> element
+        const shadowStyles = el.shadowRoot?.querySelectorAll('style');
+        expect(shadowStyles).not.toBeNull();
+        expect(shadowStyles!.length).toBeGreaterThan(0);
+
+        // 2. The style element's text includes the distinctive CSS
+        const allStyleText = Array.from(shadowStyles!)
+          .map(s => s.textContent)
+          .join('\n');
+        expect(allStyleText).toContain('.foo { border: 3px solid; }');
+      });
+    });
+
+    describe('Test 3.2.2 — Multiple <style slot="styles"> entries are combined', () => {
+      test('Given a <ck-editable-array> element in the light DOM, And two <style slot="styles"> children, one containing .a { color: red; } and the other containing .b { color: blue; }, When I append the element to document.body, Then its shadowRoot contains at least one <style> element, And the text inside that style element includes both .a { color: red; } and .b { color: blue; }', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Create first style element
+        const styleEl1 = document.createElement('style');
+        styleEl1.setAttribute('slot', 'styles');
+        styleEl1.textContent = '.a { color: red; }';
+        el.appendChild(styleEl1);
+
+        // Create second style element
+        const styleEl2 = document.createElement('style');
+        styleEl2.setAttribute('slot', 'styles');
+        styleEl2.textContent = '.b { color: blue; }';
+        el.appendChild(styleEl2);
+
+        // Act
+        document.body.appendChild(el);
+
+        // Assert
+        // 1. Shadow root contains at least one <style> element
+        const shadowStyles = el.shadowRoot?.querySelectorAll('style');
+        expect(shadowStyles).not.toBeNull();
+        expect(shadowStyles!.length).toBeGreaterThan(0);
+
+        // 2. The combined style text includes both CSS rules
+        const allStyleText = Array.from(shadowStyles!)
+          .map(s => s.textContent)
+          .join('\n');
+        expect(allStyleText).toContain('.a { color: red; }');
+        expect(allStyleText).toContain('.b { color: blue; }');
+      });
+    });
+  });
 });
