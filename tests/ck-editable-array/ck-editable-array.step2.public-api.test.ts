@@ -335,5 +335,38 @@ describe('CkEditableArray - Step 2: Public API', () => {
         expect(displaySpan?.textContent).toBe('A');
       });
     });
+
+    describe('Test 10 — DataChanged event on setter', () => {
+      test("Given a <ck-editable-array> element attached to document.body, And an event listener on the element for a datachanged event, When I set el.data = [{ id: 1 }], Then exactly one datachanged event is fired, And the event's detail.data is an array with the item { id: 1 }", () => {
+        // Arrange
+        const el = new CkEditableArray();
+        document.body.appendChild(el);
+
+        let eventCount = 0;
+        let capturedEventDetail: unknown = null;
+
+        const eventListener = (event: Event) => {
+          eventCount++;
+          capturedEventDetail = (event as CustomEvent).detail;
+        };
+
+        el.addEventListener('datachanged', eventListener);
+
+        // Act
+        el.data = [{ id: 1 }];
+
+        // Assert
+        expect(eventCount).toBe(1);
+        expect(capturedEventDetail).not.toBeNull();
+
+        const detail = capturedEventDetail as { data: unknown[] };
+        expect(Array.isArray(detail.data)).toBe(true);
+        expect(detail.data).toHaveLength(1);
+        expect(detail.data[0]).toEqual({ id: 1 });
+
+        // Cleanup
+        el.removeEventListener('datachanged', eventListener);
+      });
+    });
   });
 });

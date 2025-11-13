@@ -44,6 +44,7 @@ export class CkEditableArray extends HTMLElement {
       : [];
     if (this.isConnected) {
       this.render();
+      this.dispatchDataChanged();
     }
   }
 
