@@ -410,4 +410,137 @@ describe('CkEditableArray - Step 3: Lifecycle & Styles', () => {
       });
     });
   });
+
+  describe('Test 3.4 — disconnectedCallback — cleanup / observers stop reacting', () => {
+    describe('Test 3.4.1 — Style mirroring stops after disconnect', () => {
+      test('Given a <ck-editable-array> element with a <style slot="styles"> child, And the element is attached to document.body, so the shadow DOM has a mirrored style element, When I remove the <ck-editable-array> element from document.body, And then change the text content of the <style slot="styles"> child in the light DOM, And I allow time for any previous observers to run, Then the <style> in the (now-detached) shadow root does not update to the new CSS text', async () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Create style element with initial CSS
+        const styleEl = document.createElement('style');
+        styleEl.setAttribute('slot', 'styles');
+        styleEl.textContent = '.foo { color: red; }';
+        el.appendChild(styleEl);
+
+        // Attach to DOM
+        document.body.appendChild(el);
+
+        // Verify initial state - style is mirrored
+        let allStyleText = Array.from(
+          el.shadowRoot?.querySelectorAll('style') || []
+        )
+          .map(s => s.textContent)
+          .join('\n');
+        expect(allStyleText).toContain('.foo { color: red; }');
+
+        // Act - Remove from DOM
+        document.body.removeChild(el);
+        expect(el.isConnected).toBe(false);
+
+        // Capture the style text after disconnect
+        const styleTextAfterDisconnect = Array.from(
+          el.shadowRoot?.querySelectorAll('style') || []
+        )
+          .map(s => s.textContent)
+          .join('\n');
+
+        // Change the light DOM style while disconnected
+        styleEl.textContent = '.foo { color: blue; }';
+
+        // Allow time for any observers to run
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        // Assert - Shadow root style should NOT have updated
+        const styleTextAfterChange = Array.from(
+          el.shadowRoot?.querySelectorAll('style') || []
+        )
+          .map(s => s.textContent)
+          .join('\n');
+
+        // The style text should remain unchanged (still red, not blue)
+        expect(styleTextAfterChange).toBe(styleTextAfterDisconnect);
+        expect(styleTextAfterChange).toContain('.foo { color: red; }');
+        expect(styleTextAfterChange).not.toContain('.foo { color: blue; }');
+      });
+    });
+
+    describe('Test 3.4.2 — Reconnecting re-syncs current styles', () => {
+      test('Given a <ck-editable-array> element attached to document.body with a <style slot="styles"> child containing .foo { color: red; }, And the shadow DOM has the mirrored .foo { color: red; } CSS, When I remove the element from document.body, And modify the light DOM <style slot="styles"> to .foo { color: blue; } while it is disconnected, And then re-attach the <ck-editable-array> element to document.body, Then the shadow root\'s <style> now reflects .foo { color: blue; }', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Create style element with initial CSS
+        const styleEl = document.createElement('style');
+        styleEl.setAttribute('slot', 'styles');
+        styleEl.textContent = '.foo { color: red; }';
+        el.appendChild(styleEl);
+
+        // Attach to DOM
+        document.body.appendChild(el);
+
+        // Verify initial state - style is mirrored
+        let allStyleText = Array.from(
+          el.shadowRoot?.querySelectorAll('style') || []
+        )
+          .map(s => s.textContent)
+          .join('\n');
+        expect(allStyleText).toContain('.foo { color: red; }');
+
+        // Act - Remove from DOM
+        document.body.removeChild(el);
+        expect(el.isConnected).toBe(false);
+
+        // Modify the light DOM style while disconnected
+        styleEl.textContent = '.foo { color: blue; }';
+
+        // Re-attach to DOM
+        document.body.appendChild(el);
+        expect(el.isConnected).toBe(true);
+
+        // Assert - Shadow root should now reflect the updated CSS
+        allStyleText = Array.from(
+          el.shadowRoot?.querySelectorAll('style') || []
+        )
+          .map(s => s.textContent)
+          .join('\n');
+        expect(allStyleText).toContain('.foo { color: blue; }');
+        expect(allStyleText).not.toContain('.foo { color: red; }');
+      });
+    });
+
+    describe('Test 3.4.3 — Disconnect does not throw even if no styles were ever present', () => {
+      test('Given a <ck-editable-array> element attached to document.body, And it has no <style slot="styles"> children, When I remove the element from document.body, Then no errors are thrown during disconnect, And the element can be safely re-attached later without errors', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Attach to DOM without any styles
+        document.body.appendChild(el);
+        expect(el.isConnected).toBe(true);
+
+        // Verify no mirrored styles
+        const mirroredStyles = el.shadowRoot?.querySelectorAll(
+          'style[data-mirrored]'
+        );
+        expect(mirroredStyles?.length || 0).toBe(0);
+
+        // Act & Assert - Remove from DOM (should not throw)
+        expect(() => {
+          document.body.removeChild(el);
+        }).not.toThrow();
+        expect(el.isConnected).toBe(false);
+
+        // Act & Assert - Re-attach to DOM (should not throw)
+        expect(() => {
+          document.body.appendChild(el);
+        }).not.toThrow();
+        expect(el.isConnected).toBe(true);
+
+        // Verify element is still functional
+        expect(el.shadowRoot).not.toBeNull();
+        const rowsContainer = el.shadowRoot?.querySelector('[part="rows"]');
+        expect(rowsContainer).not.toBeNull();
+      });
+    });
+  });
 });
