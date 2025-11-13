@@ -110,5 +110,78 @@ describe('CkEditableArray - Step 3: Lifecycle & Styles', () => {
         expect(rowsInContainer?.length).toBe(4); // 2 display + 2 edit = 4 total
       });
     });
+
+    describe('Test 3.1.3 — Idempotency: connecting again does not duplicate rows', () => {
+      test('Given a <ck-editable-array> element, And it is appended to document.body with data set to two items, When I remove it from document.body, And then append the same element back to document.body, Then the rows container still has exactly 2 rows (no duplicate rows appear)', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Create display template
+        const tplDisplay = document.createElement('template');
+        tplDisplay.setAttribute('slot', 'display');
+        tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span data-bind="label"></span>
+          </div>
+        `;
+        el.appendChild(tplDisplay);
+
+        // Create edit template
+        const tplEdit = document.createElement('template');
+        tplEdit.setAttribute('slot', 'edit');
+        tplEdit.innerHTML = `
+          <div class="row-edit">
+            <input data-bind="label" />
+          </div>
+        `;
+        el.appendChild(tplEdit);
+
+        // Set data and append to document
+        el.data = [{ label: 'Item 1' }, { label: 'Item 2' }];
+        document.body.appendChild(el);
+
+        // Verify initial state - 2 rows rendered
+        const displayRowsInitial = el.shadowRoot?.querySelectorAll(
+          '[data-mode="display"]'
+        );
+        const editRowsInitial =
+          el.shadowRoot?.querySelectorAll('[data-mode="edit"]');
+
+        expect(displayRowsInitial?.length).toBe(2);
+        expect(editRowsInitial?.length).toBe(2);
+
+        // Act - Remove from DOM
+        document.body.removeChild(el);
+        expect(el.isConnected).toBe(false);
+
+        // Act - Append back to DOM
+        document.body.appendChild(el);
+        expect(el.isConnected).toBe(true);
+
+        // Assert - Still exactly 2 rows (no duplicates)
+        const rowsContainer = el.shadowRoot?.querySelector('[part="rows"]');
+        expect(rowsContainer).not.toBeNull();
+
+        const displayRows = el.shadowRoot?.querySelectorAll(
+          '[data-mode="display"]'
+        );
+        const editRows = el.shadowRoot?.querySelectorAll('[data-mode="edit"]');
+
+        expect(displayRows?.length).toBe(2);
+        expect(editRows?.length).toBe(2);
+
+        // Verify the content is still correct
+        const displaySpans = el.shadowRoot?.querySelectorAll(
+          '[data-mode="display"] [data-bind="label"]'
+        );
+        expect(displaySpans?.length).toBe(2);
+        expect(displaySpans?.[0].textContent).toBe('Item 1');
+        expect(displaySpans?.[1].textContent).toBe('Item 2');
+
+        // Verify total row count in container
+        const rowsInContainer = rowsContainer?.querySelectorAll('[data-row]');
+        expect(rowsInContainer?.length).toBe(4); // Still 2 display + 2 edit = 4 total
+      });
+    });
   });
 });
