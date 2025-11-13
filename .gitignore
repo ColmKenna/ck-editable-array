@@ -68,3 +68,11 @@ jspm_packages/
 
 # npm configuration (may contain tokens)
 .npmrc.local
+dist/ck-editable-array/ck-editable-array.esm.js
+dist/ck-editable-array/ck-editable-array.esm.js.map
+dist/ck-editable-array/ck-editable-array.js
+dist/ck-editable-array/ck-editable-array.js.map
+dist/ck-editable-array/ck-editable-array.min.js
+dist/ck-editable-array/ck-editable-array.min.js.map
+dist/ck-editable-array/components/ck-editable-array/ck-editable-array.d.ts
+
