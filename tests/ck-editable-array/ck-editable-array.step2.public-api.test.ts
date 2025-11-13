@@ -270,5 +270,70 @@ describe('CkEditableArray - Step 2: Public API', () => {
         expect(displaySpans?.[1].textContent).toBe('B');
       });
     });
+
+    describe('Test 9 — Setting data on a disconnected element defers UI changes until connect', () => {
+      test('Given a <ck-editable-array> element that is not attached to the DOM, When I set el.data = [{ label: "A" }], And I immediately inspect the shadow DOM, Then there are either no rendered rows or only minimal scaffolding (no fully rendered row), When I then attach the element to document.body, Then a single row appears in the shadow DOM representing the item { label: "A" }', () => {
+        // Arrange
+        const el = new CkEditableArray();
+
+        // Create display template
+        const tplDisplay = document.createElement('template');
+        tplDisplay.setAttribute('slot', 'display');
+        tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span data-bind="label"></span>
+          </div>
+        `;
+        el.appendChild(tplDisplay);
+
+        // Create edit template
+        const tplEdit = document.createElement('template');
+        tplEdit.setAttribute('slot', 'edit');
+        tplEdit.innerHTML = `
+          <div class="row-edit">
+            <input data-bind="label" />
+          </div>
+        `;
+        el.appendChild(tplEdit);
+
+        // Act - Set data while disconnected
+        el.data = [{ label: 'A' }];
+
+        // Assert - Check that no fully rendered rows exist yet
+        const displayRowsBeforeConnect = el.shadowRoot?.querySelectorAll(
+          '[data-mode="display"]'
+        );
+        const editRowsBeforeConnect =
+          el.shadowRoot?.querySelectorAll('[data-mode="edit"]');
+
+        // Either no rows at all, or only scaffolding (rows container exists but empty)
+        expect(
+          displayRowsBeforeConnect?.length === 0 ||
+            displayRowsBeforeConnect === null
+        ).toBe(true);
+        expect(
+          editRowsBeforeConnect?.length === 0 || editRowsBeforeConnect === null
+        ).toBe(true);
+
+        // Act - Attach to document
+        document.body.appendChild(el);
+
+        // Assert - Now the row should be rendered
+        const displayRowsAfterConnect = el.shadowRoot?.querySelectorAll(
+          '[data-mode="display"]'
+        );
+        const editRowsAfterConnect =
+          el.shadowRoot?.querySelectorAll('[data-mode="edit"]');
+
+        expect(displayRowsAfterConnect?.length).toBe(1);
+        expect(editRowsAfterConnect?.length).toBe(1);
+
+        // Check that the label is correctly displayed
+        const displaySpan = el.shadowRoot?.querySelector(
+          '[data-mode="display"] [data-bind="label"]'
+        );
+        expect(displaySpan?.textContent).toBe('A');
+      });
+    });
   });
 });
