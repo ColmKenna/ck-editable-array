@@ -487,5 +487,55 @@ describe('CkEditableArray - Step 2: Public API', () => {
         expect(result).toHaveProperty('email');
       });
     });
+
+    describe('Test 16 — Invalid factory resets to a safe default', () => {
+      test('Given a <ck-editable-array> element, When I set el.newItemFactory to a non-function value (e.g. a string), And I then call el.newItemFactory(), Then it still returns a sensible default object (e.g. {}), And does not throw', () => {
+        // Arrange
+        const el = new CkEditableArray() as CkEditableArray & {
+          newItemFactory: any;
+        };
+
+        // Act - set to invalid value (string)
+        el.newItemFactory = 'not a function';
+
+        // Assert - should not throw and return default
+        expect(() => el.newItemFactory()).not.toThrow();
+        const result = el.newItemFactory();
+        expect(result).toEqual({});
+        expect(typeof result).toBe('object');
+      });
+
+      test('Given a <ck-editable-array> element, When I set el.newItemFactory to null, And I then call el.newItemFactory(), Then it still returns a sensible default object (e.g. {}), And does not throw', () => {
+        // Arrange
+        const el = new CkEditableArray() as CkEditableArray & {
+          newItemFactory: any;
+        };
+
+        // Act - set to null
+        el.newItemFactory = null;
+
+        // Assert - should not throw and return default
+        expect(() => el.newItemFactory()).not.toThrow();
+        const result = el.newItemFactory();
+        expect(result).toEqual({});
+        expect(typeof result).toBe('object');
+      });
+
+      test('Given a <ck-editable-array> element, When I set el.newItemFactory to undefined, And I then call el.newItemFactory(), Then it still returns a sensible default object (e.g. {}), And does not throw', () => {
+        // Arrange
+        const el = new CkEditableArray() as CkEditableArray & {
+          newItemFactory: unknown;
+        };
+
+        // Act - set to undefined
+        el.newItemFactory = undefined;
+
+        // Assert - should not throw and return default
+        expect(() => el.newItemFactory()).not.toThrow();
+        const result = el.newItemFactory();
+        expect(result).toEqual({});
+        expect(typeof result).toBe('object');
+      });
+    });
   });
 });

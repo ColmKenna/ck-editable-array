@@ -3,7 +3,7 @@ type EditableRow = Record<string, unknown> | string;
 export class CkEditableArray extends HTMLElement {
   private _data: EditableRow[] = [];
   private _schema: unknown = null;
-  public newItemFactory: () => EditableRow = () => ({});
+  private _newItemFactory: () => EditableRow = () => ({});
 
   constructor() {
     super();
@@ -55,6 +55,19 @@ export class CkEditableArray extends HTMLElement {
   set schema(v: unknown) {
     // Normalize undefined to null for consistency
     this._schema = v === undefined ? null : v;
+  }
+
+  get newItemFactory(): () => EditableRow {
+    return this._newItemFactory;
+  }
+
+  set newItemFactory(v: unknown) {
+    // Only accept functions, otherwise reset to default
+    if (typeof v === 'function') {
+      this._newItemFactory = v as () => EditableRow;
+    } else {
+      this._newItemFactory = () => ({});
+    }
   }
 
   connectedCallback(): void {
