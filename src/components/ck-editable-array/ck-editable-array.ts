@@ -311,6 +311,12 @@ export class CkEditableArray extends HTMLElement {
     if (firstChild) {
       firstChild.setAttribute('data-row', String(rowIndex));
       firstChild.setAttribute('data-mode', mode);
+      
+      // Mark deleted items with data-deleted="true"
+      if (this.isRecord(rowData) && rowData.deleted === true) {
+        firstChild.setAttribute('data-deleted', 'true');
+      }
+      
       this.bindDataToNode(firstChild, rowData, rowIndex, mode);
       container.appendChild(firstChild);
       return;
@@ -319,6 +325,12 @@ export class CkEditableArray extends HTMLElement {
     const wrapper = document.createElement('div');
     wrapper.setAttribute('data-row', String(rowIndex));
     wrapper.setAttribute('data-mode', mode);
+    
+    // Mark deleted items with data-deleted="true"
+    if (this.isRecord(rowData) && rowData.deleted === true) {
+      wrapper.setAttribute('data-deleted', 'true');
+    }
+    
     wrapper.appendChild(fragment);
     this.bindDataToNode(wrapper, rowData, rowIndex, mode);
     container.appendChild(wrapper);
