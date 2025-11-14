@@ -1033,16 +1033,34 @@ export class CkEditableArray extends HTMLElement {
       // Update field invalid indicator
       if (hasErrors) {
         input.setAttribute('data-invalid', 'true');
+        // Add ARIA invalid attribute for accessibility
+        input.setAttribute('aria-invalid', 'true');
       } else {
         input.removeAttribute('data-invalid');
+        input.removeAttribute('aria-invalid');
       }
 
       // Update error message display
       const errorElement = editWrapper.querySelector(
         `[data-field-error="${fieldName}"]`
-      );
+      ) as HTMLElement;
       if (errorElement) {
         errorElement.textContent = fieldErrors.join(', ');
+
+        // Set up ARIA relationship between input and error message
+        if (hasErrors) {
+          // Ensure error element has an ID
+          let errorId = errorElement.getAttribute('id');
+          if (!errorId) {
+            errorId = `error-${rowIndex}-${fieldName}`;
+            errorElement.setAttribute('id', errorId);
+          }
+          // Link input to error message via aria-describedby
+          input.setAttribute('aria-describedby', errorId);
+        } else {
+          // Remove aria-describedby when no errors
+          input.removeAttribute('aria-describedby');
+        }
       }
     });
 
@@ -1054,6 +1072,24 @@ export class CkEditableArray extends HTMLElement {
         errorCountElement.textContent = `${totalErrors} error${totalErrors !== 1 ? 's' : ''}`;
       } else {
         errorCountElement.textContent = '';
+      }
+    }
+
+    // Update error summary for accessibility
+    const errorSummary = editWrapper.querySelector(
+      '[data-error-summary]'
+    ) as HTMLElement;
+    if (errorSummary) {
+      if (isValid) {
+        // Clear summary when valid
+        errorSummary.textContent = '';
+      } else {
+        // Build summary of all errors
+        const errorMessages: string[] = [];
+        for (const [, messages] of Object.entries(validationResult.errors)) {
+          errorMessages.push(...messages);
+        }
+        errorSummary.textContent = errorMessages.join('. ') + '.';
       }
     }
   }

@@ -1131,9 +1131,7 @@ describe('CkEditableArray - Step 6.5: Cancel Behavior', () => {
       expect(dataAfterCancel[0].email).toBe(originalData[0].email);
 
       // 3. Display content shows original values
-      const displayName = row0DisplayAfter?.querySelector(
-        '[data-bind="name"]'
-      );
+      const displayName = row0DisplayAfter?.querySelector('[data-bind="name"]');
       const displayEmail = row0DisplayAfter?.querySelector(
         '[data-bind="email"]'
       );
@@ -1400,7 +1398,7 @@ describe('CkEditableArray - Step 6.6: Soft Delete & Restore', () => {
   });
 
   describe('Test 6.6.2 — Delete updates the data and emits datachanged', () => {
-    test('Given a listener for datachanged, And a row in display mode with a Delete control, When I click Delete, Then el.data\'s corresponding item is updated to reflect logical deletion (deleted: true), And a datachanged event is emitted', () => {
+    test("Given a listener for datachanged, And a row in display mode with a Delete control, When I click Delete, Then el.data's corresponding item is updated to reflect logical deletion (deleted: true), And a datachanged event is emitted", () => {
       // Arrange
       const el = new CkEditableArray();
 
@@ -1467,7 +1465,7 @@ describe('CkEditableArray - Step 6.6: Soft Delete & Restore', () => {
   });
 
   describe('Test 6.6.3 — Restore reverses soft delete', () => {
-    test('Given a row already marked as deleted (with data-deleted and a Restore control visible), When I click Restore, Then the row\'s deleted marker is removed (no data-deleted), And the corresponding item in el.data no longer has deleted: true, And a datachanged event is emitted with the restored data', () => {
+    test("Given a row already marked as deleted (with data-deleted and a Restore control visible), When I click Restore, Then the row's deleted marker is removed (no data-deleted), And the corresponding item in el.data no longer has deleted: true, And a datachanged event is emitted with the restored data", () => {
       // Arrange
       const el = new CkEditableArray();
 
@@ -1735,7 +1733,7 @@ describe('CkEditableArray - Step 6.7: Action Button Templates', () => {
       const row0Display = el.shadowRoot?.querySelector(
         '.display-content[data-row="0"]'
       );
-      
+
       const editBtn = row0Display?.querySelector(
         '[data-action="toggle"]'
       ) as HTMLButtonElement;
@@ -1836,9 +1834,15 @@ describe('CkEditableArray - Step 6.7: Action Button Templates', () => {
       const row0Display = el.shadowRoot?.querySelector(
         '.display-content[data-row="0"]'
       );
-      expect(row0Display?.querySelector('[data-action="toggle"]')).not.toBeNull();
-      expect(row0Display?.querySelector('[data-action="delete"]')).not.toBeNull();
-      expect(row0Display?.querySelector('[data-action="restore"]')).not.toBeNull();
+      expect(
+        row0Display?.querySelector('[data-action="toggle"]')
+      ).not.toBeNull();
+      expect(
+        row0Display?.querySelector('[data-action="delete"]')
+      ).not.toBeNull();
+      expect(
+        row0Display?.querySelector('[data-action="restore"]')
+      ).not.toBeNull();
       expect(row0Display?.querySelector('[data-action="save"]')).toBeNull();
       expect(row0Display?.querySelector('[data-action="cancel"]')).toBeNull();
 
@@ -1848,7 +1852,7 @@ describe('CkEditableArray - Step 6.7: Action Button Templates', () => {
       );
       expect(row1Edit?.querySelector('[data-action="save"]')).not.toBeNull();
       expect(row1Edit?.querySelector('[data-action="cancel"]')).not.toBeNull();
-      
+
       // Edit mode can still have Delete/Restore if needed
       // But the Edit (toggle to edit) button should not be in edit mode content
       const row1Display = el.shadowRoot?.querySelector(

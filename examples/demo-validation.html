@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ck-editable-array — Validation & Accessibility Demo</title>
+    <style>
+      body { 
+        font-family: system-ui, Arial, sans-serif; 
+        padding: 16px; 
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      
+      h1 { color: #333; }
+      h2 { color: #555; margin-top: 32px; }
+      
+      .hint { 
+        color: #666; 
+        font-size: 14px; 
+        margin-bottom: 16px; 
+        padding: 12px;
+        background: #f5f5f5;
+        border-left: 4px solid #0066cc;
+      }
+      
+      ck-editable-array { 
+        display: block; 
+        border: 1px solid #ddd; 
+        padding: 16px; 
+        margin-bottom: 24px;
+        border-radius: 4px;
+      }
+      
+      /* Display mode styles */
+      .row-display { 
+        padding: 12px; 
+        background: #f9f9f9;
+        border-radius: 4px;
+        margin-bottom: 8px;
+      }
+      
+      .row-display button {
+        margin-left: 8px;
+        padding: 4px 12px;
+        background: #0066cc;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      
+      .row-display button:hover {
+        background: #0052a3;
+      }
+      
+      /* Edit mode styles */
+      .row-edit { 
+        padding: 16px; 
+        background: #fff;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        margin-bottom: 8px;
+      }
+      
+      /* Invalid row styling */
+      .row-edit[data-row-invalid] {
+        border-color: #dc3545;
+        background: #fff5f5;
+      }
+      
+      /* Error summary styling */
+      .error-summary {
+        padding: 12px;
+        background: #dc3545;
+        color: white;
+        border-radius: 4px;
+        margin-bottom: 16px;
+        font-weight: 500;
+      }
+      
+      .error-summary:empty {
+        display: none;
+      }
+      
+      /* Form field styling */
+      .form-field {
+        margin-bottom: 16px;
+      }
+      
+      .form-field label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 4px;
+        color: #333;
+      }
+      
+      .form-field input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      
+      .form-field input:focus {
+        outline: none;
+        border-color: #0066cc;
+        box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+      }
+      
+      /* Invalid field styling */
+      .form-field input[data-invalid] {
+        border-color: #dc3545;
+        background: #fff5f5;
+      }
+      
+      .form-field input[data-invalid]:focus {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+      }
+      
+      /* Field error message styling */
+      .field-error {
+        display: block;
+        color: #dc3545;
+        font-size: 13px;
+        margin-top: 4px;
+        min-height: 18px;
+      }
+      
+      .field-error:empty {
+        display: none;
+      }
+      
+      /* Button styling */
+      .row-edit button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-right: 8px;
+      }
+      
+      .row-edit button[data-action="save"] {
+        background: #28a745;
+        color: white;
+      }
+      
+      .row-edit button[data-action="save"]:hover:not(:disabled) {
+        background: #218838;
+      }
+      
+      .row-edit button[data-action="save"]:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      
+      .row-edit button[data-action="cancel"] {
+        background: #6c757d;
+        color: white;
+      }
+      
+      .row-edit button[data-action="cancel"]:hover {
+        background: #5a6268;
+      }
+      
+      /* Error count badge */
+      .error-count {
+        display: inline-block;
+        padding: 4px 8px;
+        background: #dc3545;
+        color: white;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-left: 8px;
+      }
+      
+      .error-count:empty {
+        display: none;
+      }
+      
+      /* Accessibility info box */
+      .a11y-info {
+        background: #e7f3ff;
+        border: 1px solid #0066cc;
+        border-radius: 4px;
+        padding: 16px;
+        margin-bottom: 24px;
+      }
+      
+      .a11y-info h3 {
+        margin-top: 0;
+        color: #0066cc;
+      }
+      
+      .a11y-info ul {
+        margin: 8px 0;
+        padding-left: 24px;
+      }
+      
+      .a11y-info code {
+        background: #fff;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔍 Validation & Accessibility Demo</h1>
+    
+    <div class="a11y-info">
+      <h3>♿ Accessibility Features</h3>
+      <ul>
+        <li><strong>ARIA Invalid:</strong> Invalid fields have <code>aria-invalid="true"</code></li>
+        <li><strong>Error Association:</strong> Error messages linked via <code>aria-describedby</code></li>
+        <li><strong>Live Regions:</strong> Error summary uses <code>role="alert"</code> and <code>aria-live="polite"</code></li>
+        <li><strong>Visual Indicators:</strong> Invalid rows and fields are clearly marked</li>
+        <li><strong>Keyboard Support:</strong> All validation works with keyboard-only navigation</li>
+      </ul>
+    </div>
+
+    <h2>Example 1: Required Fields</h2>
+    <p class="hint">
+      Try clicking "Edit" on the empty row. Notice the Save button is disabled, 
+      error messages appear, and the row has a red border. Fill in the fields to see errors clear.
+    </p>
+    
+    <ck-editable-array id="demo1" name="user">
+      <template slot="display">
+        <div class="row-display">
+          <strong><span data-bind="name"></span></strong>
+          <span> — </span>
+          <span data-bind="email"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      </template>
+
+      <template slot="edit">
+        <div class="row-edit">
+          <!-- Error summary with ARIA attributes -->
+          <div class="error-summary" 
+               data-error-summary 
+               role="alert" 
+               aria-live="polite"></div>
+          
+          <!-- Name field -->
+          <div class="form-field">
+            <label for="name-input">Name *</label>
+            <input id="name-input" data-bind="name" placeholder="Enter name" />
+            <span class="field-error" data-field-error="name"></span>
+          </div>
+          
+          <!-- Email field -->
+          <div class="form-field">
+            <label for="email-input">Email *</label>
+            <input id="email-input" data-bind="email" placeholder="Enter email" />
+            <span class="field-error" data-field-error="email"></span>
+          </div>
+          
+          <div>
+            <button data-action="save">Save</button>
+            <button data-action="cancel">Cancel</button>
+            <span class="error-count" data-error-count></span>
+          </div>
+        </div>
+      </template>
+    </ck-editable-array>
+
+    <h2>Example 2: Partial Validation</h2>
+    <p class="hint">
+      This example shows how validation works when only some fields are invalid. 
+      Try editing the second row and clearing just the email field.
+    </p>
+    
+    <ck-editable-array id="demo2" name="contact">
+      <template slot="display">
+        <div class="row-display">
+          <strong><span data-bind="name"></span></strong>
+          <span> — </span>
+          <span data-bind="email"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      </template>
+
+      <template slot="edit">
+        <div class="row-edit">
+          <div class="error-summary" 
+               data-error-summary 
+               role="alert" 
+               aria-live="polite"></div>
+          
+          <div class="form-field">
+            <label>Name *</label>
+            <input data-bind="name" placeholder="Enter name" />
+            <span class="field-error" data-field-error="name"></span>
+          </div>
+          
+          <div class="form-field">
+            <label>Email *</label>
+            <input data-bind="email" placeholder="Enter email" />
+            <span class="field-error" data-field-error="email"></span>
+          </div>
+          
+          <div>
+            <button data-action="save">Save</button>
+            <button data-action="cancel">Cancel</button>
+            <span class="error-count" data-error-count></span>
+          </div>
+        </div>
+      </template>
+    </ck-editable-array>
+
+    <h2>Example 3: Add New Item with Validation</h2>
+    <p class="hint">
+      Click "Add Contact" to create a new row. It starts in edit mode with empty fields, 
+      showing validation errors immediately. The Save button is disabled until all required fields are filled.
+    </p>
+    
+    <ck-editable-array id="demo3" name="newContact">
+      <template slot="display">
+        <div class="row-display">
+          <strong><span data-bind="name"></span></strong>
+          <span> — </span>
+          <span data-bind="email"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      </template>
+
+      <template slot="edit">
+        <div class="row-edit">
+          <div class="error-summary" 
+               data-error-summary 
+               role="alert" 
+               aria-live="polite"></div>
+          
+          <div class="form-field">
+            <label>Name *</label>
+            <input data-bind="name" placeholder="Enter name" />
+            <span class="field-error" data-field-error="name"></span>
+          </div>
+          
+          <div class="form-field">
+            <label>Email *</label>
+            <input data-bind="email" placeholder="Enter email" />
+            <span class="field-error" data-field-error="email"></span>
+          </div>
+          
+          <div>
+            <button data-action="save">Save</button>
+            <button data-action="cancel">Cancel</button>
+            <span class="error-count" data-error-count></span>
+          </div>
+        </div>
+      </template>
+
+      <template slot="add-button">
+        <button data-action="add" style="background: #0066cc; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
+          ➕ Add Contact
+        </button>
+      </template>
+    </ck-editable-array>
+
+    <script type="module">
+      async function ensureModuleAndSetData() {
+        const path = '../dist/ck-editable-array/ck-editable-array.esm.js';
+        try {
+          await import(path);
+        } catch (err) {
+          console.warn('Dynamic import failed for', path, err);
+        }
+
+        await Promise.resolve();
+
+        if (!customElements.get('ck-editable-array')) {
+          await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.type = 'module';
+            s.src = path;
+            s.onload = () => resolve(undefined);
+            s.onerror = () => reject(new Error('failed to load module script ' + path));
+            document.head.appendChild(s);
+          }).catch(e => {
+            console.warn('Could not load module script fallback:', e);
+          });
+        }
+
+        if (customElements.get('ck-editable-array')) {
+          // Define validation schema
+          const schema = {
+            type: 'object',
+            properties: {
+              name: { type: 'string', minLength: 1 },
+              email: { type: 'string', minLength: 1 },
+            },
+            required: ['name', 'email'],
+          };
+
+          // Setup demo 1 - one valid row, one invalid row
+          const demo1 = document.getElementById('demo1');
+          if (demo1) {
+            demo1.schema = schema;
+            demo1.data = [
+              { name: 'Alice Smith', email: 'alice@example.com' },
+              { name: '', email: '' }
+            ];
+          }
+
+          // Setup demo 2 - all valid rows
+          const demo2 = document.getElementById('demo2');
+          if (demo2) {
+            demo2.schema = schema;
+            demo2.data = [
+              { name: 'Bob Jones', email: 'bob@example.com' },
+              { name: 'Carol White', email: 'carol@example.com' }
+            ];
+          }
+
+          // Setup demo 3 - empty array for adding
+          const demo3 = document.getElementById('demo3');
+          if (demo3) {
+            demo3.schema = schema;
+            demo3.data = [];
+            demo3.newItemFactory = () => ({ name: '', email: '' });
+          }
+        } else {
+          console.warn('ck-editable-array is not registered after import.');
+        }
+      }
+
+      ensureModuleAndSetData();
+    </script>
+  </body>
+</html>
