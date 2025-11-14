@@ -383,3 +383,239 @@ describe('CkEditableArray - Step 5.2: Clicking Add Creates a New Row', () => {
     });
   });
 });
+
+describe('CkEditableArray - Step 5.3: New Row Starts in Edit Mode', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('Test 5.3.1 — New row is rendered in edit mode', () => {
+    test('Given a <ck-editable-array> element attached to document.body, And data with at least one existing item, all rows currently in display mode, When I click the Add button, And the component finishes updating, Then the newly created row is marked as being in edit mode (for example data-mode="edit"), And all existing rows remain in display mode', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="save">Save</button>
+          <button data-action="cancel">Cancel</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with 2 items in display mode
+      el.data = [{ name: 'Alice' }, { name: 'Bob' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Verify initial state - all rows in display mode
+      const initialDisplayRows = el.shadowRoot?.querySelectorAll(
+        '[data-mode="display"]:not(.hidden)'
+      );
+      expect(initialDisplayRows?.length).toBe(2);
+
+      // Act - Click the Add button
+      const addButton = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      expect(addButton).not.toBeNull();
+      addButton?.click();
+
+      // Assert
+      // 1. All display-mode wrappers exist (3 total)
+      const allDisplayWrappers = el.shadowRoot?.querySelectorAll(
+        '[data-mode="display"]'
+      );
+      expect(allDisplayWrappers?.length).toBe(3);
+
+      // 2. All edit-mode wrappers exist (3 total)
+      const allEditWrappers =
+        el.shadowRoot?.querySelectorAll('[data-mode="edit"]');
+      expect(allEditWrappers?.length).toBe(3);
+
+      // 3. First 2 rows remain in display mode (display visible, edit hidden)
+      const row0Display = el.shadowRoot?.querySelector(
+        '[data-mode="display"][data-row="0"]'
+      );
+      const row0Edit = el.shadowRoot?.querySelector(
+        '[data-mode="edit"][data-row="0"]'
+      );
+      expect(row0Display?.classList.contains('hidden')).toBe(false);
+      expect(row0Edit?.classList.contains('hidden')).toBe(true);
+
+      const row1Display = el.shadowRoot?.querySelector(
+        '[data-mode="display"][data-row="1"]'
+      );
+      const row1Edit = el.shadowRoot?.querySelector(
+        '[data-mode="edit"][data-row="1"]'
+      );
+      expect(row1Display?.classList.contains('hidden')).toBe(false);
+      expect(row1Edit?.classList.contains('hidden')).toBe(true);
+
+      // 4. New row (row 2) is in edit mode (display hidden, edit visible)
+      const row2Display = el.shadowRoot?.querySelector(
+        '[data-mode="display"][data-row="2"]'
+      );
+      const row2Edit = el.shadowRoot?.querySelector(
+        '[data-mode="edit"][data-row="2"]'
+      );
+      expect(row2Display?.classList.contains('hidden')).toBe(true);
+      expect(row2Edit?.classList.contains('hidden')).toBe(false);
+    });
+  });
+
+  describe('Test 5.3.2 — New row shows edit content and hides display content (with hidden class)', () => {
+    test("Given the scenario above where a new row was just added, When I inspect the new row's content, Then the .edit-content for that new row is visible and does not have the hidden class, And the .display-content for that new row has the hidden class applied", () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Act - Click the Add button
+      const addButton = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      addButton?.click();
+
+      // Assert - Check the new row (row 1)
+      const newRowDisplay = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      const newRowEdit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="1"]'
+      );
+
+      // 1. Edit content is visible (no hidden class)
+      expect(newRowEdit).not.toBeNull();
+      expect(newRowEdit?.classList.contains('hidden')).toBe(false);
+
+      // 2. Display content has hidden class
+      expect(newRowDisplay).not.toBeNull();
+      expect(newRowDisplay?.classList.contains('hidden')).toBe(true);
+
+      // 3. Verify edit content is actually accessible
+      const editInput = newRowEdit?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      expect(editInput).not.toBeNull();
+      expect(editInput?.disabled).toBe(false);
+    });
+  });
+
+  describe("Test 5.3.3 — New row's toggle control is hidden while editing", () => {
+    test("Given a row that has just been created via the Add button and is in edit mode, When I inspect that row's controls, Then the row's toggle control (the one that usually switches between display/edit) is hidden or not rendered, And instead the edit-mode actions (such as Save/Cancel, or equivalents) are visible", () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with toggle control
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template with save/cancel controls
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="save">Save</button>
+          <button data-action="cancel">Cancel</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Act - Click the Add button
+      const addButton = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      addButton?.click();
+
+      // Assert - Check the new row (row 1)
+      const newRowDisplay = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      const newRowEdit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="1"]'
+      );
+
+      // 1. Display wrapper (containing toggle) is hidden
+      expect(newRowDisplay?.classList.contains('hidden')).toBe(true);
+
+      // 2. Toggle control exists but is hidden via parent wrapper
+      const toggleControl = newRowDisplay?.querySelector(
+        '[data-action="toggle"]'
+      );
+      expect(toggleControl).not.toBeNull();
+      // The toggle is not directly hidden, but its parent wrapper is
+      expect(newRowDisplay?.classList.contains('hidden')).toBe(true);
+
+      // 3. Edit wrapper is visible
+      expect(newRowEdit?.classList.contains('hidden')).toBe(false);
+
+      // 4. Edit-mode actions (Save/Cancel) are visible
+      const saveButton = newRowEdit?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      const cancelButton = newRowEdit?.querySelector(
+        '[data-action="cancel"]'
+      ) as HTMLButtonElement;
+
+      expect(saveButton).not.toBeNull();
+      expect(cancelButton).not.toBeNull();
+
+      // Edit wrapper is visible, so controls are accessible
+      expect(newRowEdit?.classList.contains('hidden')).toBe(false);
+    });
+  });
+});
