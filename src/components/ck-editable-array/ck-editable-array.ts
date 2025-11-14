@@ -1,4 +1,60 @@
-type EditableRow = Record<string, unknown> | string;
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+/**
+ * Represents internal row data with editing state markers
+ */
+interface InternalRowData extends Record<string, unknown> {
+  editing?: boolean;
+  deleted?: boolean;
+  __originalSnapshot?: Record<string, unknown>;
+  __isNew?: boolean;
+}
+
+/**
+ * A row can be either a primitive string or an object with properties
+ */
+type EditableRow = InternalRowData | string;
+
+/**
+ * Result of validation with detailed error information
+ */
+interface ValidationResult {
+  isValid: boolean;
+  errors: Record<string, string[]>;
+}
+
+/**
+ * JSON Schema-like structure for validation
+ */
+interface ValidationSchema {
+  required?: string[];
+  properties?: Record<string, PropertySchema>;
+}
+
+/**
+ * Property-level schema definition
+ */
+interface PropertySchema {
+  minLength?: number;
+  // Future: maxLength, pattern, type, etc.
+}
+
+/**
+ * Mode for rendering rows
+ */
+type RenderMode = 'display' | 'edit';
+
+/**
+ * Action types for button handlers
+ * (Reserved for future use in extracted helper methods)
+ */
+// type ActionType = 'add' | 'save' | 'cancel' | 'toggle' | 'delete' | 'restore';
+
+// ============================================================================
+// CLASS DEFINITION
+// ============================================================================
 
 export class CkEditableArray extends HTMLElement {
   private _data: EditableRow[] = [];
@@ -271,7 +327,7 @@ export class CkEditableArray extends HTMLElement {
     root: HTMLElement,
     data: EditableRow,
     rowIndex: number,
-    mode: 'display' | 'edit',
+    mode: RenderMode,
     isLocked: boolean = false
   ): void {
     // Bind text content for elements with data-bind attribute
@@ -400,7 +456,7 @@ export class CkEditableArray extends HTMLElement {
     container: HTMLElement,
     rowData: EditableRow,
     rowIndex: number,
-    mode: 'display' | 'edit',
+    mode: RenderMode,
     isLocked: boolean = false
   ): void {
     if (!template || !template.content) {
@@ -460,10 +516,7 @@ export class CkEditableArray extends HTMLElement {
   /**
    * Inject custom action buttons into a row wrapper
    */
-  private injectActionButtons(
-    wrapper: HTMLElement,
-    mode: 'display' | 'edit'
-  ): void {
+  private injectActionButtons(wrapper: HTMLElement, mode: RenderMode): void {
     // Define which buttons belong to which mode
     const displayButtons = ['button-edit', 'button-delete', 'button-restore'];
     const editButtons = ['button-save', 'button-cancel'];
@@ -556,7 +609,7 @@ export class CkEditableArray extends HTMLElement {
       return;
     }
 
-    const nextData = this._data.map(entry =>
+    const nextData: EditableRow[] = this._data.map(entry =>
       this.isRecord(entry) ? { ...entry } : entry
     );
 
@@ -666,7 +719,7 @@ export class CkEditableArray extends HTMLElement {
     this.dispatchEvent(event);
   }
 
-  private isRecord(value: EditableRow): value is Record<string, unknown> {
+  private isRecord(value: EditableRow): value is InternalRowData {
     return typeof value === 'object' && value !== null;
   }
 
@@ -750,7 +803,7 @@ export class CkEditableArray extends HTMLElement {
     const newItem = this._newItemFactory();
 
     // Mark the new item as being in editing mode, store original snapshot, and mark as new
-    const newItemWithEditing = this.isRecord(newItem)
+    const newItemWithEditing: EditableRow = this.isRecord(newItem)
       ? {
           ...newItem,
           editing: true,
@@ -786,7 +839,7 @@ export class CkEditableArray extends HTMLElement {
     }
 
     // Remove editing flag and internal markers from the row
-    const nextData = this._data.map((entry, idx) => {
+    const nextData: EditableRow[] = this._data.map((entry, idx) => {
       if (idx === rowIndex && this.isRecord(entry)) {
         // Remove editing flag, __isNew marker, and __originalSnapshot
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -846,16 +899,13 @@ export class CkEditableArray extends HTMLElement {
     }
 
     // Toggle the editing flag
-    const nextData = this._data.map((entry, idx) => {
+    const nextData: EditableRow[] = this._data.map((entry, idx) => {
       if (idx === rowIndex && this.isRecord(entry)) {
         if (isCurrentlyEditing) {
           // Exiting edit mode - restore from snapshot (acts like Cancel)
           const snapshot = entry.__originalSnapshot;
           if (snapshot && typeof snapshot === 'object') {
-            return JSON.parse(JSON.stringify(snapshot)) as Record<
-              string,
-              unknown
-            >;
+            return JSON.parse(JSON.stringify(snapshot)) as InternalRowData;
           } else {
             // No snapshot available, just remove editing flag
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -949,10 +999,7 @@ export class CkEditableArray extends HTMLElement {
           // Restore from snapshot if available, otherwise just remove editing flag
           const snapshot = entry.__originalSnapshot;
           if (snapshot && typeof snapshot === 'object') {
-            return JSON.parse(JSON.stringify(snapshot)) as Record<
-              string,
-              unknown
-            >;
+            return JSON.parse(JSON.stringify(snapshot)) as InternalRowData;
           } else {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { editing, __originalSnapshot, ...rest } = entry;
@@ -993,10 +1040,7 @@ export class CkEditableArray extends HTMLElement {
   /**
    * Validate a row and return detailed error information
    */
-  private validateRowDetailed(rowIndex: number): {
-    isValid: boolean;
-    errors: Record<string, string[]>;
-  } {
+  private validateRowDetailed(rowIndex: number): ValidationResult {
     const errors: Record<string, string[]> = {};
 
     if (rowIndex < 0 || rowIndex >= this._data.length) {
@@ -1013,12 +1057,11 @@ export class CkEditableArray extends HTMLElement {
       return { isValid: true, errors };
     }
 
-    const schema = this._schema as Record<string, unknown>;
+    const schema = this._schema as ValidationSchema;
 
     // Check required fields
     if (Array.isArray(schema.required)) {
-      const required = schema.required as string[];
-      for (const field of required) {
+      for (const field of schema.required) {
         const value = row[field];
         const isEmpty =
           value === undefined ||
@@ -1035,21 +1078,22 @@ export class CkEditableArray extends HTMLElement {
     }
 
     // Check properties constraints
-    if (schema.properties && typeof schema.properties === 'object') {
-      const properties = schema.properties as Record<string, unknown>;
-      for (const [key, propSchema] of Object.entries(properties)) {
-        if (propSchema && typeof propSchema === 'object') {
-          const prop = propSchema as Record<string, unknown>;
+    if (schema.properties) {
+      for (const [key, propSchema] of Object.entries(schema.properties)) {
+        if (propSchema) {
           const value = row[key];
 
           // Check minLength for strings
-          if (typeof prop.minLength === 'number' && typeof value === 'string') {
-            if (value.length < prop.minLength) {
+          if (
+            typeof propSchema.minLength === 'number' &&
+            typeof value === 'string'
+          ) {
+            if (value.length < propSchema.minLength) {
               if (!errors[key]) {
                 errors[key] = [];
               }
               errors[key].push(
-                `${key} must be at least ${prop.minLength} characters`
+                `${key} must be at least ${propSchema.minLength} characters`
               );
             }
           }
@@ -1190,7 +1234,7 @@ export class CkEditableArray extends HTMLElement {
     }
 
     // Mark the row as deleted
-    const nextData = this._data.map((entry, idx) => {
+    const nextData: EditableRow[] = this._data.map((entry, idx) => {
       if (idx === rowIndex && this.isRecord(entry)) {
         return { ...entry, deleted: true };
       }
@@ -1226,7 +1270,7 @@ export class CkEditableArray extends HTMLElement {
     }
 
     // Set the deleted flag to false for the row
-    const nextData = this._data.map((entry, idx) => {
+    const nextData: EditableRow[] = this._data.map((entry, idx) => {
       if (idx === rowIndex && this.isRecord(entry)) {
         return { ...entry, deleted: false };
       }
