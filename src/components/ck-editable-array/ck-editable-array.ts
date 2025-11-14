@@ -40,8 +40,9 @@ export class CkEditableArray extends HTMLElement {
         return item;
       }
       // Remove internal properties from public data
+      // Keep 'deleted' and 'editing' as they're part of the public API
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { __originalSnapshot, ...publicData } = item as Record<
+      const { __originalSnapshot, __isNew, ...publicData } = item as Record<
         string,
         unknown
       >;
