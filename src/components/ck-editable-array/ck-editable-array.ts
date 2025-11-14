@@ -332,6 +332,14 @@ export class CkEditableArray extends HTMLElement {
         btn.addEventListener('click', () => this.handleSaveClick(rowIndex));
       });
     }
+
+    // Attach Toggle button click handlers
+    const toggleButtons = root.querySelectorAll<HTMLButtonElement>(
+      '[data-action="toggle"]'
+    );
+    toggleButtons.forEach(btn => {
+      btn.addEventListener('click', () => this.handleToggleClick(rowIndex));
+    });
   }
 
   private appendRowFromTemplate(
@@ -627,6 +635,86 @@ export class CkEditableArray extends HTMLElement {
     // Re-render and dispatch datachanged event
     if (this.isConnected) {
       this.render();
+      this.dispatchDataChanged();
+    }
+  }
+
+  private handleToggleClick(rowIndex: number): void {
+    // Don't toggle if readonly
+    if (this.hasAttribute('readonly')) {
+      return;
+    }
+
+    // Validate row index
+    if (rowIndex < 0 || rowIndex >= this._data.length) {
+      return;
+    }
+
+    const currentRow = this._data[rowIndex];
+    if (!this.isRecord(currentRow)) {
+      return;
+    }
+
+    // Determine current and target modes
+    const isCurrentlyEditing = currentRow.editing === true;
+    const fromMode = isCurrentlyEditing ? 'edit' : 'display';
+    const toMode = isCurrentlyEditing ? 'display' : 'edit';
+
+    // Dispatch beforetogglemode event
+    const beforeEvent = new CustomEvent('beforetogglemode', {
+      bubbles: true,
+      composed: true,
+      cancelable: true,
+      detail: {
+        index: rowIndex,
+        from: fromMode,
+        to: toMode,
+      },
+    });
+
+    const allowed = this.dispatchEvent(beforeEvent);
+
+    // If event was canceled, don't proceed
+    if (!allowed) {
+      return;
+    }
+
+    // Toggle the editing flag
+    const nextData = this._data.map((entry, idx) => {
+      if (idx === rowIndex && this.isRecord(entry)) {
+        if (isCurrentlyEditing) {
+          // Remove editing flag
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { editing, ...rest } = entry;
+          return rest;
+        } else {
+          // Add editing flag
+          return { ...entry, editing: true };
+        }
+      }
+      return this.isRecord(entry) ? { ...entry } : entry;
+    });
+
+    this._data = nextData;
+
+    // Re-render
+    if (this.isConnected) {
+      this.render();
+    }
+
+    // Dispatch aftertogglemode event
+    const afterEvent = new CustomEvent('aftertogglemode', {
+      bubbles: true,
+      composed: true,
+      detail: {
+        index: rowIndex,
+        mode: toMode,
+      },
+    });
+    this.dispatchEvent(afterEvent);
+
+    // Dispatch datachanged event
+    if (this.isConnected) {
       this.dispatchDataChanged();
     }
   }
