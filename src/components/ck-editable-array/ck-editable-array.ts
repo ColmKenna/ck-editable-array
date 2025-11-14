@@ -293,9 +293,7 @@ export class CkEditableArray extends HTMLElement {
     ) as HTMLTemplateElement | null;
 
     // Check if any row is in edit mode for exclusive locking
-    const hasEditingRow = this._data.some(
-      item => this.isRecord(item) && item.editing === true
-    );
+    const hasEditingRow = this.isEditLocked();
 
     this._data.forEach((item, idx) => {
       const isEditing = this.isRecord(item) && item.editing === true;
@@ -333,7 +331,6 @@ export class CkEditableArray extends HTMLElement {
     // Bind text content for elements with data-bind attribute
     const bound = root.querySelectorAll<HTMLElement>('[data-bind]');
     const nameBase = this.getAttribute('name') || '';
-    const isReadonly = this.hasAttribute('readonly');
 
     bound.forEach(node => {
       const key = node.getAttribute('data-bind') ?? '';
@@ -350,7 +347,7 @@ export class CkEditableArray extends HTMLElement {
 
         // Handle readonly state
         if (mode === 'edit') {
-          if (isReadonly) {
+          if (this.isReadonlyBlocked()) {
             inputNode.readOnly = true;
           } else {
             inputNode.readOnly = false;
@@ -372,7 +369,7 @@ export class CkEditableArray extends HTMLElement {
 
         // Handle readonly state
         if (mode === 'edit') {
-          if (isReadonly) {
+          if (this.isReadonlyBlocked()) {
             textAreaNode.readOnly = true;
           } else {
             textAreaNode.readOnly = false;
@@ -598,7 +595,7 @@ export class CkEditableArray extends HTMLElement {
     key: string,
     nextValue: string
   ): void {
-    if (rowIndex < 0 || rowIndex >= this._data.length) {
+    if (!this.isValidRowIndex(rowIndex)) {
       return;
     }
 
@@ -723,6 +720,29 @@ export class CkEditableArray extends HTMLElement {
     return typeof value === 'object' && value !== null;
   }
 
+  /**
+   * Check if the component is in readonly mode
+   */
+  private isReadonlyBlocked(): boolean {
+    return this.hasAttribute('readonly');
+  }
+
+  /**
+   * Check if any row is currently in edit mode (exclusive locking)
+   */
+  private isEditLocked(): boolean {
+    return this._data.some(
+      item => this.isRecord(item) && item.editing === true
+    );
+  }
+
+  /**
+   * Validate that a row index is within valid bounds
+   */
+  private isValidRowIndex(rowIndex: number): boolean {
+    return rowIndex >= 0 && rowIndex < this._data.length;
+  }
+
   private renderAddButton(): void {
     if (!this.shadowRoot) return;
 
@@ -734,12 +754,8 @@ export class CkEditableArray extends HTMLElement {
     // Clear previous add button content
     addButtonContainer.innerHTML = '';
 
-    const isReadonly = this.hasAttribute('readonly');
-
-    // Check if any row is in edit mode (exclusive locking)
-    const hasEditingRow = this._data.some(
-      item => this.isRecord(item) && item.editing === true
-    );
+    const isReadonly = this.isReadonlyBlocked();
+    const hasEditingRow = this.isEditLocked();
 
     // Check if user provided a custom add button template
     const customAddButtonTpl = this.querySelector(
@@ -786,16 +802,8 @@ export class CkEditableArray extends HTMLElement {
   }
 
   private handleAddClick(): void {
-    // Don't add if readonly
-    if (this.hasAttribute('readonly')) {
-      return;
-    }
-
-    // Don't add if any row is already in edit mode (exclusive locking)
-    const hasEditingRow = this._data.some(
-      item => this.isRecord(item) && item.editing === true
-    );
-    if (hasEditingRow) {
+    // Don't add if readonly or if any row is in edit mode
+    if (this.isReadonlyBlocked() || this.isEditLocked()) {
       return;
     }
 
@@ -823,13 +831,8 @@ export class CkEditableArray extends HTMLElement {
   }
 
   private handleSaveClick(rowIndex: number): void {
-    // Don't save if readonly
-    if (this.hasAttribute('readonly')) {
-      return;
-    }
-
-    // Validate row index
-    if (rowIndex < 0 || rowIndex >= this._data.length) {
+    // Don't save if readonly or invalid index
+    if (this.isReadonlyBlocked() || !this.isValidRowIndex(rowIndex)) {
       return;
     }
 
@@ -859,13 +862,8 @@ export class CkEditableArray extends HTMLElement {
   }
 
   private handleToggleClick(rowIndex: number): void {
-    // Don't toggle if readonly
-    if (this.hasAttribute('readonly')) {
-      return;
-    }
-
-    // Validate row index
-    if (rowIndex < 0 || rowIndex >= this._data.length) {
+    // Don't toggle if readonly or invalid index
+    if (this.isReadonlyBlocked() || !this.isValidRowIndex(rowIndex)) {
       return;
     }
 
@@ -950,13 +948,8 @@ export class CkEditableArray extends HTMLElement {
   }
 
   private handleCancelClick(rowIndex: number): void {
-    // Don't cancel if readonly
-    if (this.hasAttribute('readonly')) {
-      return;
-    }
-
-    // Validate row index
-    if (rowIndex < 0 || rowIndex >= this._data.length) {
+    // Don't cancel if readonly or invalid index
+    if (this.isReadonlyBlocked() || !this.isValidRowIndex(rowIndex)) {
       return;
     }
 
@@ -1043,7 +1036,7 @@ export class CkEditableArray extends HTMLElement {
   private validateRowDetailed(rowIndex: number): ValidationResult {
     const errors: Record<string, string[]> = {};
 
-    if (rowIndex < 0 || rowIndex >= this._data.length) {
+    if (!this.isValidRowIndex(rowIndex)) {
       return { isValid: false, errors };
     }
 
@@ -1215,21 +1208,12 @@ export class CkEditableArray extends HTMLElement {
   }
 
   private handleDeleteClick(rowIndex: number): void {
-    // Don't delete if readonly
-    if (this.hasAttribute('readonly')) {
-      return;
-    }
-
-    // Validate row index
-    if (rowIndex < 0 || rowIndex >= this._data.length) {
-      return;
-    }
-
-    // Don't delete if any row is in edit mode (exclusive locking)
-    const hasEditingRow = this._data.some(
-      item => this.isRecord(item) && item.editing === true
-    );
-    if (hasEditingRow) {
+    // Don't delete if readonly, invalid index, or any row is in edit mode
+    if (
+      this.isReadonlyBlocked() ||
+      !this.isValidRowIndex(rowIndex) ||
+      this.isEditLocked()
+    ) {
       return;
     }
 
@@ -1251,21 +1235,12 @@ export class CkEditableArray extends HTMLElement {
   }
 
   private handleRestoreClick(rowIndex: number): void {
-    // Don't restore if readonly
-    if (this.hasAttribute('readonly')) {
-      return;
-    }
-
-    // Validate row index
-    if (rowIndex < 0 || rowIndex >= this._data.length) {
-      return;
-    }
-
-    // Don't restore if any row is in edit mode (exclusive locking)
-    const hasEditingRow = this._data.some(
-      item => this.isRecord(item) && item.editing === true
-    );
-    if (hasEditingRow) {
+    // Don't restore if readonly, invalid index, or any row is in edit mode
+    if (
+      this.isReadonlyBlocked() ||
+      !this.isValidRowIndex(rowIndex) ||
+      this.isEditLocked()
+    ) {
       return;
     }
 
