@@ -694,11 +694,12 @@ export class CkEditableArray extends HTMLElement {
     // Create a new item using the factory
     const newItem = this._newItemFactory();
 
-    // Mark the new item as being in editing mode and store original snapshot
+    // Mark the new item as being in editing mode, store original snapshot, and mark as new
     const newItemWithEditing = this.isRecord(newItem)
       ? {
           ...newItem,
           editing: true,
+          __isNew: true,
           __originalSnapshot: JSON.parse(JSON.stringify(newItem)),
         }
       : newItem;
@@ -729,12 +730,12 @@ export class CkEditableArray extends HTMLElement {
       return;
     }
 
-    // Remove editing flag from the row
+    // Remove editing flag and internal markers from the row
     const nextData = this._data.map((entry, idx) => {
       if (idx === rowIndex && this.isRecord(entry)) {
-        // Remove editing flag
+        // Remove editing flag, __isNew marker, and __originalSnapshot
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { editing, ...rest } = entry;
+        const { editing, __isNew, __originalSnapshot, ...rest } = entry;
         return rest;
       }
       return this.isRecord(entry) ? { ...entry } : entry;
@@ -868,24 +869,34 @@ export class CkEditableArray extends HTMLElement {
       return;
     }
 
-    // Restore original data from snapshot
-    const nextData = this._data.map((entry, idx) => {
-      if (idx === rowIndex && this.isRecord(entry)) {
-        // Restore from snapshot if available, otherwise just remove editing flag
-        const snapshot = entry.__originalSnapshot;
-        if (snapshot && typeof snapshot === 'object') {
-          return JSON.parse(JSON.stringify(snapshot)) as Record<
-            string,
-            unknown
-          >;
-        } else {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { editing, __originalSnapshot, ...rest } = entry;
-          return rest;
+    // Check if this is a new row that was just added (has __isNew marker)
+    // If so, remove it; otherwise restore from snapshot
+    const isNewRow = currentRow.__isNew === true;
+
+    let nextData: EditableRow[];
+    if (isNewRow) {
+      // Remove the new row entirely
+      nextData = this._data.filter((_, idx) => idx !== rowIndex);
+    } else {
+      // Restore original data from snapshot
+      nextData = this._data.map((entry, idx) => {
+        if (idx === rowIndex && this.isRecord(entry)) {
+          // Restore from snapshot if available, otherwise just remove editing flag
+          const snapshot = entry.__originalSnapshot;
+          if (snapshot && typeof snapshot === 'object') {
+            return JSON.parse(JSON.stringify(snapshot)) as Record<
+              string,
+              unknown
+            >;
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { editing, __originalSnapshot, ...rest } = entry;
+            return rest;
+          }
         }
-      }
-      return this.isRecord(entry) ? { ...entry } : entry;
-    });
+        return this.isRecord(entry) ? { ...entry } : entry;
+      });
+    }
 
     this._data = nextData;
 
