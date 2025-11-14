@@ -285,6 +285,8 @@ export class CkEditableArray extends HTMLElement {
             inputNode.readOnly = false;
             inputNode.addEventListener('input', () => {
               this.commitRowValue(rowIndex, key, inputNode.value);
+              // Update Save button state after input change
+              this.updateSaveButtonState(rowIndex);
             });
           }
         }
@@ -305,6 +307,8 @@ export class CkEditableArray extends HTMLElement {
             textAreaNode.readOnly = false;
             textAreaNode.addEventListener('input', () => {
               this.commitRowValue(rowIndex, key, textAreaNode.value);
+              // Update Save button state after input change
+              this.updateSaveButtonState(rowIndex);
             });
           }
         }
@@ -323,7 +327,7 @@ export class CkEditableArray extends HTMLElement {
       });
     }
 
-    // Attach Save button click handler
+    // Attach Save button click handler and set initial state
     if (mode === 'edit') {
       const saveButtons = root.querySelectorAll<HTMLButtonElement>(
         '[data-action="save"]'
@@ -331,6 +335,8 @@ export class CkEditableArray extends HTMLElement {
       saveButtons.forEach(btn => {
         btn.addEventListener('click', () => this.handleSaveClick(rowIndex));
       });
+      // Set initial Save button state based on validation
+      this.updateSaveButtonState(rowIndex);
     }
 
     // Attach Toggle button click handlers
@@ -619,6 +625,11 @@ export class CkEditableArray extends HTMLElement {
       return;
     }
 
+    // Don't save if row is invalid
+    if (!this.validateRow(rowIndex)) {
+      return;
+    }
+
     // Remove editing flag from the row
     const nextData = this._data.map((entry, idx) => {
       if (idx === rowIndex && this.isRecord(entry)) {
@@ -717,6 +728,88 @@ export class CkEditableArray extends HTMLElement {
     if (this.isConnected) {
       this.dispatchDataChanged();
     }
+  }
+
+  /**
+   * Validate a row against the schema (if provided)
+   */
+  private validateRow(rowIndex: number): boolean {
+    if (rowIndex < 0 || rowIndex >= this._data.length) {
+      return false;
+    }
+
+    const row = this._data[rowIndex];
+    if (!this.isRecord(row)) {
+      return true; // Primitive values are always valid
+    }
+
+    // If no schema is set, consider the row valid
+    if (!this._schema || typeof this._schema !== 'object') {
+      return true;
+    }
+
+    const schema = this._schema as Record<string, unknown>;
+
+    // Check required fields
+    if (Array.isArray(schema.required)) {
+      const required = schema.required as string[];
+      for (const field of required) {
+        const value = row[field];
+        if (value === undefined || value === null || value === '') {
+          return false;
+        }
+      }
+    }
+
+    // Check properties constraints
+    if (schema.properties && typeof schema.properties === 'object') {
+      const properties = schema.properties as Record<string, unknown>;
+      for (const [key, propSchema] of Object.entries(properties)) {
+        if (propSchema && typeof propSchema === 'object') {
+          const prop = propSchema as Record<string, unknown>;
+          const value = row[key];
+
+          // Check minLength for strings
+          if (
+            typeof prop.minLength === 'number' &&
+            typeof value === 'string'
+          ) {
+            if (value.length < prop.minLength) {
+              return false;
+            }
+          }
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Update the disabled state of Save buttons for a specific row
+   */
+  private updateSaveButtonState(rowIndex: number): void {
+    if (!this.shadowRoot) return;
+
+    const editWrapper = this.shadowRoot.querySelector(
+      `.edit-content[data-row="${rowIndex}"]`
+    );
+    if (!editWrapper) return;
+
+    const saveButtons = editWrapper.querySelectorAll<HTMLButtonElement>(
+      '[data-action="save"]'
+    );
+
+    const isValid = this.validateRow(rowIndex);
+
+    saveButtons.forEach(btn => {
+      btn.disabled = !isValid;
+      if (!isValid) {
+        btn.setAttribute('aria-disabled', 'true');
+      } else {
+        btn.removeAttribute('aria-disabled');
+      }
+    });
   }
 }
 

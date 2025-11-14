@@ -692,3 +692,344 @@ describe('CkEditableArray - Step 6.3: Visual Mode Switching with Hidden Class', 
     });
   });
 });
+
+describe('CkEditableArray - Step 6.4: Save Behavior', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('Test 6.4.1 — Saving persists edited values into data and returns to display mode', () => {
+    test('Given a row in edit mode with fields bound to the underlying data, And I change one or more input values in the edit view, When I click the Save control for that row, Then the corresponding item in el.data is updated to reflect the edited values, And the row returns to display mode, And the display content shows the updated values, And any locking on other rows / Add is cleared', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <span data-bind="email"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <input data-bind="email" />
+          <button data-action="save">Save</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with multiple rows
+      el.data = [
+        { name: 'Alice', email: 'alice@example.com' },
+        { name: 'Bob', email: 'bob@example.com' },
+      ];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Toggle row 0 to edit mode
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const toggleButton = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      // Verify row 0 is in edit mode and row 1 is locked
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(row0Edit?.classList.contains('hidden')).toBe(false);
+
+      const row1DisplayLocked = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      expect(row1DisplayLocked?.getAttribute('data-locked')).toBe('true');
+
+      // Modify input values
+      const nameInput = row0Edit?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      const emailInput = row0Edit?.querySelector(
+        'input[data-bind="email"]'
+      ) as HTMLInputElement;
+
+      nameInput.value = 'Alice Updated';
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      emailInput.value = 'alice.updated@example.com';
+      emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Act - Click Save button
+      const saveButton = row0Edit?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      saveButton?.click();
+
+      // Assert
+      // 1. Row returns to display mode
+      const row0DisplayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const row0EditAfter = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(row0DisplayAfter?.classList.contains('hidden')).toBe(false);
+      expect(row0EditAfter?.classList.contains('hidden')).toBe(true);
+
+      // 2. Data is updated with edited values
+      const currentData = el.data as Array<Record<string, unknown>>;
+      expect(currentData[0].name).toBe('Alice Updated');
+      expect(currentData[0].email).toBe('alice.updated@example.com');
+
+      // 3. Display content shows updated values
+      const displayName = row0DisplayAfter?.querySelector(
+        '[data-bind="name"]'
+      );
+      const displayEmail = row0DisplayAfter?.querySelector(
+        '[data-bind="email"]'
+      );
+      expect(displayName?.textContent).toBe('Alice Updated');
+      expect(displayEmail?.textContent).toBe('alice.updated@example.com');
+
+      // 4. Other rows are unlocked
+      const row1DisplayUnlocked = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      expect(row1DisplayUnlocked?.hasAttribute('data-locked')).toBe(false);
+
+      // 5. Add button is re-enabled
+      const addButton = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      expect(addButton?.disabled).toBe(false);
+    });
+  });
+
+  describe('Test 6.4.2 — Save emits datachanged with updated array', () => {
+    test('Given a listener for datachanged events on the element, And a row in edit mode whose values are changed by the user, When I click Save and the row returns to display mode, Then a datachanged event fires once, And its detail.data reflects the updated item values', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="save">Save</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Toggle row to edit mode
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const toggleButton = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      // Modify input value
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const nameInput = row0Edit?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      nameInput.value = 'Alice Modified';
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Setup event listener
+      let eventCount = 0;
+      let lastEventData: unknown = null;
+
+      el.addEventListener('datachanged', (event: Event) => {
+        eventCount++;
+        const customEvent = event as CustomEvent;
+        lastEventData = customEvent.detail.data;
+      });
+
+      // Act - Click Save button
+      const saveButton = row0Edit?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      saveButton?.click();
+
+      // Assert
+      // 1. Exactly one datachanged event is fired
+      expect(eventCount).toBe(1);
+
+      // 2. Event detail contains updated data
+      expect(lastEventData).not.toBeNull();
+      const dataArray = lastEventData as Array<Record<string, unknown>>;
+      expect(dataArray.length).toBe(1);
+      expect(dataArray[0].name).toBe('Alice Modified');
+
+      // 3. Editing flag is removed
+      expect(dataArray[0].editing).toBeUndefined();
+    });
+  });
+
+  describe('Test 6.4.3 — Save is disabled when row has validation errors', () => {
+    test('Given a row in edit mode with a schema that requires a field (for example name must be non-empty), When I clear the required field so the row becomes invalid, Then the Save control for that row becomes disabled or otherwise non-actionable, And clicking it has no effect (no mode change, no events), When I correct the field so it is valid again, Then the Save control becomes enabled and can be used to complete the edit', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Set schema with required name field
+      el.schema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string', minLength: 1 },
+        },
+        required: ['name'],
+      };
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" required />
+          <button data-action="save">Save</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Toggle row to edit mode
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const toggleButton = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      // Get edit elements
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      
+      const nameInput = row0Edit?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      const saveButton = row0Edit?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+
+      // Verify Save button is initially enabled
+      expect(saveButton?.disabled).toBe(false);
+
+      // Act - Clear the required field
+      nameInput.value = '';
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Get fresh reference to Save button after input change
+      const row0EditAfterClear = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const saveButtonAfterClear = row0EditAfterClear?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+
+      // Assert - Save button should be disabled
+      expect(saveButtonAfterClear?.disabled).toBe(true);
+
+      // Setup event listener AFTER clearing input to verify Save button click has no effect
+      let eventCount = 0;
+      el.addEventListener('datachanged', () => {
+        eventCount++;
+      });
+
+      // Try clicking Save (should have no effect)
+      saveButtonAfterClear?.click();
+
+      // Verify row is still in edit mode
+      const row0EditStill = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(row0EditStill?.classList.contains('hidden')).toBe(false);
+
+      // Verify no datachanged event fired from the Save button click
+      expect(eventCount).toBe(0);
+
+      // Act - Correct the field
+      nameInput.value = 'Alice Corrected';
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Get fresh reference to Save button after correction
+      const row0EditAfterCorrect = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const saveButtonAfterCorrect = row0EditAfterCorrect?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+
+      // Assert - Save button should be enabled again
+      expect(saveButtonAfterCorrect?.disabled).toBe(false);
+
+      // Reset event counter to track only Save button click
+      eventCount = 0;
+
+      // Click Save and verify it works
+      saveButtonAfterCorrect?.click();
+
+      // Verify row returned to display mode
+      const row0DisplayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0DisplayAfter?.classList.contains('hidden')).toBe(false);
+
+      // Verify data was updated
+      const currentData = el.data as Array<Record<string, unknown>>;
+      expect(currentData[0].name).toBe('Alice Corrected');
+
+      // Verify datachanged event fired from Save button click
+      expect(eventCount).toBe(1);
+    });
+  });
+});
