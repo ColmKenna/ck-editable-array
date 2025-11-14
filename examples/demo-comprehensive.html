@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ck-editable-array — Comprehensive Feature Demo</title>
+    <style>
+      * { box-sizing: border-box; }
+      
+      body { 
+        font-family: system-ui, -apple-system, sans-serif; 
+        padding: 24px; 
+        max-width: 1200px;
+        margin: 0 auto;
+        background: #f5f5f5;
+      }
+      
+      h1 { 
+        color: #333; 
+        margin-bottom: 8px;
+      }
+      
+      .subtitle {
+        color: #666;
+        font-size: 18px;
+        margin-bottom: 32px;
+      }
+      
+      h2 { 
+        color: #555; 
+        margin-top: 48px;
+        margin-bottom: 16px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #0066cc;
+      }
+      
+      .hint { 
+        color: #666; 
+        font-size: 14px; 
+        margin-bottom: 16px; 
+        padding: 12px;
+        background: #fff;
+        border-left: 4px solid #0066cc;
+        border-radius: 4px;
+      }
+      
+      .demo-section {
+        background: white;
+        padding: 24px;
+        margin-bottom: 32px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      
+      ck-editable-array { 
+        display: block; 
+        border: 1px solid #ddd; 
+        padding: 16px; 
+        margin-bottom: 16px;
+        border-radius: 4px;
+        background: #fafafa;
+      }
+      
+      /* Display mode styles */
+      .row-display { 
+        padding: 12px; 
+        background: white;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      
+      .row-display .content {
+        flex: 1;
+      }
+      
+      .row-display .actions {
+        display: flex;
+        gap: 8px;
+      }
+      
+      .row-display button {
+        padding: 6px 12px;
+        background: #0066cc;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      
+      .row-display button:hover {
+        background: #0052a3;
+      }
+      
+      .row-display button[data-action="delete"] {
+        background: #dc3545;
+      }
+      
+      .row-display button[data-action="delete"]:hover {
+        background: #c82333;
+      }
+      
+      .row-display button[data-action="restore"] {
+        background: #28a745;
+      }
+      
+      .row-display button[data-action="restore"]:hover {
+        background: #218838;
+      }
+      
+      /* Edit mode styles */
+      .row-edit { 
+        padding: 16px; 
+        background: white;
+        border: 2px solid #0066cc;
+        border-radius: 4px;
+        margin-bottom: 8px;
+      }
+      
+      /* Invalid row styling */
+      .row-edit[data-row-invalid] {
+        border-color: #dc3545;
+        background: #fff5f5;
+      }
+      
+      /* Error summary */
+      .error-summary {
+        padding: 12px;
+        background: #dc3545;
+        color: white;
+        border-radius: 4px;
+        margin-bottom: 16px;
+        font-weight: 500;
+      }
+      
+      .error-summary:empty {
+        display: none;
+      }
+      
+      /* Form fields */
+      .form-field {
+        margin-bottom: 16px;
+      }
+      
+      .form-field label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 4px;
+        color: #333;
+      }
+      
+      .form-field input,
+      .form-field textarea {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        font-family: inherit;
+      }
+      
+      .form-field input:focus,
+      .form-field textarea:focus {
+        outline: none;
+        border-color: #0066cc;
+        box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+      }
+      
+      /* Invalid field styling */
+      .form-field input[data-invalid],
+      .form-field textarea[data-invalid] {
+        border-color: #dc3545;
+        background: #fff5f5;
+      }
+      
+      .form-field input[data-invalid]:focus,
+      .form-field textarea[data-invalid]:focus {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+      }
+      
+      /* Field error messages */
+      .field-error {
+        display: block;
+        color: #dc3545;
+        font-size: 13px;
+        margin-top: 4px;
+      }
+      
+      .field-error:empty {
+        display: none;
+      }
+      
+      /* Button styling */
+      .row-edit button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-right: 8px;
+      }
+      
+      .row-edit button[data-action="save"] {
+        background: #28a745;
+        color: white;
+      }
+      
+      .row-edit button[data-action="save"]:hover:not(:disabled) {
+        background: #218838;
+      }
+      
+      .row-edit button[data-action="save"]:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      
+      .row-edit button[data-action="cancel"] {
+        background: #6c757d;
+        color: white;
+      }
+      
+      .row-edit button[data-action="cancel"]:hover {
+        background: #5a6268;
+      }
+      
+      /* Deleted row styling */
+      .display-content.deleted {
+        opacity: 0.6;
+      }
+      
+      .display-content.deleted .content {
+        text-decoration: line-through;
+      }
+      
+      /* Hide restore button for active rows */
+      .display-content:not(.deleted) [data-action="restore"] {
+        display: none;
+      }
+      
+      /* Hide delete button for deleted rows */
+      .display-content.deleted [data-action="delete"] {
+        display: none;
+      }
+      
+      /* Hidden class for toggling visibility */
+      .hidden {
+        display: none !important;
+      }
+      
+      /* Locked row styling */
+      .display-content[data-locked] {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+      
+      /* Event log */
+      .event-log {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 16px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        max-height: 300px;
+        overflow-y: auto;
+        margin-top: 16px;
+      }
+      
+      .event-log .event-entry {
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #333;
+      }
+      
+      .event-log .event-entry:last-child {
+        border-bottom: none;
+      }
+      
+      .event-log .event-name {
+        color: #4ec9b0;
+        font-weight: bold;
+      }
+      
+      .event-log .event-time {
+        color: #858585;
+        font-size: 11px;
+      }
+      
+      .event-log .event-detail {
+        color: #ce9178;
+        margin-top: 4px;
+      }
+      
+      /* Feature badges */
+      .feature-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        background: #0066cc;
+        color: white;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-right: 8px;
+        margin-bottom: 8px;
+      }
+      
+      .feature-badge.validation {
+        background: #28a745;
+      }
+      
+      .feature-badge.accessibility {
+        background: #6f42c1;
+      }
+      
+      .feature-badge.events {
+        background: #fd7e14;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🎯 ck-editable-array — Comprehensive Demo</h1>
+    <p class="subtitle">Explore all features of the editable array web component</p>
+
+    <div class="demo-section">
+      <h2>📋 Feature 1: Basic CRUD Operations</h2>
+      <div class="feature-badge">Core</div>
+      <div class="feature-badge">Events</div>
+      
+      <p class="hint">
+        <strong>Try this:</strong> Click "Edit" to modify a row, "Add Contact" to create new entries, 
+        and "Delete" to soft-delete rows. Watch the event log below to see all events firing.
+      </p>
+      
+      <ck-editable-array id="demo1" name="contact">
+        <template slot="display">
+          <div class="row-display">
+            <div class="content">
+              <strong><span data-bind="name"></span></strong>
+              <span> — </span>
+              <span data-bind="email"></span>
+            </div>
+            <div class="actions">
+              <button data-action="toggle">Edit</button>
+              <button data-action="delete">Delete</button>
+              <button data-action="restore">Restore</button>
+            </div>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <div class="form-field">
+              <label>Name</label>
+              <input data-bind="name" placeholder="Enter name" />
+            </div>
+            
+            <div class="form-field">
+              <label>Email</label>
+              <input data-bind="email" placeholder="Enter email" />
+            </div>
+            
+            <div>
+              <button data-action="save">Save</button>
+              <button data-action="cancel">Cancel</button>
+            </div>
+          </div>
+        </template>
+
+        <template slot="add-button">
+          <button data-action="add" style="background: #0066cc; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+            ➕ Add Contact
+          </button>
+        </template>
+
+        <style slot="styles">
+          .display-content.deleted {
+            opacity: 0.6;
+          }
+          
+          .display-content.deleted .content {
+            text-decoration: line-through;
+          }
+          
+          .display-content:not(.deleted) [data-action="restore"] {
+            display: none;
+          }
+          
+          .display-content.deleted [data-action="delete"] {
+            display: none;
+          }
+        </style>
+      </ck-editable-array>
+
+      <div class="event-log" id="event-log-1">
+        <div style="color: #858585; font-style: italic;">Waiting for events...</div>
+      </div>
+    </div>
+
+    <div class="demo-section">
+      <h2>✅ Feature 2: Schema-Driven Validation</h2>
+      <div class="feature-badge validation">Validation</div>
+      <div class="feature-badge accessibility">Accessibility</div>
+      
+      <p class="hint">
+        <strong>Try this:</strong> Click "Edit" on the empty row. Notice the Save button is disabled, 
+        error messages appear, and the row has a red border. Fill in the fields to see errors clear in real-time.
+        Screen readers will announce errors via ARIA live regions.
+      </p>
+      
+      <ck-editable-array id="demo2" name="user">
+        <template slot="display">
+          <div class="row-display">
+            <div class="content">
+              <strong><span data-bind="name"></span></strong>
+              <span> — </span>
+              <span data-bind="email"></span>
+            </div>
+            <div class="actions">
+              <button data-action="toggle">Edit</button>
+            </div>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <!-- Accessible error summary -->
+            <div class="error-summary" 
+                 data-error-summary 
+                 role="alert" 
+                 aria-live="polite"></div>
+            
+            <div class="form-field">
+              <label>Name *</label>
+              <input data-bind="name" placeholder="Enter name" />
+              <span class="field-error" data-field-error="name"></span>
+            </div>
+            
+            <div class="form-field">
+              <label>Email *</label>
+              <input data-bind="email" placeholder="Enter email" />
+              <span class="field-error" data-field-error="email"></span>
+            </div>
+            
+            <div>
+              <button data-action="save">Save</button>
+              <button data-action="cancel">Cancel</button>
+            </div>
+          </div>
+        </template>
+      </ck-editable-array>
+    </div>
+
+    <div class="demo-section">
+      <h2>🔗 Feature 3: Nested Property Binding</h2>
+      <div class="feature-badge">Core</div>
+      
+      <p class="hint">
+        <strong>Try this:</strong> Edit a row to see nested property paths in action. 
+        The component supports dot notation like <code>data-bind="person.name"</code> and 
+        <code>data-bind="address.city"</code> for complex data structures.
+      </p>
+      
+      <ck-editable-array id="demo3" name="employee">
+        <template slot="display">
+          <div class="row-display">
+            <div class="content">
+              <strong><span data-bind="person.name"></span></strong>
+              <span> — </span>
+              <span data-bind="person.title"></span>
+              <br>
+              <small style="color: #666;">
+                <span data-bind="address.city"></span>, 
+                <span data-bind="address.country"></span>
+              </small>
+            </div>
+            <div class="actions">
+              <button data-action="toggle">Edit</button>
+            </div>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <div class="form-field">
+              <label>Name</label>
+              <input data-bind="person.name" placeholder="Full name" />
+            </div>
+            
+            <div class="form-field">
+              <label>Title</label>
+              <input data-bind="person.title" placeholder="Job title" />
+            </div>
+            
+            <div class="form-field">
+              <label>City</label>
+              <input data-bind="address.city" placeholder="City" />
+            </div>
+            
+            <div class="form-field">
+              <label>Country</label>
+              <input data-bind="address.country" placeholder="Country" />
+            </div>
+            
+            <div>
+              <button data-action="save">Save</button>
+              <button data-action="cancel">Cancel</button>
+            </div>
+          </div>
+        </template>
+      </ck-editable-array>
+    </div>
+
+    <div class="demo-section">
+      <h2>🔒 Feature 4: Exclusive Locking</h2>
+      <div class="feature-badge">Core</div>
+      
+      <p class="hint">
+        <strong>Try this:</strong> Click "Edit" on any row. Notice that other rows become locked 
+        (grayed out and disabled) and the Add button is disabled. Only one row can be edited at a time, 
+        preventing data conflicts.
+      </p>
+      
+      <ck-editable-array id="demo4" name="task">
+        <template slot="display">
+          <div class="row-display">
+            <div class="content">
+              <span data-bind="task"></span>
+            </div>
+            <div class="actions">
+              <button data-action="toggle">Edit</button>
+            </div>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <div class="form-field">
+              <label>Task</label>
+              <input data-bind="task" placeholder="Enter task" />
+            </div>
+            
+            <div>
+              <button data-action="save">Save</button>
+              <button data-action="cancel">Cancel</button>
+            </div>
+          </div>
+        </template>
+
+        <style slot="styles">
+          .display-content[data-locked] {
+            opacity: 0.5;
+            pointer-events: none;
+          }
+        </style>
+      </ck-editable-array>
+    </div>
+
+    <div class="demo-section">
+      <h2>🎨 Feature 5: Custom Styling with CSS Parts</h2>
+      <div class="feature-badge">Theming</div>
+      
+      <p class="hint">
+        <strong>Try this:</strong> This example uses custom CSS injected via the <code>slot="styles"</code> 
+        to create a unique look. The component provides CSS parts, data attributes, and classes for complete 
+        styling control.
+      </p>
+      
+      <ck-editable-array id="demo5" name="note">
+        <template slot="display">
+          <div class="row-display">
+            <div class="content">
+              <span data-bind="note"></span>
+            </div>
+            <div class="actions">
+              <button data-action="toggle">Edit</button>
+            </div>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <div class="form-field">
+              <label>Note</label>
+              <textarea data-bind="note" rows="3" placeholder="Enter note"></textarea>
+            </div>
+            
+            <div>
+              <button data-action="save">Save</button>
+              <button data-action="cancel">Cancel</button>
+            </div>
+          </div>
+        </template>
+
+        <style slot="styles">
+          .row-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+          }
+          
+          .row-display button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+          }
+          
+          .row-display button:hover {
+            background: rgba(255, 255, 255, 0.3);
+          }
+          
+          .row-edit {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            color: white;
+          }
+          
+          .row-edit label {
+            color: white;
+          }
+          
+          .row-edit input,
+          .row-edit textarea {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+          }
+        </style>
+      </ck-editable-array>
+    </div>
+
+    <div class="demo-section">
+      <h2>📊 Feature 6: Readonly Mode</h2>
+      <div class="feature-badge">Core</div>
+      
+      <p class="hint">
+        <strong>Try this:</strong> This array is in readonly mode. Notice that the Add button is disabled, 
+        and inputs are read-only. This is useful for displaying data that shouldn't be edited.
+      </p>
+      
+      <ck-editable-array id="demo6" name="readonly" readonly>
+        <template slot="display">
+          <div class="row-display">
+            <div class="content">
+              <span data-bind="label"></span>
+            </div>
+            <div class="actions">
+              <button data-action="toggle">View</button>
+            </div>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <div class="form-field">
+              <label>Label (Read-only)</label>
+              <input data-bind="label" />
+            </div>
+            
+            <div>
+              <button data-action="cancel">Close</button>
+            </div>
+          </div>
+        </template>
+      </ck-editable-array>
+    </div>
+
+    <script type="module">
+      async function ensureModuleAndSetData() {
+        const path = '../dist/ck-editable-array/ck-editable-array.esm.js';
+        try {
+          await import(path);
+        } catch (err) {
+          console.warn('Dynamic import failed for', path, err);
+        }
+
+        await Promise.resolve();
+
+        if (!customElements.get('ck-editable-array')) {
+          await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.type = 'module';
+            s.src = path;
+            s.onload = () => resolve(undefined);
+            s.onerror = () => reject(new Error('failed to load module script ' + path));
+            document.head.appendChild(s);
+          }).catch(e => {
+            console.warn('Could not load module script fallback:', e);
+          });
+        }
+
+        if (customElements.get('ck-editable-array')) {
+          // Setup Demo 1: Basic CRUD
+          const demo1 = document.getElementById('demo1');
+          if (demo1) {
+            demo1.data = [
+              { name: 'Alice Smith', email: 'alice@example.com' },
+              { name: 'Bob Jones', email: 'bob@example.com' }
+            ];
+
+            const eventLog1 = document.getElementById('event-log-1');
+            let eventCount = 0;
+
+            const logEvent = (eventName, detail) => {
+              eventCount++;
+              const time = new Date().toLocaleTimeString();
+              const entry = document.createElement('div');
+              entry.className = 'event-entry';
+              entry.innerHTML = `
+                <div>
+                  <span class="event-name">${eventName}</span>
+                  <span class="event-time"> @ ${time}</span>
+                </div>
+                <div class="event-detail">${JSON.stringify(detail, null, 2)}</div>
+              `;
+              
+              if (eventCount === 1) {
+                eventLog1.innerHTML = '';
+              }
+              
+              eventLog1.insertBefore(entry, eventLog1.firstChild);
+              
+              // Keep only last 5 events
+              while (eventLog1.children.length > 5) {
+                eventLog1.removeChild(eventLog1.lastChild);
+              }
+            };
+
+            demo1.addEventListener('datachanged', (e) => {
+              logEvent('datachanged', { dataLength: e.detail.data.length });
+            });
+
+            demo1.addEventListener('beforetogglemode', (e) => {
+              logEvent('beforetogglemode', e.detail);
+            });
+
+            demo1.addEventListener('aftertogglemode', (e) => {
+              logEvent('aftertogglemode', e.detail);
+            });
+          }
+
+          // Setup Demo 2: Validation
+          const demo2 = document.getElementById('demo2');
+          if (demo2) {
+            demo2.schema = {
+              type: 'object',
+              properties: {
+                name: { type: 'string', minLength: 1 },
+                email: { type: 'string', minLength: 1 },
+              },
+              required: ['name', 'email'],
+            };
+            demo2.data = [
+              { name: 'Alice Smith', email: 'alice@example.com' },
+              { name: '', email: '' }
+            ];
+          }
+
+          // Setup Demo 3: Nested Properties
+          const demo3 = document.getElementById('demo3');
+          if (demo3) {
+            demo3.data = [
+              {
+                person: { name: 'Alice Smith', title: 'Software Engineer' },
+                address: { city: 'San Francisco', country: 'USA' }
+              },
+              {
+                person: { name: 'Bob Jones', title: 'Product Manager' },
+                address: { city: 'New York', country: 'USA' }
+              }
+            ];
+          }
+
+          // Setup Demo 4: Exclusive Locking
+          const demo4 = document.getElementById('demo4');
+          if (demo4) {
+            demo4.data = [
+              { task: 'Review pull requests' },
+              { task: 'Update documentation' },
+              { task: 'Fix bug #123' }
+            ];
+          }
+
+          // Setup Demo 5: Custom Styling
+          const demo5 = document.getElementById('demo5');
+          if (demo5) {
+            demo5.data = [
+              { note: 'Remember to update the README' },
+              { note: 'Schedule team meeting for next week' }
+            ];
+          }
+
+          // Setup Demo 6: Readonly Mode
+          const demo6 = document.getElementById('demo6');
+          if (demo6) {
+            demo6.data = [
+              { label: 'This is read-only data' },
+              { label: 'You can view but not edit' }
+            ];
+          }
+        } else {
+          console.warn('ck-editable-array is not registered after import.');
+        }
+      }
+
+      ensureModuleAndSetData();
+    </script>
+  </body>
+</html>
