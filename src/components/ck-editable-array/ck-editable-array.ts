@@ -17,6 +17,11 @@ export class CkEditableArray extends HTMLElement {
     }
     // Ensure a container exists for rendered rows
     if (this.shadowRoot && this.shadowRoot.children.length === 0) {
+      // Add base styles for hidden class
+      const style = document.createElement('style');
+      style.textContent = '.hidden { display: none !important; }';
+      this.shadowRoot.appendChild(style);
+
       const container = document.createElement('div');
       container.setAttribute('part', 'root');
 
