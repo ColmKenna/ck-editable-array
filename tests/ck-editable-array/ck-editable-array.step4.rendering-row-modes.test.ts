@@ -526,3 +526,179 @@ describe('Test 4.3 — Display vs edit visibility (hidden class)', () => {
     });
   });
 });
+
+describe('Test 4.4 — Toggle button surface (no events yet, just DOM shape)', () => {
+  describe('Test 4.4.1 — Each row has a toggle control', () => {
+    test('Given a <ck-editable-array> element attached to document.body, And data set to at least one item, When the component renders, Then each row contains a toggle control element (button or link), And this element is identifiable via data-action="toggle" or an equivalent marker', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with toggle control
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span data-bind="name"></span>
+            <button data-action="toggle">Edit</button>
+          </div>
+        `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+          <div class="row-edit">
+            <input data-bind="name" />
+          </div>
+        `;
+      el.appendChild(tplEdit);
+
+      // Set data to at least one item
+      el.data = [{ name: 'Alice' }, { name: 'Bob' }];
+
+      // Act - Attach to document
+      document.body.appendChild(el);
+
+      // Assert
+      const displayWrappers =
+        el.shadowRoot?.querySelectorAll('.display-content');
+      expect(displayWrappers?.length).toBe(2);
+
+      // Each row should have a toggle control
+      displayWrappers?.forEach((displayWrapper, index) => {
+        const toggleControl = displayWrapper.querySelector(
+          '[data-action="toggle"]'
+        );
+        expect(toggleControl).not.toBeNull();
+        expect(toggleControl?.tagName.toLowerCase()).toBe('button');
+      });
+    });
+  });
+
+  describe('Test 4.4.2 — Toggle control is visible in display mode', () => {
+    test("Given a <ck-editable-array> element with at least one row in display mode, When the component renders, Then the row's toggle control is visible and focusable, And the toggle control is not hidden by the hidden class or display:none", () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with toggle control
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span data-bind="name"></span>
+            <button data-action="toggle">Edit</button>
+          </div>
+        `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+          <div class="row-edit">
+            <input data-bind="name" />
+          </div>
+        `;
+      el.appendChild(tplEdit);
+
+      // Set data - row in display mode (no editing flag)
+      el.data = [{ name: 'Alice' }];
+
+      // Act - Attach to document
+      document.body.appendChild(el);
+
+      // Assert
+      const displayWrapper = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(displayWrapper).not.toBeNull();
+
+      // Display wrapper should be visible (no hidden class)
+      expect(displayWrapper?.classList.contains('hidden')).toBe(false);
+
+      // Toggle control should exist and be visible
+      const toggleControl = displayWrapper?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      expect(toggleControl).not.toBeNull();
+      expect(toggleControl?.classList.contains('hidden')).toBe(false);
+
+      // Toggle control should be focusable (not disabled)
+      expect(toggleControl?.disabled).toBe(false);
+
+      // Verify it's actually a button element
+      expect(toggleControl?.tagName.toLowerCase()).toBe('button');
+    });
+  });
+
+  describe('Test 4.4.3 — Toggle control is hidden when row is in edit mode (per your spec)', () => {
+    test('Given a <ck-editable-array> element, And a row is in edit mode (for example, after clicking its toggle in a later phase, or a new row created by Add), When the component renders that row in edit mode, Then the toggle control for that row is hidden (e.g. has the hidden class or is removed from the DOM), And the edit controls (e.g. save/cancel) for that row are visible', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with toggle control
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span data-bind="name"></span>
+            <button data-action="toggle">Edit</button>
+          </div>
+        `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template with save/cancel controls
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+          <div class="row-edit">
+            <input data-bind="name" />
+            <button data-action="save">Save</button>
+            <button data-action="cancel">Cancel</button>
+          </div>
+        `;
+      el.appendChild(tplEdit);
+
+      // Set data with row in edit mode
+      el.data = [{ name: 'Alice', editing: true }];
+
+      // Act - Attach to document
+      document.body.appendChild(el);
+
+      // Assert
+      const displayWrapper = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const editWrapper = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+
+      expect(displayWrapper).not.toBeNull();
+      expect(editWrapper).not.toBeNull();
+
+      // Display wrapper should be hidden (has hidden class)
+      expect(displayWrapper?.classList.contains('hidden')).toBe(true);
+
+      // Edit wrapper should be visible (no hidden class)
+      expect(editWrapper?.classList.contains('hidden')).toBe(false);
+
+      // Toggle control should be hidden (inside hidden display wrapper)
+      const toggleControl = displayWrapper?.querySelector(
+        '[data-action="toggle"]'
+      );
+      expect(toggleControl).not.toBeNull();
+      // The toggle is not directly hidden, but its parent wrapper is
+      expect(displayWrapper?.classList.contains('hidden')).toBe(true);
+
+      // Edit controls should be visible
+      const saveButton = editWrapper?.querySelector('[data-action="save"]');
+      const cancelButton = editWrapper?.querySelector('[data-action="cancel"]');
+      expect(saveButton).not.toBeNull();
+      expect(cancelButton).not.toBeNull();
+
+      // Edit wrapper is visible, so controls are accessible
+      expect(editWrapper?.classList.contains('hidden')).toBe(false);
+    });
+  });
+});
