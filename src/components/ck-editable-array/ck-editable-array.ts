@@ -1077,6 +1077,100 @@ export class CkEditableArray extends HTMLElement {
   }
 
   /**
+   * Check if a field value is empty
+   */
+  private isFieldEmpty(value: unknown): boolean {
+    return (
+      value === undefined ||
+      value === null ||
+      value === '' ||
+      (typeof value === 'string' && value.trim() === '')
+    );
+  }
+
+  /**
+   * Validate required fields against schema
+   */
+  private validateRequiredFields(
+    row: InternalRowData,
+    schema: ValidationSchema
+  ): Record<string, string[]> {
+    const errors: Record<string, string[]> = {};
+
+    if (Array.isArray(schema.required)) {
+      for (const field of schema.required) {
+        const value = row[field];
+        if (this.isFieldEmpty(value)) {
+          if (!errors[field]) {
+            errors[field] = [];
+          }
+          errors[field].push(
+            this.formatValidationError(field, 'required', value)
+          );
+        }
+      }
+    }
+
+    return errors;
+  }
+
+  /**
+   * Validate property constraints against schema
+   */
+  private validatePropertyConstraints(
+    row: InternalRowData,
+    schema: ValidationSchema
+  ): Record<string, string[]> {
+    const errors: Record<string, string[]> = {};
+
+    if (schema.properties) {
+      for (const [key, propSchema] of Object.entries(schema.properties)) {
+        if (propSchema) {
+          const value = row[key];
+
+          // Check minLength for strings
+          if (
+            typeof propSchema.minLength === 'number' &&
+            typeof value === 'string'
+          ) {
+            if (value.length < propSchema.minLength) {
+              if (!errors[key]) {
+                errors[key] = [];
+              }
+              errors[key].push(
+                this.formatValidationError(
+                  key,
+                  'minLength',
+                  propSchema.minLength
+                )
+              );
+            }
+          }
+        }
+      }
+    }
+
+    return errors;
+  }
+
+  /**
+   * Format validation error message consistently
+   */
+  private formatValidationError(
+    field: string,
+    constraint: string,
+    value: unknown
+  ): string {
+    if (constraint === 'required') {
+      return `${field} is required`;
+    }
+    if (constraint === 'minLength') {
+      return `${field} must be at least ${value} characters`;
+    }
+    return `${field} validation failed`;
+  }
+
+  /**
    * Validate a row against the schema (if provided)
    */
   private validateRow(rowIndex: number): boolean {
@@ -1106,47 +1200,13 @@ export class CkEditableArray extends HTMLElement {
 
     const schema = this._schema as ValidationSchema;
 
-    // Check required fields
-    if (Array.isArray(schema.required)) {
-      for (const field of schema.required) {
-        const value = row[field];
-        const isEmpty =
-          value === undefined ||
-          value === null ||
-          value === '' ||
-          (typeof value === 'string' && value.trim() === '');
-        if (isEmpty) {
-          if (!errors[field]) {
-            errors[field] = [];
-          }
-          errors[field].push(`${field} is required`);
-        }
-      }
-    }
+    // Validate required fields
+    const requiredErrors = this.validateRequiredFields(row, schema);
+    Object.assign(errors, requiredErrors);
 
-    // Check properties constraints
-    if (schema.properties) {
-      for (const [key, propSchema] of Object.entries(schema.properties)) {
-        if (propSchema) {
-          const value = row[key];
-
-          // Check minLength for strings
-          if (
-            typeof propSchema.minLength === 'number' &&
-            typeof value === 'string'
-          ) {
-            if (value.length < propSchema.minLength) {
-              if (!errors[key]) {
-                errors[key] = [];
-              }
-              errors[key].push(
-                `${key} must be at least ${propSchema.minLength} characters`
-              );
-            }
-          }
-        }
-      }
-    }
+    // Validate property constraints
+    const propertyErrors = this.validatePropertyConstraints(row, schema);
+    Object.assign(errors, propertyErrors);
 
     return { isValid: Object.keys(errors).length === 0, errors };
   }
