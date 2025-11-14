@@ -20,6 +20,8 @@
     <p class="hint">This demo shows how to provide light-DOM templates for <code>slot="display"</code> and <code>slot="edit"</code> and set the <code>data</code> property. Build the project and include the component module for a live demo.</p>
     <p class="hint">Edit any input below to see the <code>datachanged</code> event payload.</p>
 
+    <h2>Default Add Button</h2>
+    <p class="hint">This example uses the default Add button (no custom template).</p>
     <!-- Example usage: provide light DOM templates for display and edit -->
     <ck-editable-array id="demo" name="person">
       <template slot="display">
@@ -34,6 +36,47 @@
         <div class="row-edit">
           <input data-bind="address1" placeholder="Address 1" />
           <input data-bind="address2" placeholder="Address 2" />
+        </div>
+      </template>
+    </ck-editable-array>
+
+    <h2>Custom Add Button</h2>
+    <p class="hint">This example uses a custom Add button template with custom text and styling.</p>
+    <ck-editable-array id="demo2" name="contact">
+      <template slot="display">
+        <div class="row-display">
+          <strong><span data-bind="name"></span></strong>
+          <span> — </span>
+          <span data-bind="email"></span>
+        </div>
+      </template>
+
+      <template slot="edit">
+        <div class="row-edit">
+          <input data-bind="name" placeholder="Name" />
+          <input data-bind="email" placeholder="Email" />
+        </div>
+      </template>
+
+      <template slot="add-button">
+        <button data-action="add" style="background: #0066cc; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
+          ➕ Add Contact
+        </button>
+      </template>
+    </ck-editable-array>
+
+    <h2>Readonly Mode</h2>
+    <p class="hint">This example shows the Add button disabled in readonly mode.</p>
+    <ck-editable-array id="demo3" name="item" readonly>
+      <template slot="display">
+        <div class="row-display">
+          <span data-bind="label"></span>
+        </div>
+      </template>
+
+      <template slot="edit">
+        <div class="row-edit">
+          <input data-bind="label" placeholder="Label" />
         </div>
       </template>
     </ck-editable-array>
@@ -84,10 +127,26 @@
         }
 
         if (customElements.get('ck-editable-array')) {
+          // Setup demo 1 (default Add button)
           demo.data = [ { address1: 'A1', address2: 'A2' }, { address1: 'B1', address2: 'B2' } ];
           demo.addEventListener('datachanged', event => {
             updateLog(event.detail.data);
           });
+
+          // Setup demo 2 (custom Add button)
+          const demo2 = document.getElementById('demo2');
+          if (demo2) {
+            demo2.data = [ { name: 'Alice', email: 'alice@example.com' } ];
+            demo2.addEventListener('datachanged', event => {
+              console.log('Demo 2 data changed:', event.detail.data);
+            });
+          }
+
+          // Setup demo 3 (readonly mode)
+          const demo3 = document.getElementById('demo3');
+          if (demo3) {
+            demo3.data = [ { label: 'Item 1' }, { label: 'Item 2' } ];
+          }
         } else {
           console.warn('ck-editable-array is not registered after import.');
         }
