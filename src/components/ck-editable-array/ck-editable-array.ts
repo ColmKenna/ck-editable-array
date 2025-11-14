@@ -96,19 +96,7 @@ export class CkEditableArray extends HTMLElement {
   }
 
   get data(): unknown[] {
-    return this._data.map(item => {
-      if (typeof item === 'string') {
-        return item;
-      }
-      // Remove internal properties from public data
-      // Keep 'deleted' and 'editing' as they're part of the public API
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { __originalSnapshot, __isNew, ...publicData } = item as Record<
-        string,
-        unknown
-      >;
-      return { ...publicData };
-    });
+    return this._data.map(item => this.toPublicRowData(item));
   }
 
   set data(v: unknown[]) {
@@ -783,6 +771,64 @@ export class CkEditableArray extends HTMLElement {
     );
   }
 
+  /**
+   * Strip internal markers from row data for public API
+   */
+  private toPublicRowData(row: EditableRow): EditableRow {
+    if (typeof row === 'string') {
+      return row;
+    }
+    // Remove internal properties from public data
+    // Keep 'deleted' and 'editing' as they're part of the public API
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { __originalSnapshot, __isNew, ...publicData } = row;
+    return { ...publicData };
+  }
+
+  /**
+   * Create a deep clone snapshot of row data for rollback
+   */
+  private createRowSnapshot(row: InternalRowData): Record<string, unknown> {
+    // Create a clean copy without internal markers for the snapshot
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { __originalSnapshot, __isNew, editing, ...cleanEntry } = row;
+    return JSON.parse(JSON.stringify(cleanEntry)) as Record<string, unknown>;
+  }
+
+  /**
+   * Restore row data from snapshot
+   */
+  private restoreFromSnapshot(row: InternalRowData): InternalRowData {
+    const snapshot = row.__originalSnapshot;
+    if (snapshot && typeof snapshot === 'object') {
+      return JSON.parse(JSON.stringify(snapshot)) as InternalRowData;
+    }
+    // No snapshot available, just remove editing flag and markers
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { editing, __originalSnapshot, __isNew, ...rest } = row;
+    return rest;
+  }
+
+  /**
+   * Mark row as entering edit mode with snapshot
+   */
+  private enterEditMode(row: InternalRowData): InternalRowData {
+    return {
+      ...row,
+      editing: true,
+      __originalSnapshot: this.createRowSnapshot(row),
+    };
+  }
+
+  /**
+   * Remove editing flag and internal markers from row
+   */
+  private exitEditMode(row: InternalRowData): InternalRowData {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { editing, __isNew, __originalSnapshot, ...rest } = row;
+    return rest;
+  }
+
   private renderAddButton(): void {
     const addButtonContainer = this.getAddButtonContainer();
     if (!addButtonContainer) return;
@@ -849,10 +895,8 @@ export class CkEditableArray extends HTMLElement {
     // Mark the new item as being in editing mode, store original snapshot, and mark as new
     const newItemWithEditing: EditableRow = this.isRecord(newItem)
       ? {
-          ...newItem,
-          editing: true,
+          ...this.enterEditMode(newItem),
           __isNew: true,
-          __originalSnapshot: JSON.parse(JSON.stringify(newItem)),
         }
       : newItem;
 
@@ -880,10 +924,7 @@ export class CkEditableArray extends HTMLElement {
     // Remove editing flag and internal markers from the row
     const nextData: EditableRow[] = this._data.map((entry, idx) => {
       if (idx === rowIndex && this.isRecord(entry)) {
-        // Remove editing flag, __isNew marker, and __originalSnapshot
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { editing, __isNew, __originalSnapshot, ...rest } = entry;
-        return rest;
+        return this.exitEditMode(entry);
       }
       return this.isRecord(entry) ? { ...entry } : entry;
     });
@@ -937,25 +978,10 @@ export class CkEditableArray extends HTMLElement {
       if (idx === rowIndex && this.isRecord(entry)) {
         if (isCurrentlyEditing) {
           // Exiting edit mode - restore from snapshot (acts like Cancel)
-          const snapshot = entry.__originalSnapshot;
-          if (snapshot && typeof snapshot === 'object') {
-            return JSON.parse(JSON.stringify(snapshot)) as InternalRowData;
-          } else {
-            // No snapshot available, just remove editing flag
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { editing, __originalSnapshot, ...rest } = entry;
-            return rest;
-          }
+          return this.restoreFromSnapshot(entry);
         } else {
           // Entering edit mode - store original snapshot
-          // Create a clean copy without internal markers for the snapshot
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { __originalSnapshot, __isNew, editing, ...cleanEntry } = entry;
-          return {
-            ...entry,
-            editing: true,
-            __originalSnapshot: JSON.parse(JSON.stringify(cleanEntry)),
-          };
+          return this.enterEditMode(entry);
         }
       }
       return this.isRecord(entry) ? { ...entry } : entry;
@@ -1025,15 +1051,7 @@ export class CkEditableArray extends HTMLElement {
       // Restore original data from snapshot
       nextData = this._data.map((entry, idx) => {
         if (idx === rowIndex && this.isRecord(entry)) {
-          // Restore from snapshot if available, otherwise just remove editing flag
-          const snapshot = entry.__originalSnapshot;
-          if (snapshot && typeof snapshot === 'object') {
-            return JSON.parse(JSON.stringify(snapshot)) as InternalRowData;
-          } else {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { editing, __originalSnapshot, ...rest } = entry;
-            return rest;
-          }
+          return this.restoreFromSnapshot(entry);
         }
         return this.isRecord(entry) ? { ...entry } : entry;
       });
