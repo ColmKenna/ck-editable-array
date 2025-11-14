@@ -856,3 +856,228 @@ describe('CkEditableArray - Step 5.4: Exclusive Locking When a New Row is Editin
     });
   });
 });
+
+
+describe('CkEditableArray - Step 5.5: Releasing the Lock After Edit Ends', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('Test 5.5.1 — When the new row returns to display mode, other rows unlock', () => {
+    test('Given a <ck-editable-array> element where a newly added row is currently in edit mode, And all other rows and the Add button are locked/disabled, When I perform the action that returns the new row to display mode (e.g. clicking Save or Cancel, to be defined later), And the component finishes updating, Then the new row is in display mode (showing .display-content, hiding .edit-content), And all other rows no longer have the locked marker (for example no data-locked, aria-disabled back to false, inert removed), And the Add button is re-enabled and clickable again', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="save">Save</button>
+          <button data-action="cancel">Cancel</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with 2 items
+      el.data = [{ name: 'Alice' }, { name: 'Bob' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Click Add button to create new row in edit mode
+      const addButton = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      addButton?.click();
+
+      // Verify locked state
+      const row0DisplayLocked = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0DisplayLocked?.getAttribute('data-locked')).toBe('true');
+      
+      const addButtonLocked = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      expect(addButtonLocked?.disabled).toBe(true);
+
+      // Act - Simulate exiting edit mode by manually updating data
+      // (Save/Cancel behavior will be implemented in Step 6)
+      const currentData = el.data as Array<Record<string, unknown>>;
+      const updatedData = currentData.map((item, idx) => {
+        if (idx === 2) {
+          // Remove editing flag from the new row
+          const { editing, ...rest } = item;
+          return rest;
+        }
+        return item;
+      });
+      el.data = updatedData;
+
+      // Assert
+      // 1. New row (row 2) is in display mode
+      const row2Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="2"]'
+      );
+      const row2Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="2"]'
+      );
+      expect(row2Display?.classList.contains('hidden')).toBe(false);
+      expect(row2Edit?.classList.contains('hidden')).toBe(true);
+
+      // 2. Other rows no longer have locked marker
+      const row0DisplayUnlocked = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const row1DisplayUnlocked = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+
+      expect(row0DisplayUnlocked?.hasAttribute('data-locked')).toBe(false);
+      expect(row0DisplayUnlocked?.hasAttribute('aria-disabled')).toBe(false);
+      expect(row0DisplayUnlocked?.hasAttribute('inert')).toBe(false);
+
+      expect(row1DisplayUnlocked?.hasAttribute('data-locked')).toBe(false);
+      expect(row1DisplayUnlocked?.hasAttribute('aria-disabled')).toBe(false);
+      expect(row1DisplayUnlocked?.hasAttribute('inert')).toBe(false);
+
+      // 3. Add button is re-enabled
+      const addButtonUnlocked = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      expect(addButtonUnlocked?.disabled).toBe(false);
+      expect(addButtonUnlocked?.hasAttribute('aria-disabled')).toBe(false);
+
+      // 4. Toggle controls are re-enabled
+      const row0Toggle = row0DisplayUnlocked?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      expect(row0Toggle?.disabled).toBe(false);
+    });
+  });
+
+  describe('Test 5.5.2 — After exiting edit, a subsequent Add creates another new row in edit mode', () => {
+    test('Given the previous scenario where the first new row has finished its edit and returned to display mode, When I click the Add button again, Then another new row is appended, And that new row again starts in edit mode with the same locking rules: its .edit-content visible, other rows locked, Add button disabled while it\'s editing', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="save">Save</button>
+          <button data-action="cancel">Cancel</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with 2 items
+      el.data = [{ name: 'Alice' }, { name: 'Bob' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Click Add button to create first new row
+      const addButton1 = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      addButton1?.click();
+
+      // Simulate exiting edit mode on first new row
+      const currentData1 = el.data as Array<Record<string, unknown>>;
+      const updatedData1 = currentData1.map((item, idx) => {
+        if (idx === 2) {
+          const { editing, ...rest } = item;
+          return rest;
+        }
+        return item;
+      });
+      el.data = updatedData1;
+
+      // Verify we have 3 rows now, all in display mode
+      const rowsAfterFirst = el.shadowRoot?.querySelectorAll(
+        '[data-mode="display"]'
+      );
+      expect(rowsAfterFirst?.length).toBe(3);
+
+      // Verify Add button is enabled
+      const addButton2 = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      expect(addButton2?.disabled).toBe(false);
+
+      // Act - Click Add button again to create second new row
+      addButton2?.click();
+
+      // Assert
+      // 1. Another new row is appended (now 4 rows total)
+      const rowsAfterSecond = el.shadowRoot?.querySelectorAll(
+        '[data-mode="display"]'
+      );
+      expect(rowsAfterSecond?.length).toBe(4);
+
+      // 2. New row (row 3) is in edit mode
+      const row3Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="3"]'
+      );
+      const row3Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="3"]'
+      );
+      expect(row3Display?.classList.contains('hidden')).toBe(true);
+      expect(row3Edit?.classList.contains('hidden')).toBe(false);
+
+      // 3. Other rows are locked
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const row1Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      const row2Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="2"]'
+      );
+
+      expect(row0Display?.getAttribute('data-locked')).toBe('true');
+      expect(row1Display?.getAttribute('data-locked')).toBe('true');
+      expect(row2Display?.getAttribute('data-locked')).toBe('true');
+
+      // 4. Add button is disabled
+      const addButton3 = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      expect(addButton3?.disabled).toBe(true);
+
+      // 5. Toggle controls on other rows are disabled
+      const row0Toggle = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      expect(row0Toggle?.disabled).toBe(true);
+    });
+  });
+});
