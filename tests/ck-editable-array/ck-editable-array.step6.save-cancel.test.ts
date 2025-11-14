@@ -530,3 +530,165 @@ describe('CkEditableArray - Step 6.2: Toggle Events & Basic Mode Switching', () 
     });
   });
 });
+
+describe('CkEditableArray - Step 6.3: Visual Mode Switching with Hidden Class', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('Test 6.3.1 — Toggle to edit hides display content and shows edit content', () => {
+    test("Given a row initially in display mode, When I successfully toggle it to edit mode (no cancellation), Then that row's .edit-content becomes visible (no hidden class), And .display-content gains the hidden class, And the row's toggle control for entering edit mode becomes hidden or disabled as per your spec, And edit controls (e.g. Save/Cancel) become visible", () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with toggle control
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template with Save/Cancel controls
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="save">Save</button>
+          <button data-action="cancel">Cancel</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with row in display mode
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Verify initial state - row in display mode
+      const displayBefore = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const editBefore = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(displayBefore?.classList.contains('hidden')).toBe(false);
+      expect(editBefore?.classList.contains('hidden')).toBe(true);
+
+      // Act - Click toggle to enter edit mode
+      const toggleButton = displayBefore?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      // Assert
+      // 1. Edit content becomes visible (no hidden class)
+      const editAfter = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(editAfter?.classList.contains('hidden')).toBe(false);
+
+      // 2. Display content gains hidden class
+      const displayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(displayAfter?.classList.contains('hidden')).toBe(true);
+
+      // 3. Toggle control in display mode is hidden (via parent wrapper)
+      const toggleInDisplay = displayAfter?.querySelector(
+        '[data-action="toggle"]'
+      );
+      expect(toggleInDisplay).not.toBeNull();
+      expect(displayAfter?.classList.contains('hidden')).toBe(true);
+
+      // 4. Edit controls (Save/Cancel) are visible
+      const saveButton = editAfter?.querySelector('[data-action="save"]');
+      const cancelButton = editAfter?.querySelector('[data-action="cancel"]');
+      expect(saveButton).not.toBeNull();
+      expect(cancelButton).not.toBeNull();
+      expect(editAfter?.classList.contains('hidden')).toBe(false);
+    });
+  });
+
+  describe('Test 6.3.2 — Toggle back to display hides edit and shows display', () => {
+    test("Given a row currently in edit mode, When I successfully toggle back to display mode, Then that row's .display-content becomes visible (no hidden class), And .edit-content gains the hidden class, And edit-only controls are hidden, And the row's toggle control for entering edit mode becomes visible again", () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with toggle control
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template with toggle/done control
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="save">Save</button>
+          <button data-action="toggle">Done</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with row in edit mode
+      el.data = [{ name: 'Alice', editing: true }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Verify initial state - row in edit mode
+      const displayBefore = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const editBefore = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(displayBefore?.classList.contains('hidden')).toBe(true);
+      expect(editBefore?.classList.contains('hidden')).toBe(false);
+
+      // Act - Click toggle to return to display mode
+      const toggleButton = editBefore?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      // Assert
+      // 1. Display content becomes visible (no hidden class)
+      const displayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(displayAfter?.classList.contains('hidden')).toBe(false);
+
+      // 2. Edit content gains hidden class
+      const editAfter = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(editAfter?.classList.contains('hidden')).toBe(true);
+
+      // 3. Edit-only controls are hidden (via parent wrapper)
+      const saveButton = editAfter?.querySelector('[data-action="save"]');
+      expect(saveButton).not.toBeNull();
+      expect(editAfter?.classList.contains('hidden')).toBe(true);
+
+      // 4. Toggle control for entering edit mode is visible again
+      const toggleInDisplay = displayAfter?.querySelector(
+        '[data-action="toggle"]'
+      );
+      expect(toggleInDisplay).not.toBeNull();
+      expect(displayAfter?.classList.contains('hidden')).toBe(false);
+    });
+  });
+});
