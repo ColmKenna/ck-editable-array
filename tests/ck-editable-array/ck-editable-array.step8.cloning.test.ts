@@ -158,9 +158,8 @@ describe('CkEditableArray - Step 8.1: Data Cloning & Immutability Guarantees', (
       const row0DisplayBefore = el.shadowRoot?.querySelector(
         '.display-content[data-row="0"]'
       );
-      const displayNameBefore = row0DisplayBefore?.querySelector(
-        '[data-bind="name"]'
-      );
+      const displayNameBefore =
+        row0DisplayBefore?.querySelector('[data-bind="name"]');
       expect(displayNameBefore?.textContent).toBe('Alice');
 
       // Act - Read data and mutate it in place without reassigning
@@ -172,9 +171,8 @@ describe('CkEditableArray - Step 8.1: Data Cloning & Immutability Guarantees', (
       const row0DisplayAfter = el.shadowRoot?.querySelector(
         '.display-content[data-row="0"]'
       );
-      const displayNameAfter = row0DisplayAfter?.querySelector(
-        '[data-bind="name"]'
-      );
+      const displayNameAfter =
+        row0DisplayAfter?.querySelector('[data-bind="name"]');
       expect(displayNameAfter?.textContent).toBe('Alice');
 
       // 2. The mutation did affect the returned array reference
@@ -226,9 +224,8 @@ describe('CkEditableArray - Step 8.1: Data Cloning & Immutability Guarantees', (
       const row0DisplayBefore = el.shadowRoot?.querySelector(
         '.display-content[data-row="0"]'
       );
-      const displayNameBefore = row0DisplayBefore?.querySelector(
-        '[data-bind="name"]'
-      );
+      const displayNameBefore =
+        row0DisplayBefore?.querySelector('[data-bind="name"]');
       expect(displayNameBefore?.textContent).toBe('Alice');
 
       // Act - Reassign the mutated array
@@ -239,14 +236,164 @@ describe('CkEditableArray - Step 8.1: Data Cloning & Immutability Guarantees', (
       const row0DisplayAfter = el.shadowRoot?.querySelector(
         '.display-content[data-row="0"]'
       );
-      const displayNameAfter = row0DisplayAfter?.querySelector(
-        '[data-bind="name"]'
-      );
+      const displayNameAfter =
+        row0DisplayAfter?.querySelector('[data-bind="name"]');
       expect(displayNameAfter?.textContent).toBe('Mutated');
 
       // 2. el.data[0].name is Mutated
       expect(el.data).toEqual([{ name: 'Mutated' }]);
       expect((el.data as Array<{ name: string }>)[0].name).toBe('Mutated');
+    });
+  });
+});
+
+describe('CkEditableArray - Step 8.2: Deep vs Shallow Clone Behaviour', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('Test 8.2.1 — Nested objects are cloned so external mutations do not leak in', () => {
+    test('Given a <ck-editable-array> element attached to document.body, And a nested structure const source = [{ person: { name: "Alice" } }], When I set el.data = source, And then mutate source[0].person.name = "Mutated", And then read el.data, Then el.data[0].person.name is still Alice, And the UI shows Alice', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with nested binding
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="person.name"></span>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="person.name" />
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Act - Create nested source array and assign to el.data
+      const source = [{ person: { name: 'Alice' } }];
+      el.data = source;
+
+      // Mutate the nested property in source
+      source[0].person.name = 'Mutated';
+
+      // Assert
+      // 1. el.data still has Alice (deep clone protects against mutation)
+      const currentData = el.data as Array<{
+        person: { name: string };
+      }>;
+      expect(currentData[0].person.name).toBe('Alice');
+
+      // 2. UI shows Alice
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const displayName = row0Display?.querySelector(
+        '[data-bind="person.name"]'
+      );
+      expect(displayName?.textContent).toBe('Alice');
+    });
+  });
+
+  describe('Test 8.2.2 — Editing via UI updates nested values in el.data', () => {
+    test('Given a row bound to a nested structure like { person: { name: "Alice" } }, And an edit template bound to person.name, When I toggle the row into edit mode and change the name field to Bob via the UI, And click Save, Then the display shows Bob, And el.data[0].person.name is Bob when read', async () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with nested binding
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="person.name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template with nested binding
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="person.name" />
+          <button data-action="save">Save</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial nested data
+      el.data = [{ person: { name: 'Alice' } }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Verify initial display
+      const row0DisplayBefore = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const displayNameBefore = row0DisplayBefore?.querySelector(
+        '[data-bind="person.name"]'
+      );
+      expect(displayNameBefore?.textContent).toBe('Alice');
+
+      // Act - Toggle to edit mode
+      const toggleButton = row0DisplayBefore?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Find the edit input and change its value
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const nameInput = row0Edit?.querySelector(
+        'input[data-bind="person.name"]'
+      ) as HTMLInputElement;
+
+      expect(nameInput?.value).toBe('Alice');
+
+      // Change the input value
+      nameInput.value = 'Bob';
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Click Save
+      const saveButton = row0Edit?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      saveButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert
+      // 1. Display shows Bob
+      const row0DisplayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const displayNameAfter = row0DisplayAfter?.querySelector(
+        '[data-bind="person.name"]'
+      );
+      expect(displayNameAfter?.textContent).toBe('Bob');
+
+      // 2. el.data[0].person.name is Bob
+      const currentData = el.data as Array<{
+        person: { name: string };
+      }>;
+      expect(currentData[0].person.name).toBe('Bob');
     });
   });
 });

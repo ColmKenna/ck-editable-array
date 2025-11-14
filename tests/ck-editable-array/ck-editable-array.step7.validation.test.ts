@@ -1562,7 +1562,6 @@ describe('CkEditableArray - Step 7.5: Validation Timing', () => {
   });
 });
 
-
 describe('CkEditableArray - Step 7.6: Validation & Add/New Rows', () => {
   afterEach(() => {
     document.body.innerHTML = '';

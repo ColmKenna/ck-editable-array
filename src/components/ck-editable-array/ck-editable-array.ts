@@ -516,11 +516,20 @@ export class CkEditableArray extends HTMLElement {
       if (!key) {
         return '';
       }
-      const raw = data[key];
-      if (raw === undefined || raw === null) {
+      // Support nested property paths like "person.name"
+      const keys = key.split('.');
+      let value: unknown = data;
+      for (const k of keys) {
+        if (value && typeof value === 'object' && k in value) {
+          value = (value as Record<string, unknown>)[k];
+        } else {
+          return '';
+        }
+      }
+      if (value === undefined || value === null) {
         return '';
       }
-      return String(raw);
+      return String(value);
     }
     return data;
   }
@@ -547,7 +556,38 @@ export class CkEditableArray extends HTMLElement {
 
     const target = nextData[rowIndex];
     if (this.isRecord(target) && key) {
-      target[key] = normalizedNext;
+      // Support nested property paths like "person.name"
+      const keys = key.split('.');
+      if (keys.length === 1) {
+        // Simple property
+        target[key] = normalizedNext;
+      } else {
+        // Nested property - navigate to parent and set the leaf property
+        let current: unknown = target;
+        for (let i = 0; i < keys.length - 1; i++) {
+          const k = keys[i];
+          if (current && typeof current === 'object' && k in current) {
+            const parent = current as Record<string, unknown>;
+            // Deep clone the nested object to maintain immutability
+            if (i < keys.length - 2) {
+              parent[k] = JSON.parse(JSON.stringify(parent[k]));
+            } else {
+              // For the immediate parent, clone it
+              parent[k] = { ...(parent[k] as Record<string, unknown>) };
+            }
+            current = parent[k];
+          } else {
+            // Path doesn't exist, create it
+            (current as Record<string, unknown>)[k] = {};
+            current = (current as Record<string, unknown>)[k];
+          }
+        }
+        // Set the leaf property
+        if (current && typeof current === 'object') {
+          (current as Record<string, unknown>)[keys[keys.length - 1]] =
+            normalizedNext;
+        }
+      }
     } else {
       nextData[rowIndex] = normalizedNext;
     }
