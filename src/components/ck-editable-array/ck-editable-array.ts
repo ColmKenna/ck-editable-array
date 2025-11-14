@@ -437,11 +437,61 @@ export class CkEditableArray extends HTMLElement {
     // Append the cloned template content to the wrapper
     contentWrapper.appendChild(fragment);
 
+    // Inject custom action buttons if available
+    this.injectActionButtons(contentWrapper, mode);
+
     // Bind data to the wrapper's content
     this.bindDataToNode(contentWrapper, rowData, rowIndex, mode, isLocked);
 
     // Append the wrapper to the container
     container.appendChild(contentWrapper);
+  }
+
+  /**
+   * Inject custom action buttons into a row wrapper
+   */
+  private injectActionButtons(
+    wrapper: HTMLElement,
+    mode: 'display' | 'edit'
+  ): void {
+    // Define which buttons belong to which mode
+    const displayButtons = ['button-edit', 'button-delete', 'button-restore'];
+    const editButtons = ['button-save', 'button-cancel'];
+
+    // Determine which buttons to inject based on mode
+    const buttonsToInject =
+      mode === 'display' ? displayButtons : editButtons;
+
+    // Find the first child element to append buttons to
+    const targetContainer = wrapper.querySelector('div, span') || wrapper;
+
+    // Inject each button type if it exists
+    buttonsToInject.forEach(slotName => {
+      const customButton = this.querySelector(
+        `button[slot="${slotName}"]`
+      ) as HTMLButtonElement;
+
+      if (customButton) {
+        // Clone the custom button
+        const buttonClone = customButton.cloneNode(true) as HTMLButtonElement;
+
+        // Map slot name to data-action
+        const actionMap: Record<string, string> = {
+          'button-edit': 'toggle',
+          'button-save': 'save',
+          'button-cancel': 'cancel',
+          'button-delete': 'delete',
+          'button-restore': 'restore',
+        };
+
+        const action = actionMap[slotName];
+        if (action) {
+          buttonClone.setAttribute('data-action', action);
+          buttonClone.removeAttribute('slot'); // Remove slot attribute from clone
+          targetContainer.appendChild(buttonClone);
+        }
+      }
+    });
   }
 
   private cloneRow(row: unknown): EditableRow {

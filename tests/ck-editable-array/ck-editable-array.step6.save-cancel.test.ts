@@ -1668,3 +1668,329 @@ describe('CkEditableArray - Step 6.6: Soft Delete & Restore', () => {
     });
   });
 });
+
+describe('CkEditableArray - Step 6.7: Action Button Templates', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('Test 6.7.1 — Custom edit/save/delete/restore/cancel button templates are used', () => {
+    test('Given a <ck-editable-array> element with slotted button templates, When the component renders rows, Then the visible buttons use the text from the corresponding custom templates', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Add custom button templates
+      const editButton = document.createElement('button');
+      editButton.setAttribute('slot', 'button-edit');
+      editButton.textContent = 'Custom Edit';
+      el.appendChild(editButton);
+
+      const saveButton = document.createElement('button');
+      saveButton.setAttribute('slot', 'button-save');
+      saveButton.textContent = 'Custom Save';
+      el.appendChild(saveButton);
+
+      const deleteButton = document.createElement('button');
+      deleteButton.setAttribute('slot', 'button-delete');
+      deleteButton.textContent = 'Custom Delete';
+      el.appendChild(deleteButton);
+
+      const restoreButton = document.createElement('button');
+      restoreButton.setAttribute('slot', 'button-restore');
+      restoreButton.textContent = 'Custom Restore';
+      el.appendChild(restoreButton);
+
+      const cancelButton = document.createElement('button');
+      cancelButton.setAttribute('slot', 'button-cancel');
+      cancelButton.textContent = 'Custom Cancel';
+      el.appendChild(cancelButton);
+
+      // Create display template (without buttons - they'll be injected)
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template (without buttons - they'll be injected)
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Assert - Display mode buttons use custom templates
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      
+      const editBtn = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      expect(editBtn).not.toBeNull();
+      expect(editBtn?.textContent).toBe('Custom Edit');
+
+      const deleteBtn = row0Display?.querySelector(
+        '[data-action="delete"]'
+      ) as HTMLButtonElement;
+      expect(deleteBtn).not.toBeNull();
+      expect(deleteBtn?.textContent).toBe('Custom Delete');
+
+      const restoreBtn = row0Display?.querySelector(
+        '[data-action="restore"]'
+      ) as HTMLButtonElement;
+      expect(restoreBtn).not.toBeNull();
+      expect(restoreBtn?.textContent).toBe('Custom Restore');
+
+      // Toggle to edit mode
+      editBtn?.click();
+
+      // Assert - Edit mode buttons use custom templates
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+
+      const saveBtn = row0Edit?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      expect(saveBtn).not.toBeNull();
+      expect(saveBtn?.textContent).toBe('Custom Save');
+
+      const cancelBtn = row0Edit?.querySelector(
+        '[data-action="cancel"]'
+      ) as HTMLButtonElement;
+      expect(cancelBtn).not.toBeNull();
+      expect(cancelBtn?.textContent).toBe('Custom Cancel');
+    });
+  });
+
+  describe('Test 6.7.2 — Row buttons respect mode-specific visibility rules', () => {
+    test('Given at least one row in display mode and one row in edit mode, Then display mode shows Edit/Delete/Restore, and edit mode shows Save/Cancel', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Add custom button templates
+      const editButton = document.createElement('button');
+      editButton.setAttribute('slot', 'button-edit');
+      editButton.textContent = 'Edit';
+      el.appendChild(editButton);
+
+      const saveButton = document.createElement('button');
+      saveButton.setAttribute('slot', 'button-save');
+      saveButton.textContent = 'Save';
+      el.appendChild(saveButton);
+
+      const cancelButton = document.createElement('button');
+      cancelButton.setAttribute('slot', 'button-cancel');
+      cancelButton.textContent = 'Cancel';
+      el.appendChild(cancelButton);
+
+      const deleteButton = document.createElement('button');
+      deleteButton.setAttribute('slot', 'button-delete');
+      deleteButton.textContent = 'Delete';
+      el.appendChild(deleteButton);
+
+      const restoreButton = document.createElement('button');
+      restoreButton.setAttribute('slot', 'button-restore');
+      restoreButton.textContent = 'Restore';
+      el.appendChild(restoreButton);
+
+      // Create templates
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with one row in edit mode
+      el.data = [{ name: 'Alice' }, { name: 'Bob', editing: true }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Assert - Row 0 (display mode) has Edit/Delete/Restore, not Save/Cancel
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0Display?.querySelector('[data-action="toggle"]')).not.toBeNull();
+      expect(row0Display?.querySelector('[data-action="delete"]')).not.toBeNull();
+      expect(row0Display?.querySelector('[data-action="restore"]')).not.toBeNull();
+      expect(row0Display?.querySelector('[data-action="save"]')).toBeNull();
+      expect(row0Display?.querySelector('[data-action="cancel"]')).toBeNull();
+
+      // Assert - Row 1 (edit mode) has Save/Cancel, not Edit
+      const row1Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="1"]'
+      );
+      expect(row1Edit?.querySelector('[data-action="save"]')).not.toBeNull();
+      expect(row1Edit?.querySelector('[data-action="cancel"]')).not.toBeNull();
+      
+      // Edit mode can still have Delete/Restore if needed
+      // But the Edit (toggle to edit) button should not be in edit mode content
+      const row1Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      expect(row1Display?.classList.contains('hidden')).toBe(true);
+    });
+  });
+
+  describe('Test 6.7.3 — Button clicks map to the correct behaviours', () => {
+    test('Given custom buttons, When I click each button type, Then each triggers the correct behaviour', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Add custom button templates
+      const editButton = document.createElement('button');
+      editButton.setAttribute('slot', 'button-edit');
+      editButton.textContent = 'Edit';
+      el.appendChild(editButton);
+
+      const saveButton = document.createElement('button');
+      saveButton.setAttribute('slot', 'button-save');
+      saveButton.textContent = 'Save';
+      el.appendChild(saveButton);
+
+      const cancelButton = document.createElement('button');
+      cancelButton.setAttribute('slot', 'button-cancel');
+      cancelButton.textContent = 'Cancel';
+      el.appendChild(cancelButton);
+
+      const deleteButton = document.createElement('button');
+      deleteButton.setAttribute('slot', 'button-delete');
+      deleteButton.textContent = 'Delete';
+      el.appendChild(deleteButton);
+
+      const restoreButton = document.createElement('button');
+      restoreButton.setAttribute('slot', 'button-restore');
+      restoreButton.textContent = 'Restore';
+      el.appendChild(restoreButton);
+
+      // Create templates
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice' }, { name: 'Bob', deleted: true }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Test 1: Edit button toggles to edit mode
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const editBtn = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      editBtn?.click();
+
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(row0Edit?.classList.contains('hidden')).toBe(false);
+
+      // Test 2: Cancel button returns to display mode
+      const cancelBtn = row0Edit?.querySelector(
+        '[data-action="cancel"]'
+      ) as HTMLButtonElement;
+      cancelBtn?.click();
+
+      const row0DisplayAfterCancel = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0DisplayAfterCancel?.classList.contains('hidden')).toBe(false);
+
+      // Test 3: Edit again, modify, and Save
+      const editBtn2 = row0DisplayAfterCancel?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      editBtn2?.click();
+
+      const row0Edit2 = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const nameInput = row0Edit2?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      nameInput.value = 'Alice Modified';
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      const saveBtn = row0Edit2?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      saveBtn?.click();
+
+      const currentData = el.data as Array<Record<string, unknown>>;
+      expect(currentData[0].name).toBe('Alice Modified');
+
+      // Test 4: Delete button marks row as deleted
+      const row0DisplayFinal = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const deleteBtn = row0DisplayFinal?.querySelector(
+        '[data-action="delete"]'
+      ) as HTMLButtonElement;
+      deleteBtn?.click();
+
+      const row0DisplayDeleted = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0DisplayDeleted?.getAttribute('data-deleted')).toBe('true');
+
+      // Test 5: Restore button removes deleted flag
+      const row1Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      expect(row1Display?.getAttribute('data-deleted')).toBe('true');
+
+      const restoreBtn = row1Display?.querySelector(
+        '[data-action="restore"]'
+      ) as HTMLButtonElement;
+      restoreBtn?.click();
+
+      const row1DisplayRestored = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      expect(row1DisplayRestored?.hasAttribute('data-deleted')).toBe(false);
+    });
+  });
+});
