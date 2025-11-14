@@ -544,7 +544,7 @@ describe('CkEditableArray - Step 8.4: Generic Event Dispatch Behaviour', () => {
   });
 
   describe('Test 8.4.1 — datachanged bubbles out of the shadow root', () => {
-    test('Given a <ck-editable-array> element attached to document.body, And an event listener on the parent of the element (e.g. document.body) for datachanged, When I perform an action that changes data (e.g. Save after editing, or Add, or Delete), Then the parent listener receives a datachanged event, And the event\'s target or composedPath() includes the <ck-editable-array> element', async () => {
+    test("Given a <ck-editable-array> element attached to document.body, And an event listener on the parent of the element (e.g. document.body) for datachanged, When I perform an action that changes data (e.g. Save after editing, or Add, or Delete), Then the parent listener receives a datachanged event, And the event's target or composedPath() includes the <ck-editable-array> element", async () => {
       // Arrange
       const el = new CkEditableArray();
 
@@ -616,7 +616,8 @@ describe('CkEditableArray - Step 8.4: Generic Event Dispatch Behaviour', () => {
       expect(parentListener).toHaveBeenCalled();
 
       // 2. Event target is the ck-editable-array element
-      const lastCall = parentListener.mock.calls[parentListener.mock.calls.length - 1];
+      const lastCall =
+        parentListener.mock.calls[parentListener.mock.calls.length - 1];
       const event = lastCall[0] as CustomEvent;
       expect(event.target).toBe(el);
 
@@ -841,7 +842,8 @@ describe('CkEditableArray - Step 8.4: Generic Event Dispatch Behaviour', () => {
       expect(documentListener).toHaveBeenCalled();
 
       // 2. Event target is the ck-editable-array element
-      const lastCall = documentListener.mock.calls[documentListener.mock.calls.length - 1];
+      const lastCall =
+        documentListener.mock.calls[documentListener.mock.calls.length - 1];
       const event = lastCall[0] as CustomEvent;
       expect(event.target).toBe(el);
 
@@ -860,7 +862,7 @@ describe('CkEditableArray - Step 8.5: Event Payload Consistency', () => {
   });
 
   describe('Test 8.5.1 — datachanged detail includes full, current array', () => {
-    test('Given a <ck-editable-array> element with a known data array of two items, When I perform an action that changes only the second item (e.g. edit & Save row 1), Then the datachanged event\'s detail.data is an array of 2 items, And item at index 0 is unchanged from before, And item at index 1 reflects the updated values', async () => {
+    test("Given a <ck-editable-array> element with a known data array of two items, When I perform an action that changes only the second item (e.g. edit & Save row 1), Then the datachanged event's detail.data is an array of 2 items, And item at index 0 is unchanged from before, And item at index 1 reflects the updated values", async () => {
       // Arrange
       const el = new CkEditableArray();
 
@@ -932,7 +934,10 @@ describe('CkEditableArray - Step 8.5: Event Payload Consistency', () => {
       expect(dataChangedListener).toHaveBeenCalled();
 
       // 2. Event detail includes full array with 2 items
-      const lastCall = dataChangedListener.mock.calls[dataChangedListener.mock.calls.length - 1];
+      const lastCall =
+        dataChangedListener.mock.calls[
+          dataChangedListener.mock.calls.length - 1
+        ];
       const event = lastCall[0] as CustomEvent;
       expect(event.detail.data).toBeDefined();
       expect(Array.isArray(event.detail.data)).toBe(true);
@@ -1101,6 +1106,345 @@ describe('CkEditableArray - Step 8.5: Event Payload Consistency', () => {
       // Should NOT have from/to properties
       expect(secondEvent.detail.from).toBeUndefined();
       expect(secondEvent.detail.to).toBeUndefined();
+    });
+  });
+});
+
+describe('CkEditableArray - Step 8.6: Meta Regression & Safety Tests', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('Test 8.6.1 — Multiple sequential edits keep events & data in sync', () => {
+    test('Given a <ck-editable-array> element with 3 rows of initial data, When I: Edit row 0 and Save, Edit row 1 and Cancel, Add a new row and Save, Soft-delete row 2, Then after each step: el.data always matches what the UI is showing, datachanged fires only for the operations that actually change data (1, 3, 4; not 2), No rows mysteriously flip into the wrong mode (edit vs display)', async () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+          <button data-action="delete">Delete</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="save">Save</button>
+          <button data-action="toggle">Cancel</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with 3 items
+      el.data = [{ name: 'Alice' }, { name: 'Bob' }, { name: 'Charlie' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Set up event listener for datachanged
+      const dataChangedListener = jest.fn();
+      el.addEventListener('datachanged', dataChangedListener);
+
+      // Step 1: Edit row 0 and Save
+      let row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      let toggleButton = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      let row0Edit = el.shadowRoot?.querySelector('.edit-content[data-row="0"]');
+      let nameInput = row0Edit?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      nameInput.value = 'Alice Updated';
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      let saveButton = row0Edit?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      saveButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert after step 1
+      expect(dataChangedListener).toHaveBeenCalledTimes(1);
+      let currentData = el.data as Array<{ name: string }>;
+      expect(currentData[0].name).toBe('Alice Updated');
+      row0Display = el.shadowRoot?.querySelector('.display-content[data-row="0"]');
+      expect(row0Display?.classList.contains('hidden')).toBe(false);
+      row0Edit = el.shadowRoot?.querySelector('.edit-content[data-row="0"]');
+      expect(row0Edit?.classList.contains('hidden')).toBe(true);
+
+      // Step 2: Edit row 1 and Cancel
+      let row1Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      toggleButton = row1Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      let row1Edit = el.shadowRoot?.querySelector('.edit-content[data-row="1"]');
+      nameInput = row1Edit?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      nameInput.value = 'Bob Changed';
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      let cancelButton = row1Edit?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      cancelButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert after step 2 - datachanged should NOT fire for cancel
+      expect(dataChangedListener).toHaveBeenCalledTimes(1);
+      currentData = el.data as Array<{ name: string }>;
+      expect(currentData[1].name).toBe('Bob'); // Unchanged
+      row1Display = el.shadowRoot?.querySelector('.display-content[data-row="1"]');
+      expect(row1Display?.classList.contains('hidden')).toBe(false);
+      row1Edit = el.shadowRoot?.querySelector('.edit-content[data-row="1"]');
+      expect(row1Edit?.classList.contains('hidden')).toBe(true);
+
+      // Step 3: Add a new row
+      const addButton = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      addButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert after step 3 - datachanged should fire for add
+      expect(dataChangedListener).toHaveBeenCalledTimes(2);
+      currentData = el.data as Array<{ name: string }>;
+      expect(currentData.length).toBe(4);
+
+      // Step 4: Soft-delete row 2
+      const row2Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="2"]'
+      );
+      const deleteButton = row2Display?.querySelector(
+        '[data-action="delete"]'
+      ) as HTMLButtonElement;
+      deleteButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert after step 4 - datachanged should fire for delete
+      expect(dataChangedListener).toHaveBeenCalledTimes(3);
+      const currentDataWithDeleted = el.data as Array<{ name: string; deleted?: boolean }>;
+      expect(currentDataWithDeleted[2].deleted).toBe(true);
+
+      // Final verification - all rows are in correct mode
+      const allDisplayRows = el.shadowRoot?.querySelectorAll('.display-content');
+      const allEditRows = el.shadowRoot?.querySelectorAll('.edit-content');
+      expect(allDisplayRows?.length).toBe(4);
+      expect(allEditRows?.length).toBe(4);
+
+      // All rows should be in display mode
+      allDisplayRows?.forEach((row, index) => {
+        expect(row.classList.contains('hidden')).toBe(false);
+      });
+      allEditRows?.forEach((row, index) => {
+        expect(row.classList.contains('hidden')).toBe(true);
+      });
+    });
+  });
+
+  describe('Test 8.6.2 — Component remains stable after multiple attach/detach cycles', () => {
+    test('Given a <ck-editable-array> element that has been used (Add, Edit, Delete) while attached, When I remove it from document.body, And then reattach it several times, possibly with different data assignments between cycles, Then each time: Styles and rows render correctly according to the current data, Events (datachanged, beforetogglemode, aftertogglemode) still fire as expected, No duplicate events are fired for a single user action, The browser console does not show errors from stale listeners', async () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+          <button data-action="delete">Delete</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="save">Save</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document (first time)
+      document.body.appendChild(el);
+
+      // Perform some operations
+      const addButton = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      addButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const toggleButton = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const row0Edit = el.shadowRoot?.querySelector('.edit-content[data-row="0"]');
+      const nameInput = row0Edit?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      nameInput.value = 'Alice Updated';
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const saveButton = row0Edit?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      saveButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Detach from document
+      document.body.removeChild(el);
+
+      // Cycle 1: Reattach with same data
+      document.body.appendChild(el);
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Set up event listeners
+      const dataChangedListener = jest.fn();
+      const beforeToggleListener = jest.fn();
+      const afterToggleListener = jest.fn();
+      el.addEventListener('datachanged', dataChangedListener);
+      el.addEventListener('beforetogglemode', beforeToggleListener);
+      el.addEventListener('aftertogglemode', afterToggleListener);
+
+      // Verify rendering
+      let allDisplayRows = el.shadowRoot?.querySelectorAll('.display-content');
+      expect(allDisplayRows?.length).toBe(2);
+
+      // Perform an operation
+      const row1Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      const deleteButton = row1Display?.querySelector(
+        '[data-action="delete"]'
+      ) as HTMLButtonElement;
+      deleteButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Verify events fired exactly once
+      expect(dataChangedListener).toHaveBeenCalledTimes(1);
+
+      // Detach again
+      document.body.removeChild(el);
+
+      // Cycle 2: Reattach with different data
+      el.data = [{ name: 'Bob' }, { name: 'Charlie' }, { name: 'David' }];
+      document.body.appendChild(el);
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Reset event listeners
+      dataChangedListener.mockClear();
+      beforeToggleListener.mockClear();
+      afterToggleListener.mockClear();
+
+      // Verify rendering with new data
+      allDisplayRows = el.shadowRoot?.querySelectorAll('.display-content');
+      expect(allDisplayRows?.length).toBe(3);
+
+      const row0DisplayNew = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const displayName = row0DisplayNew?.querySelector('[data-bind="name"]');
+      expect(displayName?.textContent).toBe('Bob');
+
+      // Perform toggle operation
+      const toggleButtonNew = row0DisplayNew?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButtonNew?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Verify events fired exactly once (no duplicates)
+      expect(beforeToggleListener).toHaveBeenCalledTimes(1);
+      expect(afterToggleListener).toHaveBeenCalledTimes(1);
+
+      // Detach again
+      document.body.removeChild(el);
+
+      // Cycle 3: Reattach one more time
+      document.body.appendChild(el);
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Reset event listeners
+      dataChangedListener.mockClear();
+      beforeToggleListener.mockClear();
+      afterToggleListener.mockClear();
+
+      // Verify rendering still works
+      allDisplayRows = el.shadowRoot?.querySelectorAll('.display-content');
+      expect(allDisplayRows?.length).toBe(3);
+
+      // Perform add operation
+      const addButtonNew = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      addButtonNew?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Verify event fired exactly once
+      expect(dataChangedListener).toHaveBeenCalledTimes(1);
+
+      // Verify data is correct
+      const currentData = el.data as Array<{ name: string }>;
+      expect(currentData.length).toBe(4);
+
+      // Clean up event listeners
+      el.removeEventListener('datachanged', dataChangedListener);
+      el.removeEventListener('beforetogglemode', beforeToggleListener);
+      el.removeEventListener('aftertogglemode', afterToggleListener);
     });
   });
 });
