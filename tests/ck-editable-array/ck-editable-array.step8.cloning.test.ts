@@ -537,3 +537,319 @@ describe('CkEditableArray - Step 8.3: Cloning & "deleted" flag consistency', () 
     });
   });
 });
+
+describe('CkEditableArray - Step 8.4: Generic Event Dispatch Behaviour', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('Test 8.4.1 — datachanged bubbles out of the shadow root', () => {
+    test('Given a <ck-editable-array> element attached to document.body, And an event listener on the parent of the element (e.g. document.body) for datachanged, When I perform an action that changes data (e.g. Save after editing, or Add, or Delete), Then the parent listener receives a datachanged event, And the event\'s target or composedPath() includes the <ck-editable-array> element', async () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="save">Save</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Set up event listener on parent (document.body)
+      const parentListener = jest.fn();
+      document.body.addEventListener('datachanged', parentListener);
+
+      // Act - Toggle to edit mode
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const toggleButton = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Change input value
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const nameInput = row0Edit?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      nameInput.value = 'Bob';
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Click Save
+      const saveButton = row0Edit?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      saveButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert
+      // 1. Parent listener was called
+      expect(parentListener).toHaveBeenCalled();
+
+      // 2. Event target is the ck-editable-array element
+      const lastCall = parentListener.mock.calls[parentListener.mock.calls.length - 1];
+      const event = lastCall[0] as CustomEvent;
+      expect(event.target).toBe(el);
+
+      // 3. Event bubbles and composed properties are true
+      expect(event.bubbles).toBe(true);
+      expect(event.composed).toBe(true);
+
+      // Clean up
+      document.body.removeEventListener('datachanged', parentListener);
+    });
+  });
+
+  describe('Test 8.4.2 — beforetogglemode bubbles and is cancelable', () => {
+    test('Given an ancestor container with a listener for beforetogglemode, And the listener calls event.preventDefault() when index === 0, When I click the toggle for row 0, Then the ancestor listener is invoked (showing that the event bubbles), And because the listener calls preventDefault(), the row does not switch mode', async () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="save">Save</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Set up event listener on ancestor that prevents default for row 0
+      const ancestorListener = jest.fn((event: Event) => {
+        const customEvent = event as CustomEvent;
+        if (customEvent.detail.index === 0) {
+          event.preventDefault();
+        }
+      });
+      document.body.addEventListener('beforetogglemode', ancestorListener);
+
+      // Verify initial state (display mode)
+      const row0DisplayBefore = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0DisplayBefore?.classList.contains('hidden')).toBe(false);
+
+      // Act - Click toggle button for row 0
+      const toggleButton = row0DisplayBefore?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert
+      // 1. Ancestor listener was invoked (event bubbled)
+      expect(ancestorListener).toHaveBeenCalled();
+
+      // 2. Row did NOT switch to edit mode (preventDefault worked)
+      const row0DisplayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const row0EditAfter = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(row0DisplayAfter?.classList.contains('hidden')).toBe(false);
+      expect(row0EditAfter?.classList.contains('hidden')).toBe(true);
+
+      // Clean up
+      document.body.removeEventListener('beforetogglemode', ancestorListener);
+    });
+  });
+
+  describe('Test 8.4.3 — aftertogglemode bubbles but is not cancelable', () => {
+    test('Given an ancestor listener that inspects aftertogglemode events and attempts to call preventDefault(), When I toggle a row from display to edit successfully, Then the ancestor listener is invoked with an aftertogglemode event, And trying to call preventDefault() has no effect on the already-completed mode change, And further toggles still function normally', async () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="toggle">Cancel</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Set up event listener on ancestor that attempts to prevent default
+      const ancestorListener = jest.fn((event: Event) => {
+        // Attempt to call preventDefault (should have no effect)
+        event.preventDefault();
+      });
+      document.body.addEventListener('aftertogglemode', ancestorListener);
+
+      // Act - Click toggle button to enter edit mode
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const toggleButton = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert
+      // 1. Ancestor listener was invoked (event bubbled)
+      expect(ancestorListener).toHaveBeenCalled();
+
+      // 2. Row DID switch to edit mode (preventDefault had no effect)
+      const row0DisplayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const row0EditAfter = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(row0DisplayAfter?.classList.contains('hidden')).toBe(true);
+      expect(row0EditAfter?.classList.contains('hidden')).toBe(false);
+
+      // 3. Further toggles still work normally
+      ancestorListener.mockClear();
+      const toggleButtonEdit = row0EditAfter?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButtonEdit?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(ancestorListener).toHaveBeenCalled();
+      const row0DisplayFinal = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const row0EditFinal = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(row0DisplayFinal?.classList.contains('hidden')).toBe(false);
+      expect(row0EditFinal?.classList.contains('hidden')).toBe(true);
+
+      // Clean up
+      document.body.removeEventListener('aftertogglemode', ancestorListener);
+    });
+  });
+
+  describe('Test 8.4.4 — Events are composed so they are visible outside the shadow DOM', () => {
+    test('Given a listener for datachanged on document (not just on the element itself), When I trigger a data change (e.g. Add or Save), Then the document listener receives the event, And event.composed is effectively true (inferred because it crosses shadow boundary and reaches document)', async () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Set up event listener on document (not just the element)
+      const documentListener = jest.fn();
+      document.addEventListener('datachanged', documentListener);
+
+      // Act - Trigger Add button to change data
+      const addButton = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      addButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert
+      // 1. Document listener was called (event crossed shadow boundary)
+      expect(documentListener).toHaveBeenCalled();
+
+      // 2. Event target is the ck-editable-array element
+      const lastCall = documentListener.mock.calls[documentListener.mock.calls.length - 1];
+      const event = lastCall[0] as CustomEvent;
+      expect(event.target).toBe(el);
+
+      // 3. Event composed property is true (allows crossing shadow boundary)
+      expect(event.composed).toBe(true);
+
+      // Clean up
+      document.removeEventListener('datachanged', documentListener);
+    });
+  });
+});
