@@ -221,15 +221,31 @@ export class CkEditableArray extends HTMLElement {
       'template[slot="edit"]'
     ) as HTMLTemplateElement | null;
 
+    // Check if any row is in edit mode for exclusive locking
+    const hasEditingRow = this._data.some(
+      item => this.isRecord(item) && item.editing === true
+    );
+
     this._data.forEach((item, idx) => {
+      const isEditing = this.isRecord(item) && item.editing === true;
+      const isLocked = hasEditingRow && !isEditing;
+
       this.appendRowFromTemplate(
         displayTpl,
         rowsContainer,
         item,
         idx,
-        'display'
+        'display',
+        isLocked
       );
-      this.appendRowFromTemplate(editTpl, rowsContainer, item, idx, 'edit');
+      this.appendRowFromTemplate(
+        editTpl,
+        rowsContainer,
+        item,
+        idx,
+        'edit',
+        isLocked
+      );
     });
 
     // Render Add button
@@ -240,7 +256,8 @@ export class CkEditableArray extends HTMLElement {
     root: HTMLElement,
     data: EditableRow,
     rowIndex: number,
-    mode: 'display' | 'edit'
+    mode: 'display' | 'edit',
+    isLocked: boolean = false
   ): void {
     // Bind text content for elements with data-bind attribute
     const bound = root.querySelectorAll<HTMLElement>('[data-bind]');
@@ -295,6 +312,16 @@ export class CkEditableArray extends HTMLElement {
         node.textContent = value;
       }
     });
+
+    // Disable toggle controls if row is locked
+    if (isLocked && mode === 'display') {
+      const toggleButtons = root.querySelectorAll<HTMLButtonElement>(
+        '[data-action="toggle"]'
+      );
+      toggleButtons.forEach(btn => {
+        btn.disabled = true;
+      });
+    }
   }
 
   private appendRowFromTemplate(
@@ -302,7 +329,8 @@ export class CkEditableArray extends HTMLElement {
     container: HTMLElement,
     rowData: EditableRow,
     rowIndex: number,
-    mode: 'display' | 'edit'
+    mode: 'display' | 'edit',
+    isLocked: boolean = false
   ): void {
     if (!template || !template.content) {
       return;
@@ -322,6 +350,13 @@ export class CkEditableArray extends HTMLElement {
       contentWrapper.setAttribute('data-deleted', 'true');
     }
 
+    // Apply locked state if this row is locked
+    if (isLocked) {
+      contentWrapper.setAttribute('data-locked', 'true');
+      contentWrapper.setAttribute('aria-disabled', 'true');
+      contentWrapper.setAttribute('inert', '');
+    }
+
     // Apply hidden class based on editing state
     // If row is in editing mode, hide display and show edit
     // If row is not in editing mode (default), show display and hide edit
@@ -336,7 +371,7 @@ export class CkEditableArray extends HTMLElement {
     contentWrapper.appendChild(fragment);
 
     // Bind data to the wrapper's content
-    this.bindDataToNode(contentWrapper, rowData, rowIndex, mode);
+    this.bindDataToNode(contentWrapper, rowData, rowIndex, mode, isLocked);
 
     // Append the wrapper to the container
     container.appendChild(contentWrapper);
@@ -474,6 +509,11 @@ export class CkEditableArray extends HTMLElement {
 
     const isReadonly = this.hasAttribute('readonly');
 
+    // Check if any row is in edit mode (exclusive locking)
+    const hasEditingRow = this._data.some(
+      item => this.isRecord(item) && item.editing === true
+    );
+
     // Check if user provided a custom add button template
     const customAddButtonTpl = this.querySelector(
       'template[slot="add-button"]'
@@ -486,11 +526,12 @@ export class CkEditableArray extends HTMLElement {
       ) as DocumentFragment;
       addButtonContainer.appendChild(fragment);
 
-      // Attach click handlers and disable buttons if readonly
+      // Attach click handlers and disable buttons if readonly or editing
       const buttons = addButtonContainer.querySelectorAll('button');
       buttons.forEach(btn => {
-        if (isReadonly) {
+        if (isReadonly || hasEditingRow) {
           btn.disabled = true;
+          btn.setAttribute('aria-disabled', 'true');
         }
         // Attach click handler to buttons with data-action="add"
         if (btn.getAttribute('data-action') === 'add') {
@@ -504,9 +545,10 @@ export class CkEditableArray extends HTMLElement {
       defaultButton.setAttribute('type', 'button');
       defaultButton.textContent = 'Add';
 
-      // Disable button if readonly
-      if (isReadonly) {
+      // Disable button if readonly or if a row is editing
+      if (isReadonly || hasEditingRow) {
         defaultButton.disabled = true;
+        defaultButton.setAttribute('aria-disabled', 'true');
       }
 
       // Attach click handler
@@ -519,6 +561,14 @@ export class CkEditableArray extends HTMLElement {
   private handleAddClick(): void {
     // Don't add if readonly
     if (this.hasAttribute('readonly')) {
+      return;
+    }
+
+    // Don't add if any row is already in edit mode (exclusive locking)
+    const hasEditingRow = this._data.some(
+      item => this.isRecord(item) && item.editing === true
+    );
+    if (hasEditingRow) {
       return;
     }
 

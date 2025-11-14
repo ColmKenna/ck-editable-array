@@ -619,3 +619,240 @@ describe('CkEditableArray - Step 5.3: New Row Starts in Edit Mode', () => {
     });
   });
 });
+
+describe('CkEditableArray - Step 5.4: Exclusive Locking When a New Row is Editing', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('Test 5.4.1 — Other rows are locked when the new row enters edit mode', () => {
+    test('Given a <ck-editable-array> element attached to document.body, And data with at least 2 existing items, When I click the Add button and a new row appears in edit mode, Then each existing row (not the new one) is marked as locked (for example data-locked="true"), And each existing row has ARIA attributes indicating it is disabled (for example aria-disabled="true"), And each existing row has the inert attribute so it cannot be interacted with', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with toggle control
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="save">Save</button>
+          <button data-action="cancel">Cancel</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with 2 items
+      el.data = [{ name: 'Alice' }, { name: 'Bob' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Verify initial state - no rows locked
+      const initialRow0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const initialRow1Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      expect(initialRow0Display?.hasAttribute('data-locked')).toBe(false);
+      expect(initialRow1Display?.hasAttribute('data-locked')).toBe(false);
+
+      // Act - Click the Add button
+      const addButton = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      addButton?.click();
+
+      // Assert
+      // 1. Existing rows (0 and 1) are marked as locked
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const row1Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+
+      expect(row0Display?.getAttribute('data-locked')).toBe('true');
+      expect(row1Display?.getAttribute('data-locked')).toBe('true');
+
+      // 2. Existing rows have ARIA disabled attributes
+      expect(row0Display?.getAttribute('aria-disabled')).toBe('true');
+      expect(row1Display?.getAttribute('aria-disabled')).toBe('true');
+
+      // 3. Existing rows have inert attribute
+      expect(row0Display?.hasAttribute('inert')).toBe(true);
+      expect(row1Display?.hasAttribute('inert')).toBe(true);
+
+      // 4. New row (row 2) is NOT locked
+      const row2Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="2"]'
+      );
+      expect(row2Edit?.hasAttribute('data-locked')).toBe(false);
+      expect(row2Edit?.hasAttribute('aria-disabled')).toBe(false);
+      expect(row2Edit?.hasAttribute('inert')).toBe(false);
+    });
+  });
+
+  describe("Test 5.4.2 — Existing rows' toggle controls are disabled while new row is editing", () => {
+    test('Given the same scenario where the new row is in edit mode and older rows are locked, When I try to click the toggle control on an existing row, Then that click does not switch the existing row into edit mode, And the existing row remains in display mode, And the new row remains the only row in edit mode', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with toggle control
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="save">Save</button>
+          <button data-action="cancel">Cancel</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with 2 items
+      el.data = [{ name: 'Alice' }, { name: 'Bob' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Click Add button to create new row in edit mode
+      const addButton = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      addButton?.click();
+
+      // Verify initial state - row 0 in display mode, row 2 in edit mode
+      const row0DisplayBefore = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const row0EditBefore = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(row0DisplayBefore?.classList.contains('hidden')).toBe(false);
+      expect(row0EditBefore?.classList.contains('hidden')).toBe(true);
+
+      // Act - Try to click toggle on existing row 0
+      const row0Toggle = row0DisplayBefore?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      expect(row0Toggle).not.toBeNull();
+      row0Toggle?.click();
+
+      // Assert
+      // 1. Row 0 remains in display mode (toggle click had no effect)
+      const row0DisplayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const row0EditAfter = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(row0DisplayAfter?.classList.contains('hidden')).toBe(false);
+      expect(row0EditAfter?.classList.contains('hidden')).toBe(true);
+
+      // 2. New row (row 2) remains the only row in edit mode
+      const row2Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="2"]'
+      );
+      const row2Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="2"]'
+      );
+      expect(row2Display?.classList.contains('hidden')).toBe(true);
+      expect(row2Edit?.classList.contains('hidden')).toBe(false);
+
+      // 3. Verify toggle button is disabled
+      expect(row0Toggle?.disabled).toBe(true);
+    });
+  });
+
+  describe('Test 5.4.3 — Add button becomes disabled while a row is editing', () => {
+    test('Given a <ck-editable-array> element with at least one row, And the Add button is initially enabled, When I cause a row to enter edit mode via the Add button, Then the Add button becomes disabled (for example disabled attribute present), And the Add button also reflects disabled state via ARIA, such as aria-disabled="true", And clicking the Add button again while disabled has no effect on the number of rows', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with 1 item
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Verify Add button is initially enabled
+      const addButtonBefore = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      expect(addButtonBefore?.disabled).toBe(false);
+
+      // Act - Click Add button to create new row in edit mode
+      addButtonBefore?.click();
+
+      // Assert
+      // 1. Add button becomes disabled
+      const addButtonAfter = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      expect(addButtonAfter?.disabled).toBe(true);
+      expect(addButtonAfter?.hasAttribute('disabled')).toBe(true);
+
+      // 2. Add button has ARIA disabled attribute
+      expect(addButtonAfter?.getAttribute('aria-disabled')).toBe('true');
+
+      // 3. Verify we have 2 rows now
+      const rowsAfterFirstAdd = el.shadowRoot?.querySelectorAll(
+        '[data-mode="display"]'
+      );
+      expect(rowsAfterFirstAdd?.length).toBe(2);
+
+      // 4. Try to click Add button again while disabled
+      addButtonAfter?.click();
+
+      // 5. Number of rows should remain 2 (click had no effect)
+      const rowsAfterSecondClick = el.shadowRoot?.querySelectorAll(
+        '[data-mode="display"]'
+      );
+      expect(rowsAfterSecondClick?.length).toBe(2);
+    });
+  });
+});
