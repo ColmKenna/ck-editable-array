@@ -363,6 +363,32 @@ export class CkEditableArray extends HTMLElement {
     toggleButtons.forEach(btn => {
       btn.addEventListener('click', () => this.handleToggleClick(rowIndex));
     });
+
+    // Attach Delete button click handlers (display mode only)
+    if (mode === 'display') {
+      const deleteButtons = root.querySelectorAll<HTMLButtonElement>(
+        '[data-action="delete"]'
+      );
+      deleteButtons.forEach(btn => {
+        btn.addEventListener('click', () => this.handleDeleteClick(rowIndex));
+        // Disable if row is locked
+        if (isLocked) {
+          btn.disabled = true;
+        }
+      });
+
+      // Attach Restore button click handlers (display mode only)
+      const restoreButtons = root.querySelectorAll<HTMLButtonElement>(
+        '[data-action="restore"]'
+      );
+      restoreButtons.forEach(btn => {
+        btn.addEventListener('click', () => this.handleRestoreClick(rowIndex));
+        // Disable if row is locked
+        if (isLocked) {
+          btn.disabled = true;
+        }
+      });
+    }
   }
 
   private appendRowFromTemplate(
@@ -905,6 +931,80 @@ export class CkEditableArray extends HTMLElement {
         btn.removeAttribute('aria-disabled');
       }
     });
+  }
+
+  private handleDeleteClick(rowIndex: number): void {
+    // Don't delete if readonly
+    if (this.hasAttribute('readonly')) {
+      return;
+    }
+
+    // Validate row index
+    if (rowIndex < 0 || rowIndex >= this._data.length) {
+      return;
+    }
+
+    // Don't delete if any row is in edit mode (exclusive locking)
+    const hasEditingRow = this._data.some(
+      item => this.isRecord(item) && item.editing === true
+    );
+    if (hasEditingRow) {
+      return;
+    }
+
+    // Mark the row as deleted
+    const nextData = this._data.map((entry, idx) => {
+      if (idx === rowIndex && this.isRecord(entry)) {
+        return { ...entry, deleted: true };
+      }
+      return this.isRecord(entry) ? { ...entry } : entry;
+    });
+
+    this._data = nextData;
+
+    // Re-render and dispatch datachanged event
+    if (this.isConnected) {
+      this.render();
+      this.dispatchDataChanged();
+    }
+  }
+
+  private handleRestoreClick(rowIndex: number): void {
+    // Don't restore if readonly
+    if (this.hasAttribute('readonly')) {
+      return;
+    }
+
+    // Validate row index
+    if (rowIndex < 0 || rowIndex >= this._data.length) {
+      return;
+    }
+
+    // Don't restore if any row is in edit mode (exclusive locking)
+    const hasEditingRow = this._data.some(
+      item => this.isRecord(item) && item.editing === true
+    );
+    if (hasEditingRow) {
+      return;
+    }
+
+    // Remove the deleted flag from the row
+    const nextData = this._data.map((entry, idx) => {
+      if (idx === rowIndex && this.isRecord(entry)) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { deleted, ...rest } = entry;
+        return rest;
+      }
+      return this.isRecord(entry) ? { ...entry } : entry;
+    });
+
+    this._data = nextData;
+
+    // Re-render and dispatch datachanged event
+    if (this.isConnected) {
+      this.render();
+      this.dispatchDataChanged();
+    }
   }
 }
 

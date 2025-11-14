@@ -1328,3 +1328,343 @@ describe('CkEditableArray - Step 6.5: Cancel Behavior', () => {
     });
   });
 });
+
+describe('CkEditableArray - Step 6.6: Soft Delete & Restore', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('Test 6.6.1 — Delete marks row as soft-deleted without removing it from the DOM', () => {
+    test('Given a row in display mode with a visible Delete control, When I click Delete, Then the row is marked as deleted in the DOM (data-deleted="true"), And the row remains present in the rows container (not physically removed)', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with Delete button
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="delete">Delete</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice' }, { name: 'Bob' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Verify initial state - row 0 is not deleted
+      const row0DisplayBefore = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0DisplayBefore?.hasAttribute('data-deleted')).toBe(false);
+
+      // Act - Click Delete button on row 0
+      const deleteButton = row0DisplayBefore?.querySelector(
+        '[data-action="delete"]'
+      ) as HTMLButtonElement;
+      expect(deleteButton).not.toBeNull();
+      deleteButton?.click();
+
+      // Assert
+      // 1. Row is marked as deleted in DOM
+      const row0DisplayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0DisplayAfter?.getAttribute('data-deleted')).toBe('true');
+
+      // 2. Row remains in DOM (not physically removed)
+      expect(row0DisplayAfter).not.toBeNull();
+      const allRows = el.shadowRoot?.querySelectorAll('[data-row]');
+      expect(allRows?.length).toBe(4); // 2 rows × 2 modes (display + edit)
+
+      // 3. Other rows are unaffected
+      const row1Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      expect(row1Display?.hasAttribute('data-deleted')).toBe(false);
+    });
+  });
+
+  describe('Test 6.6.2 — Delete updates the data and emits datachanged', () => {
+    test('Given a listener for datachanged, And a row in display mode with a Delete control, When I click Delete, Then el.data\'s corresponding item is updated to reflect logical deletion (deleted: true), And a datachanged event is emitted', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with Delete button
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="delete">Delete</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Setup event listener
+      let eventCount = 0;
+      let lastEventData: unknown = null;
+
+      el.addEventListener('datachanged', (event: Event) => {
+        eventCount++;
+        const customEvent = event as CustomEvent;
+        lastEventData = customEvent.detail.data;
+      });
+
+      // Act - Click Delete button
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const deleteButton = row0Display?.querySelector(
+        '[data-action="delete"]'
+      ) as HTMLButtonElement;
+      deleteButton?.click();
+
+      // Assert
+      // 1. Data is updated with deleted flag
+      const currentData = el.data as Array<Record<string, unknown>>;
+      expect(currentData[0].deleted).toBe(true);
+      expect(currentData[0].name).toBe('Alice'); // Other data preserved
+
+      // 2. datachanged event was fired
+      expect(eventCount).toBe(1);
+
+      // 3. Event detail contains deleted item
+      const eventData = lastEventData as Array<Record<string, unknown>>;
+      expect(eventData[0].deleted).toBe(true);
+      expect(eventData[0].name).toBe('Alice');
+    });
+  });
+
+  describe('Test 6.6.3 — Restore reverses soft delete', () => {
+    test('Given a row already marked as deleted (with data-deleted and a Restore control visible), When I click Restore, Then the row\'s deleted marker is removed (no data-deleted), And the corresponding item in el.data no longer has deleted: true, And a datachanged event is emitted with the restored data', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with Delete and Restore buttons
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="delete">Delete</button>
+          <button data-action="restore">Restore</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with deleted row
+      el.data = [{ name: 'Alice', deleted: true }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Verify initial state - row is deleted
+      const row0DisplayBefore = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0DisplayBefore?.getAttribute('data-deleted')).toBe('true');
+
+      // Setup event listener
+      let eventCount = 0;
+      let lastEventData: unknown = null;
+
+      el.addEventListener('datachanged', (event: Event) => {
+        eventCount++;
+        const customEvent = event as CustomEvent;
+        lastEventData = customEvent.detail.data;
+      });
+
+      // Act - Click Restore button
+      const restoreButton = row0DisplayBefore?.querySelector(
+        '[data-action="restore"]'
+      ) as HTMLButtonElement;
+      expect(restoreButton).not.toBeNull();
+      restoreButton?.click();
+
+      // Assert
+      // 1. Row's deleted marker is removed from DOM
+      const row0DisplayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0DisplayAfter?.hasAttribute('data-deleted')).toBe(false);
+
+      // 2. Data no longer has deleted flag
+      const currentData = el.data as Array<Record<string, unknown>>;
+      expect(currentData[0].deleted).toBeUndefined();
+      expect(currentData[0].name).toBe('Alice'); // Other data preserved
+
+      // 3. datachanged event was fired
+      expect(eventCount).toBe(1);
+
+      // 4. Event detail contains restored item
+      const eventData = lastEventData as Array<Record<string, unknown>>;
+      expect(eventData[0].deleted).toBeUndefined();
+      expect(eventData[0].name).toBe('Alice');
+    });
+  });
+
+  describe('Test 6.6.4 — Delete and Restore obey exclusive locking rules when a different row is editing', () => {
+    test('Given one row currently in edit mode and all other rows locked, When I attempt to click Delete or Restore on a locked row, Then nothing happens: no visual change, no events fire, And the editing row remains in edit mode', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with Delete and Restore buttons
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+          <button data-action="delete">Delete</button>
+          <button data-action="restore">Restore</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="save">Save</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with one deleted row
+      el.data = [
+        { name: 'Alice' },
+        { name: 'Bob', deleted: true },
+        { name: 'Charlie' },
+      ];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Toggle row 0 to edit mode (locks other rows)
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const toggleButton = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      // Verify row 0 is in edit mode and row 1 is locked
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(row0Edit?.classList.contains('hidden')).toBe(false);
+
+      const row1DisplayLocked = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      expect(row1DisplayLocked?.getAttribute('data-locked')).toBe('true');
+
+      // Setup event listeners to verify no events fire
+      let dataChangedCount = 0;
+      let beforeToggleCount = 0;
+      let afterToggleCount = 0;
+
+      el.addEventListener('datachanged', () => {
+        dataChangedCount++;
+      });
+
+      el.addEventListener('beforetogglemode', () => {
+        beforeToggleCount++;
+      });
+
+      el.addEventListener('aftertogglemode', () => {
+        afterToggleCount++;
+      });
+
+      // Store initial data state
+      const dataBefore = JSON.parse(JSON.stringify(el.data));
+
+      // Act - Try to click Restore on locked deleted row (row 1)
+      const restoreButton = row1DisplayLocked?.querySelector(
+        '[data-action="restore"]'
+      ) as HTMLButtonElement;
+      restoreButton?.click();
+
+      // Try to click Delete on locked non-deleted row (row 2)
+      const row2DisplayLocked = el.shadowRoot?.querySelector(
+        '.display-content[data-row="2"]'
+      );
+      const deleteButton = row2DisplayLocked?.querySelector(
+        '[data-action="delete"]'
+      ) as HTMLButtonElement;
+      deleteButton?.click();
+
+      // Assert
+      // 1. No events fired
+      expect(dataChangedCount).toBe(0);
+      expect(beforeToggleCount).toBe(0);
+      expect(afterToggleCount).toBe(0);
+
+      // 2. Data unchanged
+      const dataAfter = el.data;
+      expect(JSON.stringify(dataAfter)).toBe(JSON.stringify(dataBefore));
+
+      // 3. Row 1 still marked as deleted
+      const row1DisplayStill = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      expect(row1DisplayStill?.getAttribute('data-deleted')).toBe('true');
+
+      // 4. Row 2 still not deleted
+      const row2DisplayStill = el.shadowRoot?.querySelector(
+        '.display-content[data-row="2"]'
+      );
+      expect(row2DisplayStill?.hasAttribute('data-deleted')).toBe(false);
+
+      // 5. Row 0 still in edit mode
+      const row0EditStill = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(row0EditStill?.classList.contains('hidden')).toBe(false);
+    });
+  });
+});
