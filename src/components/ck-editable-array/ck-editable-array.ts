@@ -486,13 +486,17 @@ export class CkEditableArray extends HTMLElement {
       ) as DocumentFragment;
       addButtonContainer.appendChild(fragment);
 
-      // Disable all buttons in the add button container if readonly
-      if (isReadonly) {
-        const buttons = addButtonContainer.querySelectorAll('button');
-        buttons.forEach(btn => {
+      // Attach click handlers and disable buttons if readonly
+      const buttons = addButtonContainer.querySelectorAll('button');
+      buttons.forEach(btn => {
+        if (isReadonly) {
           btn.disabled = true;
-        });
-      }
+        }
+        // Attach click handler to buttons with data-action="add"
+        if (btn.getAttribute('data-action') === 'add') {
+          btn.addEventListener('click', () => this.handleAddClick());
+        }
+      });
     } else {
       // Render default Add button
       const defaultButton = document.createElement('button');
@@ -505,7 +509,34 @@ export class CkEditableArray extends HTMLElement {
         defaultButton.disabled = true;
       }
 
+      // Attach click handler
+      defaultButton.addEventListener('click', () => this.handleAddClick());
+
       addButtonContainer.appendChild(defaultButton);
+    }
+  }
+
+  private handleAddClick(): void {
+    // Don't add if readonly
+    if (this.hasAttribute('readonly')) {
+      return;
+    }
+
+    // Create a new item using the factory
+    const newItem = this._newItemFactory();
+
+    // Mark the new item as being in editing mode
+    const newItemWithEditing = this.isRecord(newItem)
+      ? { ...newItem, editing: true }
+      : newItem;
+
+    // Add the new item to the data array
+    this._data = [...this._data, newItemWithEditing];
+
+    // Re-render and dispatch datachanged event
+    if (this.isConnected) {
+      this.render();
+      this.dispatchDataChanged();
     }
   }
 }
