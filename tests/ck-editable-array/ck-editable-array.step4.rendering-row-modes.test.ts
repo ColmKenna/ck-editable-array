@@ -702,3 +702,232 @@ describe('Test 4.4 — Toggle button surface (no events yet, just DOM shape)', (
     });
   });
 });
+
+describe('Test 4.5 — Input naming & binding sanity checks', () => {
+  describe('Test 4.5.1 — Inputs in edit mode use name[index].field naming pattern', () => {
+    test('Given a <ck-editable-array> element attached to document.body, And it has a name="person" attribute, And data has at least 2 items with object properties like { address1, address2 }, When the component renders rows with edit templates using inputs bound to address1 and address2, Then the edit input for address1 in row 0 has an HTML name like person[0].address1, And the edit input for address2 in row 1 has a name like person[1].address2', () => {
+      // Arrange
+      const el = new CkEditableArray();
+      el.setAttribute('name', 'person');
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span data-bind="address1"></span>
+            <span data-bind="address2"></span>
+          </div>
+        `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template with inputs
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+          <div class="row-edit">
+            <input data-bind="address1" />
+            <input data-bind="address2" />
+          </div>
+        `;
+      el.appendChild(tplEdit);
+
+      // Set data with at least 2 items
+      el.data = [
+        { address1: '123 Main St', address2: 'Apt 1' },
+        { address1: '456 Oak Ave', address2: 'Suite 200' },
+      ];
+
+      // Act - Attach to document
+      document.body.appendChild(el);
+
+      // Assert - Row 0 inputs
+      const editWrapper0 = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const address1Input0 = editWrapper0?.querySelector(
+        'input[data-bind="address1"]'
+      ) as HTMLInputElement;
+      const address2Input0 = editWrapper0?.querySelector(
+        'input[data-bind="address2"]'
+      ) as HTMLInputElement;
+
+      expect(address1Input0).not.toBeNull();
+      expect(address1Input0?.name).toBe('person[0].address1');
+      expect(address2Input0).not.toBeNull();
+      expect(address2Input0?.name).toBe('person[0].address2');
+
+      // Assert - Row 1 inputs
+      const editWrapper1 = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="1"]'
+      );
+      const address1Input1 = editWrapper1?.querySelector(
+        'input[data-bind="address1"]'
+      ) as HTMLInputElement;
+      const address2Input1 = editWrapper1?.querySelector(
+        'input[data-bind="address2"]'
+      ) as HTMLInputElement;
+
+      expect(address1Input1).not.toBeNull();
+      expect(address1Input1?.name).toBe('person[1].address1');
+      expect(address2Input1).not.toBeNull();
+      expect(address2Input1?.name).toBe('person[1].address2');
+    });
+  });
+
+  describe('Test 4.5.2 — Display binding mirrors the current data values', () => {
+    test('Given a <ck-editable-array> element attached to document.body, And data contains items with address1 and address2 set to distinct values, When the component renders with a display template using <span data-bind="address1"> and <span data-bind="address2">, Then the row\'s display spans show the correct text for address1 and address2 for each index', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span data-bind="address1"></span>
+            <span data-bind="address2"></span>
+          </div>
+        `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+          <div class="row-edit">
+            <input data-bind="address1" />
+            <input data-bind="address2" />
+          </div>
+        `;
+      el.appendChild(tplEdit);
+
+      // Set data with distinct values
+      el.data = [
+        { address1: '123 Main St', address2: 'Apt 1' },
+        { address1: '456 Oak Ave', address2: 'Suite 200' },
+        { address1: '789 Pine Rd', address2: 'Unit 5' },
+      ];
+
+      // Act - Attach to document
+      document.body.appendChild(el);
+
+      // Assert - Row 0 display
+      const displayWrapper0 = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const address1Span0 = displayWrapper0?.querySelector(
+        '[data-bind="address1"]'
+      ) as HTMLElement;
+      const address2Span0 = displayWrapper0?.querySelector(
+        '[data-bind="address2"]'
+      ) as HTMLElement;
+
+      expect(address1Span0?.textContent).toBe('123 Main St');
+      expect(address2Span0?.textContent).toBe('Apt 1');
+
+      // Assert - Row 1 display
+      const displayWrapper1 = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      const address1Span1 = displayWrapper1?.querySelector(
+        '[data-bind="address1"]'
+      ) as HTMLElement;
+      const address2Span1 = displayWrapper1?.querySelector(
+        '[data-bind="address2"]'
+      ) as HTMLElement;
+
+      expect(address1Span1?.textContent).toBe('456 Oak Ave');
+      expect(address2Span1?.textContent).toBe('Suite 200');
+
+      // Assert - Row 2 display
+      const displayWrapper2 = el.shadowRoot?.querySelector(
+        '.display-content[data-row="2"]'
+      );
+      const address1Span2 = displayWrapper2?.querySelector(
+        '[data-bind="address1"]'
+      ) as HTMLElement;
+      const address2Span2 = displayWrapper2?.querySelector(
+        '[data-bind="address2"]'
+      ) as HTMLElement;
+
+      expect(address1Span2?.textContent).toBe('789 Pine Rd');
+      expect(address2Span2?.textContent).toBe('Unit 5');
+    });
+  });
+
+  describe('Test 4.5.3 — Empty or missing fields render as empty display text', () => {
+    test('Given a <ck-editable-array> element attached to document.body, And data contains an item where some expected field (e.g. address2) is missing or null, When the component renders using display spans bound with data-bind="address2", Then the display span for address2 in that row renders as empty (no "undefined" / "null" text)', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+          <div class="row-display">
+            <span data-bind="address1"></span>
+            <span data-bind="address2"></span>
+          </div>
+        `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+          <div class="row-edit">
+            <input data-bind="address1" />
+            <input data-bind="address2" />
+          </div>
+        `;
+      el.appendChild(tplEdit);
+
+      // Set data with missing/null fields
+      el.data = [
+        { address1: '123 Main St', address2: null },
+        { address1: '456 Oak Ave' }, // address2 missing
+        { address1: '789 Pine Rd', address2: undefined },
+      ];
+
+      // Act - Attach to document
+      document.body.appendChild(el);
+
+      // Assert - Row 0 (address2 is null)
+      const displayWrapper0 = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const address2Span0 = displayWrapper0?.querySelector(
+        '[data-bind="address2"]'
+      ) as HTMLElement;
+      expect(address2Span0?.textContent).toBe('');
+      expect(address2Span0?.textContent).not.toBe('null');
+
+      // Assert - Row 1 (address2 is missing)
+      const displayWrapper1 = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      const address2Span1 = displayWrapper1?.querySelector(
+        '[data-bind="address2"]'
+      ) as HTMLElement;
+      expect(address2Span1?.textContent).toBe('');
+      expect(address2Span1?.textContent).not.toBe('undefined');
+
+      // Assert - Row 2 (address2 is undefined)
+      const displayWrapper2 = el.shadowRoot?.querySelector(
+        '.display-content[data-row="2"]'
+      );
+      const address2Span2 = displayWrapper2?.querySelector(
+        '[data-bind="address2"]'
+      ) as HTMLElement;
+      expect(address2Span2?.textContent).toBe('');
+      expect(address2Span2?.textContent).not.toBe('undefined');
+
+      // Verify address1 still renders correctly
+      const address1Span0 = displayWrapper0?.querySelector(
+        '[data-bind="address1"]'
+      ) as HTMLElement;
+      expect(address1Span0?.textContent).toBe('123 Main St');
+    });
+  });
+});
