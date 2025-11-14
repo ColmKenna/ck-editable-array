@@ -853,3 +853,254 @@ describe('CkEditableArray - Step 8.4: Generic Event Dispatch Behaviour', () => {
     });
   });
 });
+
+describe('CkEditableArray - Step 8.5: Event Payload Consistency', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('Test 8.5.1 — datachanged detail includes full, current array', () => {
+    test('Given a <ck-editable-array> element with a known data array of two items, When I perform an action that changes only the second item (e.g. edit & Save row 1), Then the datachanged event\'s detail.data is an array of 2 items, And item at index 0 is unchanged from before, And item at index 1 reflects the updated values', async () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="save">Save</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with two items
+      el.data = [{ name: 'Alice' }, { name: 'Bob' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Set up event listener for datachanged
+      const dataChangedListener = jest.fn();
+      el.addEventListener('datachanged', dataChangedListener);
+
+      // Act - Toggle row 1 (second item) to edit mode
+      const row1Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      const toggleButton = row1Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Change the input value for row 1
+      const row1Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="1"]'
+      );
+      const nameInput = row1Edit?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      nameInput.value = 'Charlie';
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Click Save
+      const saveButton = row1Edit?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      saveButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert
+      // 1. datachanged event was fired
+      expect(dataChangedListener).toHaveBeenCalled();
+
+      // 2. Event detail includes full array with 2 items
+      const lastCall = dataChangedListener.mock.calls[dataChangedListener.mock.calls.length - 1];
+      const event = lastCall[0] as CustomEvent;
+      expect(event.detail.data).toBeDefined();
+      expect(Array.isArray(event.detail.data)).toBe(true);
+      expect(event.detail.data.length).toBe(2);
+
+      // 3. Item at index 0 is unchanged (still Alice)
+      expect(event.detail.data[0].name).toBe('Alice');
+
+      // 4. Item at index 1 reflects the updated value (Charlie)
+      expect(event.detail.data[1].name).toBe('Charlie');
+    });
+  });
+
+  describe('Test 8.5.2 — beforetogglemode carries correct index and from/to', () => {
+    test('Given 3 rows present in display mode, When I toggle row 2 into edit mode, Then the beforetogglemode event\'s detail includes index: 2, from: "display", to: "edit", When I later toggle row 2 back to display, Then the beforetogglemode event\'s detail includes index: 2, from: "edit", to: "display"', async () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="toggle">Cancel</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with 3 items
+      el.data = [{ name: 'Alice' }, { name: 'Bob' }, { name: 'Charlie' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Set up event listener for beforetogglemode
+      const beforeToggleListener = jest.fn();
+      el.addEventListener('beforetogglemode', beforeToggleListener);
+
+      // Act - Toggle row 2 (third item) to edit mode
+      const row2Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="2"]'
+      );
+      const toggleButtonDisplay = row2Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButtonDisplay?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert - First toggle (display -> edit)
+      expect(beforeToggleListener).toHaveBeenCalledTimes(1);
+      const firstCall = beforeToggleListener.mock.calls[0];
+      const firstEvent = firstCall[0] as CustomEvent;
+      expect(firstEvent.detail.index).toBe(2);
+      expect(firstEvent.detail.from).toBe('display');
+      expect(firstEvent.detail.to).toBe('edit');
+
+      // Act - Toggle row 2 back to display mode
+      const row2Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="2"]'
+      );
+      const toggleButtonEdit = row2Edit?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButtonEdit?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert - Second toggle (edit -> display)
+      expect(beforeToggleListener).toHaveBeenCalledTimes(2);
+      const secondCall = beforeToggleListener.mock.calls[1];
+      const secondEvent = secondCall[0] as CustomEvent;
+      expect(secondEvent.detail.index).toBe(2);
+      expect(secondEvent.detail.from).toBe('edit');
+      expect(secondEvent.detail.to).toBe('display');
+    });
+  });
+
+  describe('Test 8.5.3 — aftertogglemode carries only the final mode', () => {
+    test('Given a successful toggle, When I inspect the aftertogglemode event\'s detail, Then it includes index: <rowIndex>, mode: "edit" or "display" (the final state), And it does not expose from / to since the transition is already complete', async () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="toggle">Cancel</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Set up event listener for aftertogglemode
+      const afterToggleListener = jest.fn();
+      el.addEventListener('aftertogglemode', afterToggleListener);
+
+      // Act - Toggle to edit mode
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const toggleButtonDisplay = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButtonDisplay?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert - First toggle (to edit)
+      expect(afterToggleListener).toHaveBeenCalledTimes(1);
+      const firstCall = afterToggleListener.mock.calls[0];
+      const firstEvent = firstCall[0] as CustomEvent;
+      expect(firstEvent.detail.index).toBe(0);
+      expect(firstEvent.detail.mode).toBe('edit');
+      // Should NOT have from/to properties
+      expect(firstEvent.detail.from).toBeUndefined();
+      expect(firstEvent.detail.to).toBeUndefined();
+
+      // Act - Toggle back to display mode
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const toggleButtonEdit = row0Edit?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButtonEdit?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert - Second toggle (to display)
+      expect(afterToggleListener).toHaveBeenCalledTimes(2);
+      const secondCall = afterToggleListener.mock.calls[1];
+      const secondEvent = secondCall[0] as CustomEvent;
+      expect(secondEvent.detail.index).toBe(0);
+      expect(secondEvent.detail.mode).toBe('display');
+      // Should NOT have from/to properties
+      expect(secondEvent.detail.from).toBeUndefined();
+      expect(secondEvent.detail.to).toBeUndefined();
+    });
+  });
+});
