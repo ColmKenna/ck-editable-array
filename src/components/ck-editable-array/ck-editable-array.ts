@@ -1119,7 +1119,8 @@ export class CkEditableArray extends HTMLElement {
    */
   private validatePropertyConstraints(
     row: InternalRowData,
-    schema: ValidationSchema
+    schema: ValidationSchema,
+    requiredErrors: Record<string, string[]>
   ): Record<string, string[]> {
     const errors: Record<string, string[]> = {};
 
@@ -1127,6 +1128,11 @@ export class CkEditableArray extends HTMLElement {
       for (const [key, propSchema] of Object.entries(schema.properties)) {
         if (propSchema) {
           const value = row[key];
+
+          // Skip property validation if field already has a required error
+          if (requiredErrors[key]) {
+            continue;
+          }
 
           // Check minLength for strings
           if (
@@ -1204,8 +1210,12 @@ export class CkEditableArray extends HTMLElement {
     const requiredErrors = this.validateRequiredFields(row, schema);
     Object.assign(errors, requiredErrors);
 
-    // Validate property constraints
-    const propertyErrors = this.validatePropertyConstraints(row, schema);
+    // Validate property constraints (skip fields with required errors)
+    const propertyErrors = this.validatePropertyConstraints(
+      row,
+      schema,
+      requiredErrors
+    );
     Object.assign(errors, propertyErrors);
 
     return { isValid: Object.keys(errors).length === 0, errors };
