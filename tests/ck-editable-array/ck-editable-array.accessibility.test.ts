@@ -16,22 +16,28 @@ describe('CkEditableArray - Accessibility Tests', () => {
 
       const tplDisplay = document.createElement('template');
       tplDisplay.setAttribute('slot', 'display');
-      tplDisplay.innerHTML = '<div><span data-bind="name"></span><button data-action="toggle">Edit</button></div>';
+      tplDisplay.innerHTML =
+        '<div><span data-bind="name"></span><button data-action="toggle">Edit</button></div>';
       el.appendChild(tplDisplay);
 
       const tplEdit = document.createElement('template');
       tplEdit.setAttribute('slot', 'edit');
-      tplEdit.innerHTML = '<div><input data-bind="name" /><span data-field-error="name"></span></div>';
+      tplEdit.innerHTML =
+        '<div><input data-bind="name" /><span data-field-error="name"></span></div>';
       el.appendChild(tplEdit);
 
       el.data = [{ name: '' }];
       document.body.appendChild(el);
 
-      const toggleBtn = el.shadowRoot?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+      const toggleBtn = el.shadowRoot?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
       toggleBtn?.click();
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      const input = el.shadowRoot?.querySelector('input[data-bind="name"]') as HTMLInputElement;
+      const input = el.shadowRoot?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
       expect(input?.getAttribute('aria-invalid')).toBe('true');
     });
 
@@ -45,22 +51,28 @@ describe('CkEditableArray - Accessibility Tests', () => {
 
       const tplDisplay = document.createElement('template');
       tplDisplay.setAttribute('slot', 'display');
-      tplDisplay.innerHTML = '<div><span data-bind="name"></span><button data-action="toggle">Edit</button></div>';
+      tplDisplay.innerHTML =
+        '<div><span data-bind="name"></span><button data-action="toggle">Edit</button></div>';
       el.appendChild(tplDisplay);
 
       const tplEdit = document.createElement('template');
       tplEdit.setAttribute('slot', 'edit');
-      tplEdit.innerHTML = '<div><input data-bind="name" /><span data-field-error="name"></span></div>';
+      tplEdit.innerHTML =
+        '<div><input data-bind="name" /><span data-field-error="name"></span></div>';
       el.appendChild(tplEdit);
 
       el.data = [{ name: 'Alice' }];
       document.body.appendChild(el);
 
-      const toggleBtn = el.shadowRoot?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+      const toggleBtn = el.shadowRoot?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
       toggleBtn?.click();
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      const input = el.shadowRoot?.querySelector('input[data-bind="name"]') as HTMLInputElement;
+      const input = el.shadowRoot?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
       expect(input?.getAttribute('aria-invalid')).not.toBe('true');
     });
 
@@ -74,23 +86,31 @@ describe('CkEditableArray - Accessibility Tests', () => {
 
       const tplDisplay = document.createElement('template');
       tplDisplay.setAttribute('slot', 'display');
-      tplDisplay.innerHTML = '<div><span data-bind="email"></span><button data-action="toggle">Edit</button></div>';
+      tplDisplay.innerHTML =
+        '<div><span data-bind="email"></span><button data-action="toggle">Edit</button></div>';
       el.appendChild(tplDisplay);
 
       const tplEdit = document.createElement('template');
       tplEdit.setAttribute('slot', 'edit');
-      tplEdit.innerHTML = '<div><input data-bind="email" /><span data-field-error="email"></span></div>';
+      tplEdit.innerHTML =
+        '<div><input data-bind="email" /><span data-field-error="email"></span></div>';
       el.appendChild(tplEdit);
 
       el.data = [{ email: '' }];
       document.body.appendChild(el);
 
-      const toggleBtn = el.shadowRoot?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+      const toggleBtn = el.shadowRoot?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
       toggleBtn?.click();
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      const input = el.shadowRoot?.querySelector('input[data-bind="email"]') as HTMLInputElement;
-      const errorSpan = el.shadowRoot?.querySelector('[data-field-error="email"]') as HTMLElement;
+      const input = el.shadowRoot?.querySelector(
+        'input[data-bind="email"]'
+      ) as HTMLInputElement;
+      const errorSpan = el.shadowRoot?.querySelector(
+        '[data-field-error="email"]'
+      ) as HTMLElement;
       const errorId = errorSpan?.getAttribute('id');
 
       expect(errorId).toBeTruthy();
@@ -114,7 +134,9 @@ describe('CkEditableArray - Accessibility Tests', () => {
       el.data = [{ name: 'Alice' }];
       document.body.appendChild(el);
 
-      const addButton = el.shadowRoot?.querySelector('[data-action="add"]') as HTMLButtonElement;
+      const addButton = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
       expect(addButton?.getAttribute('aria-disabled')).toBe('true');
     });
   });
@@ -125,19 +147,25 @@ describe('CkEditableArray - Accessibility Tests', () => {
 
       const tplDisplay = document.createElement('template');
       tplDisplay.setAttribute('slot', 'display');
-      tplDisplay.innerHTML = '<div><span data-bind="name"></span><button data-action="toggle">Edit</button></div>';
+      tplDisplay.innerHTML =
+        '<div><span data-bind="name"></span><button data-action="toggle">Edit</button></div>';
       el.appendChild(tplDisplay);
 
       const tplEdit = document.createElement('template');
       tplEdit.setAttribute('slot', 'edit');
-      tplEdit.innerHTML = '<div><input data-bind="name" /><button data-action="save">Save</button></div>';
+      tplEdit.innerHTML =
+        '<div><input data-bind="name" /><button data-action="save">Save</button></div>';
       el.appendChild(tplEdit);
 
       el.data = [{ name: 'Alice' }];
       document.body.appendChild(el);
 
-      const toggleBtn = el.shadowRoot?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
-      const addBtn = el.shadowRoot?.querySelector('[data-action="add"]') as HTMLButtonElement;
+      const toggleBtn = el.shadowRoot?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      const addBtn = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
 
       expect(toggleBtn?.tabIndex).toBeGreaterThanOrEqual(0);
       expect(addBtn?.tabIndex).toBeGreaterThanOrEqual(0);
@@ -148,18 +176,22 @@ describe('CkEditableArray - Accessibility Tests', () => {
 
       const tplDisplay = document.createElement('template');
       tplDisplay.setAttribute('slot', 'display');
-      tplDisplay.innerHTML = '<div><span data-bind="name"></span><button data-action="toggle">Edit</button></div>';
+      tplDisplay.innerHTML =
+        '<div><span data-bind="name"></span><button data-action="toggle">Edit</button></div>';
       el.appendChild(tplDisplay);
 
       const tplEdit = document.createElement('template');
       tplEdit.setAttribute('slot', 'edit');
-      tplEdit.innerHTML = '<div><input data-bind="name" /><button data-action="save">Save</button></div>';
+      tplEdit.innerHTML =
+        '<div><input data-bind="name" /><button data-action="save">Save</button></div>';
       el.appendChild(tplEdit);
 
       el.data = [{ name: 'Alice' }, { name: 'Bob', editing: true }];
       document.body.appendChild(el);
 
-      const row0Display = el.shadowRoot?.querySelector('.display-content[data-row="0"]');
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
       expect(row0Display?.hasAttribute('inert')).toBe(true);
     });
   });
@@ -175,18 +207,22 @@ describe('CkEditableArray - Accessibility Tests', () => {
 
       const tplDisplay = document.createElement('template');
       tplDisplay.setAttribute('slot', 'display');
-      tplDisplay.innerHTML = '<div><span data-bind="name"></span><button data-action="toggle">Edit</button></div>';
+      tplDisplay.innerHTML =
+        '<div><span data-bind="name"></span><button data-action="toggle">Edit</button></div>';
       el.appendChild(tplDisplay);
 
       const tplEdit = document.createElement('template');
       tplEdit.setAttribute('slot', 'edit');
-      tplEdit.innerHTML = '<div><div data-error-summary role="alert" aria-live="polite"></div><input data-bind="name" /></div>';
+      tplEdit.innerHTML =
+        '<div><div data-error-summary role="alert" aria-live="polite"></div><input data-bind="name" /></div>';
       el.appendChild(tplEdit);
 
       el.data = [{ name: '' }];
       document.body.appendChild(el);
 
-      const toggleBtn = el.shadowRoot?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+      const toggleBtn = el.shadowRoot?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
       toggleBtn?.click();
       await new Promise(resolve => setTimeout(resolve, 10));
 
@@ -205,18 +241,22 @@ describe('CkEditableArray - Accessibility Tests', () => {
 
       const tplDisplay = document.createElement('template');
       tplDisplay.setAttribute('slot', 'display');
-      tplDisplay.innerHTML = '<div><span data-bind="name"></span><button data-action="toggle">Edit</button></div>';
+      tplDisplay.innerHTML =
+        '<div><span data-bind="name"></span><button data-action="toggle">Edit</button></div>';
       el.appendChild(tplDisplay);
 
       const tplEdit = document.createElement('template');
       tplEdit.setAttribute('slot', 'edit');
-      tplEdit.innerHTML = '<div><div data-error-summary></div><input data-bind="name" /></div>';
+      tplEdit.innerHTML =
+        '<div><div data-error-summary></div><input data-bind="name" /></div>';
       el.appendChild(tplEdit);
 
       el.data = [{ name: '' }];
       document.body.appendChild(el);
 
-      const toggleBtn = el.shadowRoot?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+      const toggleBtn = el.shadowRoot?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
       toggleBtn?.click();
       await new Promise(resolve => setTimeout(resolve, 10));
 
@@ -244,7 +284,9 @@ describe('CkEditableArray - Accessibility Tests', () => {
       el.data = [{ name: 'Alice' }];
       document.body.appendChild(el);
 
-      const addButton = el.shadowRoot?.querySelector('[data-action="add"]') as HTMLButtonElement;
+      const addButton = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
       expect(addButton?.type).toBe('button');
     });
 
@@ -254,7 +296,8 @@ describe('CkEditableArray - Accessibility Tests', () => {
 
       const tplDisplay = document.createElement('template');
       tplDisplay.setAttribute('slot', 'display');
-      tplDisplay.innerHTML = '<div><span data-bind="name"></span><button data-action="toggle">Edit</button></div>';
+      tplDisplay.innerHTML =
+        '<div><span data-bind="name"></span><button data-action="toggle">Edit</button></div>';
       el.appendChild(tplDisplay);
 
       const tplEdit = document.createElement('template');
@@ -265,7 +308,9 @@ describe('CkEditableArray - Accessibility Tests', () => {
       el.data = [{ name: 'Alice', editing: true }];
       document.body.appendChild(el);
 
-      const input = el.shadowRoot?.querySelector('input[data-bind="name"]') as HTMLInputElement;
+      const input = el.shadowRoot?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
       expect(input?.name).toBe('person[0].name');
     });
   });
@@ -287,7 +332,9 @@ describe('CkEditableArray - Accessibility Tests', () => {
       el.data = [{ name: 'Alice', deleted: true }];
       document.body.appendChild(el);
 
-      const displayRow = el.shadowRoot?.querySelector('.display-content[data-row="0"]');
+      const displayRow = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
       expect(displayRow?.hasAttribute('data-deleted')).toBe(true);
       expect(displayRow?.classList.contains('deleted')).toBe(true);
     });

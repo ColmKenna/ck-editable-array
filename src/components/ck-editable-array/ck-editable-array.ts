@@ -57,10 +57,37 @@ type RenderMode = 'display' | 'edit';
 // ============================================================================
 
 export class CkEditableArray extends HTMLElement {
+  // ============================================================================
+  // CONSTANTS
+  // ============================================================================
+
+  private static readonly PART_ROWS = 'rows';
+  private static readonly PART_ADD_BUTTON = 'add-button';
+  private static readonly PART_ROOT = 'root';
+  private static readonly SLOT_STYLES = 'styles';
+  private static readonly SLOT_DISPLAY = 'display';
+  private static readonly SLOT_EDIT = 'edit';
+  private static readonly ATTR_DATA_BIND = 'data-bind';
+  private static readonly ATTR_DATA_ACTION = 'data-action';
+  private static readonly ATTR_DATA_ROW = 'data-row';
+  private static readonly ATTR_DATA_MODE = 'data-mode';
+  private static readonly CLASS_HIDDEN = 'hidden';
+  private static readonly CLASS_DELETED = 'deleted';
+  private static readonly CLASS_DISPLAY_CONTENT = 'display-content';
+  private static readonly CLASS_EDIT_CONTENT = 'edit-content';
+
+  // ============================================================================
+  // PRIVATE PROPERTIES
+  // ============================================================================
+
   private _data: EditableRow[] = [];
   private _schema: unknown = null;
   private _newItemFactory: () => EditableRow = () => ({});
   private _styleObserver: MutationObserver | null = null;
+
+  // ============================================================================
+  // LIFECYCLE METHODS
+  // ============================================================================
 
   static get observedAttributes(): string[] {
     return ['name', 'readonly'];
@@ -75,25 +102,29 @@ export class CkEditableArray extends HTMLElement {
     if (this.shadowRoot && this.shadowRoot.children.length === 0) {
       // Add base styles for hidden class
       const style = document.createElement('style');
-      style.textContent = '.hidden { display: none !important; }';
+      style.textContent = `.${CkEditableArray.CLASS_HIDDEN} { display: none !important; }`;
       this.shadowRoot.appendChild(style);
 
       const container = document.createElement('div');
-      container.setAttribute('part', 'root');
+      container.setAttribute('part', CkEditableArray.PART_ROOT);
 
       // Create rows container
       const rowsContainer = document.createElement('div');
-      rowsContainer.setAttribute('part', 'rows');
+      rowsContainer.setAttribute('part', CkEditableArray.PART_ROWS);
       container.appendChild(rowsContainer);
 
       // Create add-button container
       const addButtonContainer = document.createElement('div');
-      addButtonContainer.setAttribute('part', 'add-button');
+      addButtonContainer.setAttribute('part', CkEditableArray.PART_ADD_BUTTON);
       container.appendChild(addButtonContainer);
 
       this.shadowRoot.appendChild(container);
     }
   }
+
+  // ============================================================================
+  // PUBLIC API (GETTERS/SETTERS)
+  // ============================================================================
 
   get data(): unknown[] {
     return this._data.map(item => this.toPublicRowData(item));
@@ -164,6 +195,10 @@ export class CkEditableArray extends HTMLElement {
     }
   }
 
+  // ============================================================================
+  // STYLE MANAGEMENT
+  // ============================================================================
+
   private mirrorStyles(): void {
     if (!this.shadowRoot) return;
 
@@ -175,7 +210,7 @@ export class CkEditableArray extends HTMLElement {
 
     // Find all <style slot="styles"> elements in light DOM
     const lightStyles = this.querySelectorAll<HTMLStyleElement>(
-      'style[slot="styles"]'
+      `style[slot="${CkEditableArray.SLOT_STYLES}"]`
     );
 
     if (lightStyles.length === 0) return;
@@ -197,6 +232,48 @@ export class CkEditableArray extends HTMLElement {
     this.shadowRoot.insertBefore(mirroredStyle, this.shadowRoot.firstChild);
   }
 
+  /**
+   * Check if a node is a style element with slot="styles"
+   */
+  private isStyleNode(node: Node): boolean {
+    return (
+      node instanceof HTMLStyleElement &&
+      node.getAttribute('slot') === CkEditableArray.SLOT_STYLES
+    );
+  }
+
+  /**
+   * Check if a mutation involves style elements
+   */
+  private isStyleMutation(mutation: MutationRecord): boolean {
+    // Check if mutation target is a style element
+    if (mutation.type === 'childList' && this.isStyleNode(mutation.target)) {
+      return true;
+    }
+
+    // Check if any added/removed nodes are style elements
+    if (mutation.type === 'childList') {
+      const hasStyleChanges =
+        Array.from(mutation.addedNodes).some(node => this.isStyleNode(node)) ||
+        Array.from(mutation.removedNodes).some(node => this.isStyleNode(node));
+
+      if (hasStyleChanges) {
+        return true;
+      }
+    }
+
+    // Check if text content of a style element changed
+    if (
+      mutation.type === 'characterData' &&
+      mutation.target.parentElement &&
+      this.isStyleNode(mutation.target.parentElement)
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
   private observeStyleChanges(): void {
     // Disconnect existing observer if any
     if (this._styleObserver) {
@@ -205,50 +282,9 @@ export class CkEditableArray extends HTMLElement {
 
     // Create a new MutationObserver to watch for changes to style elements
     this._styleObserver = new MutationObserver(mutations => {
-      let shouldRemirror = false;
-
-      for (const mutation of mutations) {
-        // Check if any added/removed nodes are style elements with slot="styles"
-        if (mutation.type === 'childList') {
-          // Check if the mutation target is a style element with slot="styles"
-          // (this catches textContent changes on the style element itself)
-          if (
-            mutation.target instanceof HTMLStyleElement &&
-            mutation.target.getAttribute('slot') === 'styles'
-          ) {
-            shouldRemirror = true;
-            break;
-          }
-
-          // Check if any added/removed nodes are style elements with slot="styles"
-          const hasStyleChanges =
-            Array.from(mutation.addedNodes).some(
-              node =>
-                node instanceof HTMLStyleElement &&
-                node.getAttribute('slot') === 'styles'
-            ) ||
-            Array.from(mutation.removedNodes).some(
-              node =>
-                node instanceof HTMLStyleElement &&
-                node.getAttribute('slot') === 'styles'
-            );
-
-          if (hasStyleChanges) {
-            shouldRemirror = true;
-            break;
-          }
-        }
-
-        // Check if the text content of a style element changed
-        if (
-          mutation.type === 'characterData' &&
-          mutation.target.parentElement instanceof HTMLStyleElement &&
-          mutation.target.parentElement.getAttribute('slot') === 'styles'
-        ) {
-          shouldRemirror = true;
-          break;
-        }
-      }
+      const shouldRemirror = mutations.some(mutation =>
+        this.isStyleMutation(mutation)
+      );
 
       if (shouldRemirror) {
         this.mirrorStyles();
@@ -262,6 +298,10 @@ export class CkEditableArray extends HTMLElement {
       subtree: true, // Watch all descendants
     });
   }
+
+  // ============================================================================
+  // RENDERING
+  // ============================================================================
 
   private render(): void {
     if (!this.shadowRoot) return;
@@ -303,6 +343,131 @@ export class CkEditableArray extends HTMLElement {
     this.renderAddButton();
   }
 
+  // ============================================================================
+  // DATA BINDING
+  // ============================================================================
+
+  /**
+   * Configure readonly state for input elements
+   */
+  private configureReadonlyState(
+    input: HTMLInputElement | HTMLTextAreaElement,
+    isReadonly: boolean
+  ): void {
+    input.readOnly = isReadonly;
+  }
+
+  /**
+   * Attach input event listeners for data binding
+   */
+  private attachInputListeners(
+    wrapper: HTMLElement,
+    rowIndex: number,
+    mode: RenderMode
+  ): void {
+    if (mode !== 'edit') return;
+
+    const nameBase = this.getAttribute('name') || '';
+    const isReadonly = this.isReadonlyBlocked();
+    const bound = wrapper.querySelectorAll<HTMLElement>(
+      `[${CkEditableArray.ATTR_DATA_BIND}]`
+    );
+
+    bound.forEach(node => {
+      const key = node.getAttribute(CkEditableArray.ATTR_DATA_BIND) ?? '';
+
+      if (
+        node instanceof HTMLInputElement ||
+        node instanceof HTMLTextAreaElement
+      ) {
+        // Set name attribute based on component's name attribute
+        if (nameBase && key) {
+          node.name = `${nameBase}[${rowIndex}].${key}`;
+        }
+
+        // Configure readonly state
+        this.configureReadonlyState(node, isReadonly);
+
+        // Attach input listener if not readonly
+        if (!isReadonly) {
+          node.addEventListener('input', () => {
+            this.commitRowValue(rowIndex, key, node.value);
+            this.updateSaveButtonState(rowIndex);
+          });
+        }
+      }
+    });
+  }
+
+  /**
+   * Attach button click event listeners
+   */
+  private attachButtonListeners(
+    wrapper: HTMLElement,
+    rowIndex: number,
+    mode: RenderMode,
+    isLocked: boolean
+  ): void {
+    // Attach Save and Cancel buttons (edit mode only)
+    if (mode === 'edit') {
+      const saveButtons = wrapper.querySelectorAll<HTMLButtonElement>(
+        '[data-action="save"]'
+      );
+      saveButtons.forEach(btn => {
+        btn.addEventListener('click', () => this.handleSaveClick(rowIndex));
+      });
+
+      const cancelButtons = wrapper.querySelectorAll<HTMLButtonElement>(
+        '[data-action="cancel"]'
+      );
+      cancelButtons.forEach(btn => {
+        btn.addEventListener('click', () => this.handleCancelClick(rowIndex));
+      });
+    }
+
+    // Attach Toggle button handlers
+    const toggleButtons = wrapper.querySelectorAll<HTMLButtonElement>(
+      '[data-action="toggle"]'
+    );
+    toggleButtons.forEach(btn => {
+      btn.addEventListener('click', () => this.handleToggleClick(rowIndex));
+      if (isLocked && mode === 'display') {
+        btn.disabled = true;
+      }
+    });
+
+    // Attach Delete and Restore buttons (display mode only)
+    if (mode === 'display') {
+      const deleteButtons = wrapper.querySelectorAll<HTMLButtonElement>(
+        '[data-action="delete"]'
+      );
+      deleteButtons.forEach(btn => {
+        btn.addEventListener('click', () => this.handleDeleteClick(rowIndex));
+        if (isLocked) {
+          btn.disabled = true;
+        }
+      });
+
+      const restoreButtons = wrapper.querySelectorAll<HTMLButtonElement>(
+        '[data-action="restore"]'
+      );
+      restoreButtons.forEach(btn => {
+        btn.addEventListener('click', () => this.handleRestoreClick(rowIndex));
+        if (isLocked) {
+          btn.disabled = true;
+        }
+      });
+    }
+  }
+
+  /**
+   * Bind data to DOM nodes and attach event listeners
+   * @param root - The root element containing nodes to bind
+   * @param data - The row data to bind
+   * @param rowIndex - The index of the row in the data array
+   * @param mode - The rendering mode ('display' or 'edit')
+   * @param isLocked - Whether the row is locked due to another row being edited
+   */
   private bindDataToNode(
     root: HTMLElement,
     data: EditableRow,
@@ -311,125 +476,40 @@ export class CkEditableArray extends HTMLElement {
     isLocked: boolean = false
   ): void {
     // Bind text content for elements with data-bind attribute
-    const bound = root.querySelectorAll<HTMLElement>('[data-bind]');
-    const nameBase = this.getAttribute('name') || '';
+    const bound = root.querySelectorAll<HTMLElement>(
+      `[${CkEditableArray.ATTR_DATA_BIND}]`
+    );
 
     bound.forEach(node => {
-      const key = node.getAttribute('data-bind') ?? '';
+      const key = node.getAttribute(CkEditableArray.ATTR_DATA_BIND) ?? '';
       const value = this.resolveBindingValue(data, key);
-      // If element is input-like, set value; otherwise set textContent
+
+      // Set value for input elements, textContent for others
       if (node instanceof HTMLInputElement) {
-        const inputNode = node as HTMLInputElement;
-        inputNode.value = value;
-
-        // Set name attribute based on component's name attribute
-        if (mode === 'edit' && nameBase && key) {
-          inputNode.name = `${nameBase}[${rowIndex}].${key}`;
-        }
-
-        // Handle readonly state
-        if (mode === 'edit') {
-          if (this.isReadonlyBlocked()) {
-            inputNode.readOnly = true;
-          } else {
-            inputNode.readOnly = false;
-            inputNode.addEventListener('input', () => {
-              this.commitRowValue(rowIndex, key, inputNode.value);
-              // Update Save button state after input change
-              this.updateSaveButtonState(rowIndex);
-            });
-          }
-        }
+        node.value = value;
       } else if (node instanceof HTMLTextAreaElement) {
-        const textAreaNode = node as HTMLTextAreaElement;
-        textAreaNode.value = value;
-
-        // Set name attribute based on component's name attribute
-        if (mode === 'edit' && nameBase && key) {
-          textAreaNode.name = `${nameBase}[${rowIndex}].${key}`;
-        }
-
-        // Handle readonly state
-        if (mode === 'edit') {
-          if (this.isReadonlyBlocked()) {
-            textAreaNode.readOnly = true;
-          } else {
-            textAreaNode.readOnly = false;
-            textAreaNode.addEventListener('input', () => {
-              this.commitRowValue(rowIndex, key, textAreaNode.value);
-              // Update Save button state after input change
-              this.updateSaveButtonState(rowIndex);
-            });
-          }
-        }
+        node.value = value;
       } else {
         node.textContent = value;
       }
     });
 
-    // Disable toggle controls if row is locked
-    if (isLocked && mode === 'display') {
-      const toggleButtons = root.querySelectorAll<HTMLButtonElement>(
-        '[data-action="toggle"]'
-      );
-      toggleButtons.forEach(btn => {
-        btn.disabled = true;
-      });
-    }
+    // Attach input listeners for edit mode
+    this.attachInputListeners(root, rowIndex, mode);
 
-    // Attach Save button click handler and set initial state
-    if (mode === 'edit') {
-      const saveButtons = root.querySelectorAll<HTMLButtonElement>(
-        '[data-action="save"]'
-      );
-      saveButtons.forEach(btn => {
-        btn.addEventListener('click', () => this.handleSaveClick(rowIndex));
-      });
-
-      // Attach Cancel button click handlers
-      const cancelButtons = root.querySelectorAll<HTMLButtonElement>(
-        '[data-action="cancel"]'
-      );
-      cancelButtons.forEach(btn => {
-        btn.addEventListener('click', () => this.handleCancelClick(rowIndex));
-      });
-    }
-
-    // Attach Toggle button click handlers
-    const toggleButtons = root.querySelectorAll<HTMLButtonElement>(
-      '[data-action="toggle"]'
-    );
-    toggleButtons.forEach(btn => {
-      btn.addEventListener('click', () => this.handleToggleClick(rowIndex));
-    });
-
-    // Attach Delete button click handlers (display mode only)
-    if (mode === 'display') {
-      const deleteButtons = root.querySelectorAll<HTMLButtonElement>(
-        '[data-action="delete"]'
-      );
-      deleteButtons.forEach(btn => {
-        btn.addEventListener('click', () => this.handleDeleteClick(rowIndex));
-        // Disable if row is locked
-        if (isLocked) {
-          btn.disabled = true;
-        }
-      });
-
-      // Attach Restore button click handlers (display mode only)
-      const restoreButtons = root.querySelectorAll<HTMLButtonElement>(
-        '[data-action="restore"]'
-      );
-      restoreButtons.forEach(btn => {
-        btn.addEventListener('click', () => this.handleRestoreClick(rowIndex));
-        // Disable if row is locked
-        if (isLocked) {
-          btn.disabled = true;
-        }
-      });
-    }
+    // Attach button listeners
+    this.attachButtonListeners(root, rowIndex, mode, isLocked);
   }
 
+  /**
+   * Create a row element from a template and append it to the container
+   * @param template - The template element to clone
+   * @param container - The container to append the row to
+   * @param rowData - The data for this row
+   * @param rowIndex - The index of the row in the data array
+   * @param mode - The rendering mode ('display' or 'edit')
+   * @param isLocked - Whether the row is locked due to another row being edited
+   */
   private appendRowFromTemplate(
     template: HTMLTemplateElement | null,
     container: HTMLElement,
@@ -447,14 +527,19 @@ export class CkEditableArray extends HTMLElement {
     // Create a wrapper div with the appropriate class
     const contentWrapper = document.createElement('div');
     contentWrapper.className =
-      mode === 'display' ? 'display-content' : 'edit-content';
-    contentWrapper.setAttribute('data-row', String(rowIndex));
-    contentWrapper.setAttribute('data-mode', mode);
+      mode === 'display'
+        ? CkEditableArray.CLASS_DISPLAY_CONTENT
+        : CkEditableArray.CLASS_EDIT_CONTENT;
+    contentWrapper.setAttribute(
+      CkEditableArray.ATTR_DATA_ROW,
+      String(rowIndex)
+    );
+    contentWrapper.setAttribute(CkEditableArray.ATTR_DATA_MODE, mode);
 
     // Mark deleted items with data-deleted="true" and add deleted class
     if (this.isRecord(rowData) && rowData.deleted === true) {
       contentWrapper.setAttribute('data-deleted', 'true');
-      contentWrapper.classList.add('deleted');
+      contentWrapper.classList.add(CkEditableArray.CLASS_DELETED);
     }
 
     // Apply locked state if this row is locked
@@ -469,9 +554,9 @@ export class CkEditableArray extends HTMLElement {
     // If row is not in editing mode (default), show display and hide edit
     const isEditing = this.isRecord(rowData) && rowData.editing === true;
     if (mode === 'display' && isEditing) {
-      contentWrapper.classList.add('hidden');
+      contentWrapper.classList.add(CkEditableArray.CLASS_HIDDEN);
     } else if (mode === 'edit' && !isEditing) {
-      contentWrapper.classList.add('hidden');
+      contentWrapper.classList.add(CkEditableArray.CLASS_HIDDEN);
     }
 
     // Append the cloned template content to the wrapper
@@ -535,6 +620,10 @@ export class CkEditableArray extends HTMLElement {
     });
   }
 
+  // ============================================================================
+  // UTILITY METHODS
+  // ============================================================================
+
   private cloneRow(row: unknown): EditableRow {
     if (typeof row === 'string') {
       return row;
@@ -572,6 +661,13 @@ export class CkEditableArray extends HTMLElement {
     return data;
   }
 
+  /**
+   * Commit a value change to a specific field in a row
+   * Updates the internal data and triggers UI updates
+   * @param rowIndex - The index of the row to update
+   * @param key - The field key (supports nested paths like "person.name")
+   * @param nextValue - The new value to set
+   */
   private commitRowValue(
     rowIndex: number,
     key: string,
@@ -730,7 +826,9 @@ export class CkEditableArray extends HTMLElement {
    */
   private getRowsContainer(): HTMLElement | null {
     if (!this.shadowRoot) return null;
-    return this.shadowRoot.querySelector('[part="rows"]') as HTMLElement | null;
+    return this.shadowRoot.querySelector(
+      `[part="${CkEditableArray.PART_ROWS}"]`
+    ) as HTMLElement | null;
   }
 
   /**
@@ -739,7 +837,7 @@ export class CkEditableArray extends HTMLElement {
   private getAddButtonContainer(): HTMLElement | null {
     if (!this.shadowRoot) return null;
     return this.shadowRoot.querySelector(
-      '[part="add-button"]'
+      `[part="${CkEditableArray.PART_ADD_BUTTON}"]`
     ) as HTMLElement | null;
   }
 
@@ -748,7 +846,7 @@ export class CkEditableArray extends HTMLElement {
    */
   private getDisplayTemplate(): HTMLTemplateElement | null {
     return this.querySelector(
-      'template[slot="display"]'
+      `template[slot="${CkEditableArray.SLOT_DISPLAY}"]`
     ) as HTMLTemplateElement | null;
   }
 
@@ -757,7 +855,7 @@ export class CkEditableArray extends HTMLElement {
    */
   private getEditTemplate(): HTMLTemplateElement | null {
     return this.querySelector(
-      'template[slot="edit"]'
+      `template[slot="${CkEditableArray.SLOT_EDIT}"]`
     ) as HTMLTemplateElement | null;
   }
 
@@ -767,7 +865,9 @@ export class CkEditableArray extends HTMLElement {
   private getRowWrappers(rowIndex: number): HTMLElement[] {
     if (!this.shadowRoot) return [];
     return Array.from(
-      this.shadowRoot.querySelectorAll<HTMLElement>(`[data-row="${rowIndex}"]`)
+      this.shadowRoot.querySelectorAll<HTMLElement>(
+        `[${CkEditableArray.ATTR_DATA_ROW}="${rowIndex}"]`
+      )
     );
   }
 
@@ -1076,6 +1176,10 @@ export class CkEditableArray extends HTMLElement {
     this.dispatchEvent(afterEvent);
   }
 
+  // ============================================================================
+  // VALIDATION
+  // ============================================================================
+
   /**
    * Check if a field value is empty
    */
@@ -1223,6 +1327,8 @@ export class CkEditableArray extends HTMLElement {
 
   /**
    * Update the disabled state of Save buttons and validation UI for a specific row
+   * Validates the row and updates button states, field indicators, and error messages
+   * @param rowIndex - The index of the row to update
    */
   private updateSaveButtonState(rowIndex: number): void {
     const rowWrappers = this.getRowWrappers(rowIndex);
@@ -1329,6 +1435,10 @@ export class CkEditableArray extends HTMLElement {
       }
     }
   }
+
+  // ============================================================================
+  // EVENT HANDLERS
+  // ============================================================================
 
   private handleDeleteClick(rowIndex: number): void {
     // Don't delete if readonly, invalid index, or any row is in edit mode

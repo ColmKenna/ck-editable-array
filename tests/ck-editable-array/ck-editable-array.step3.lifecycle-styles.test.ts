@@ -281,15 +281,15 @@ describe('CkEditableArray - Step 3: Lifecycle & Styles', () => {
         // With the optimization, no mirrored styles should be created for empty/whitespace content
         expect(mirroredStyles?.length || 0).toBe(0);
 
-        // 2. Verify we don't have any non-empty style tags
+        // 2. Verify we only have the component's base style (not mirrored styles)
         const allStyles = el.shadowRoot?.querySelectorAll('style');
         const nonEmptyStyles = Array.from(allStyles || []).filter(style => {
           const content = style.textContent || '';
           return content.trim().length > 0;
         });
 
-        // Should have no non-empty styles (since we only added empty/whitespace styles)
-        expect(nonEmptyStyles.length).toBe(0);
+        // Should have exactly 1 non-empty style (the component's base .hidden style)
+        expect(nonEmptyStyles.length).toBe(1);
       });
     });
   });

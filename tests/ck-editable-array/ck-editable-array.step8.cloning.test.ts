@@ -1288,10 +1288,10 @@ describe('CkEditableArray - Step 8.6: Meta Regression & Safety Tests', () => {
       expect(allEditRows?.length).toBe(4);
 
       // All rows should be in display mode
-      allDisplayRows?.forEach((row, index) => {
+      allDisplayRows?.forEach(row => {
         expect(row.classList.contains('hidden')).toBe(false);
       });
-      allEditRows?.forEach((row, index) => {
+      allEditRows?.forEach(row => {
         expect(row.classList.contains('hidden')).toBe(true);
       });
     });
