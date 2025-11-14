@@ -857,7 +857,6 @@ describe('CkEditableArray - Step 5.4: Exclusive Locking When a New Row is Editin
   });
 });
 
-
 describe('CkEditableArray - Step 5.5: Releasing the Lock After Edit Ends', () => {
   afterEach(() => {
     document.body.innerHTML = '';
@@ -908,7 +907,7 @@ describe('CkEditableArray - Step 5.5: Releasing the Lock After Edit Ends', () =>
         '.display-content[data-row="0"]'
       );
       expect(row0DisplayLocked?.getAttribute('data-locked')).toBe('true');
-      
+
       const addButtonLocked = el.shadowRoot?.querySelector(
         '[data-action="add"]'
       ) as HTMLButtonElement;
@@ -920,6 +919,7 @@ describe('CkEditableArray - Step 5.5: Releasing the Lock After Edit Ends', () =>
       const updatedData = currentData.map((item, idx) => {
         if (idx === 2) {
           // Remove editing flag from the new row
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { editing, ...rest } = item;
           return rest;
         }
@@ -970,7 +970,7 @@ describe('CkEditableArray - Step 5.5: Releasing the Lock After Edit Ends', () =>
   });
 
   describe('Test 5.5.2 — After exiting edit, a subsequent Add creates another new row in edit mode', () => {
-    test('Given the previous scenario where the first new row has finished its edit and returned to display mode, When I click the Add button again, Then another new row is appended, And that new row again starts in edit mode with the same locking rules: its .edit-content visible, other rows locked, Add button disabled while it\'s editing', () => {
+    test("Given the previous scenario where the first new row has finished its edit and returned to display mode, When I click the Add button again, Then another new row is appended, And that new row again starts in edit mode with the same locking rules: its .edit-content visible, other rows locked, Add button disabled while it's editing", () => {
       // Arrange
       const el = new CkEditableArray();
 
@@ -1013,6 +1013,7 @@ describe('CkEditableArray - Step 5.5: Releasing the Lock After Edit Ends', () =>
       const currentData1 = el.data as Array<Record<string, unknown>>;
       const updatedData1 = currentData1.map((item, idx) => {
         if (idx === 2) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { editing, ...rest } = item;
           return rest;
         }
@@ -1078,6 +1079,164 @@ describe('CkEditableArray - Step 5.5: Releasing the Lock After Edit Ends', () =>
         '[data-action="toggle"]'
       ) as HTMLButtonElement;
       expect(row0Toggle?.disabled).toBe(true);
+    });
+  });
+});
+
+describe('CkEditableArray - Step 5.6: Interaction with newItemFactory', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('Test 5.6.1 — Add uses the current newItemFactory', () => {
+    test('Given a <ck-editable-array> element attached to document.body, And el.newItemFactory has been set to a function that returns { name: "New Person", email: "" }, And el.data is initially an empty array, When I click the Add button, And then read el.data, Then el.data contains exactly one item, And that item has name: "New Person" and email: "" (plus any expected default flags such as deleted: false)', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <span data-bind="email"></span>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <input data-bind="email" />
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set custom newItemFactory
+      el.newItemFactory = () => ({ name: 'New Person', email: '' });
+
+      // Set initial data to empty array
+      el.data = [];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Verify initial state - no rows
+      const initialRows = el.shadowRoot?.querySelectorAll(
+        '[data-mode="display"]'
+      );
+      expect(initialRows?.length).toBe(0);
+
+      // Act - Click the Add button
+      const addButton = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      expect(addButton).not.toBeNull();
+      addButton?.click();
+
+      // Assert
+      // 1. el.data contains exactly one item
+      const updatedData = el.data as Array<Record<string, unknown>>;
+      expect(updatedData.length).toBe(1);
+
+      // 2. That item has name: 'New Person' and email: ''
+      expect(updatedData[0].name).toBe('New Person');
+      expect(updatedData[0].email).toBe('');
+
+      // 3. Item has editing flag (expected for new rows)
+      expect(updatedData[0].editing).toBe(true);
+
+      // 4. Verify the row is rendered in the DOM
+      const displayRows = el.shadowRoot?.querySelectorAll(
+        '[data-mode="display"]'
+      );
+      expect(displayRows?.length).toBe(1);
+    });
+  });
+
+  describe('Test 5.6.2 — Changing newItemFactory affects subsequent Add operations only', () => {
+    test('Given a <ck-editable-array> element attached to document.body, And newItemFactory initially returns { label: "First" }, And I click Add once, producing a row based on that factory, And I then change newItemFactory to a function that returns { label: "Second" }, When I click Add again, Then the first added row still has label: "First", And the second added row has label: "Second"', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="label"></span>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="label" />
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial newItemFactory
+      el.newItemFactory = () => ({ label: 'First' });
+
+      // Set initial data to empty array
+      el.data = [];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Act - Click Add button first time
+      const addButton1 = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      addButton1?.click();
+
+      // Verify first row was added
+      let currentData = el.data as Array<Record<string, unknown>>;
+      expect(currentData.length).toBe(1);
+      expect(currentData[0].label).toBe('First');
+
+      // Simulate exiting edit mode on first row
+      const updatedData1 = currentData.map(item => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { editing, ...rest } = item;
+        return rest;
+      });
+      el.data = updatedData1;
+
+      // Change newItemFactory
+      el.newItemFactory = () => ({ label: 'Second' });
+
+      // Act - Click Add button second time
+      const addButton2 = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      addButton2?.click();
+
+      // Assert
+      currentData = el.data as Array<Record<string, unknown>>;
+
+      // 1. We now have 2 rows
+      expect(currentData.length).toBe(2);
+
+      // 2. First row still has label: 'First'
+      expect(currentData[0].label).toBe('First');
+
+      // 3. Second row has label: 'Second'
+      expect(currentData[1].label).toBe('Second');
+      expect(currentData[1].editing).toBe(true);
+
+      // 4. Verify both rows are rendered in the DOM
+      const displayRows = el.shadowRoot?.querySelectorAll(
+        '[data-mode="display"]'
+      );
+      expect(displayRows?.length).toBe(2);
     });
   });
 });
