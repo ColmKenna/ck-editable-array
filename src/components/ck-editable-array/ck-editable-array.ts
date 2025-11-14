@@ -231,6 +231,9 @@ export class CkEditableArray extends HTMLElement {
       );
       this.appendRowFromTemplate(editTpl, rowsContainer, item, idx, 'edit');
     });
+
+    // Render Add button
+    this.renderAddButton();
   }
 
   private bindDataToNode(
@@ -456,6 +459,54 @@ export class CkEditableArray extends HTMLElement {
 
   private isRecord(value: EditableRow): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
+  }
+
+  private renderAddButton(): void {
+    if (!this.shadowRoot) return;
+
+    const addButtonContainer = this.shadowRoot.querySelector(
+      '[part="add-button"]'
+    ) as HTMLElement;
+    if (!addButtonContainer) return;
+
+    // Clear previous add button content
+    addButtonContainer.innerHTML = '';
+
+    const isReadonly = this.hasAttribute('readonly');
+
+    // Check if user provided a custom add button template
+    const customAddButtonTpl = this.querySelector(
+      'template[slot="add-button"]'
+    ) as HTMLTemplateElement | null;
+
+    if (customAddButtonTpl && customAddButtonTpl.content) {
+      // Use custom template
+      const fragment = customAddButtonTpl.content.cloneNode(
+        true
+      ) as DocumentFragment;
+      addButtonContainer.appendChild(fragment);
+
+      // Disable all buttons in the add button container if readonly
+      if (isReadonly) {
+        const buttons = addButtonContainer.querySelectorAll('button');
+        buttons.forEach(btn => {
+          btn.disabled = true;
+        });
+      }
+    } else {
+      // Render default Add button
+      const defaultButton = document.createElement('button');
+      defaultButton.setAttribute('data-action', 'add');
+      defaultButton.setAttribute('type', 'button');
+      defaultButton.textContent = 'Add';
+
+      // Disable button if readonly
+      if (isReadonly) {
+        defaultButton.disabled = true;
+      }
+
+      addButtonContainer.appendChild(defaultButton);
+    }
   }
 }
 
