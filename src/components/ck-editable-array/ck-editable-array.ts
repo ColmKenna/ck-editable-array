@@ -1045,6 +1045,17 @@ export class CkEditableArray extends HTMLElement {
         errorElement.textContent = fieldErrors.join(', ');
       }
     });
+
+    // Update error count display
+    const errorCountElement = editWrapper.querySelector('[data-error-count]');
+    if (errorCountElement) {
+      const totalErrors = Object.keys(validationResult.errors).length;
+      if (totalErrors > 0) {
+        errorCountElement.textContent = `${totalErrors} error${totalErrors !== 1 ? 's' : ''}`;
+      } else {
+        errorCountElement.textContent = '';
+      }
+    }
   }
 
   private handleDeleteClick(rowIndex: number): void {
