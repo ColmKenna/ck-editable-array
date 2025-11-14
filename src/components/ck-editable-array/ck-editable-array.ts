@@ -344,8 +344,6 @@ export class CkEditableArray extends HTMLElement {
       saveButtons.forEach(btn => {
         btn.addEventListener('click', () => this.handleSaveClick(rowIndex));
       });
-      // Set initial Save button state based on validation
-      this.updateSaveButtonState(rowIndex);
 
       // Attach Cancel button click handlers
       const cancelButtons = root.querySelectorAll<HTMLButtonElement>(
@@ -445,6 +443,11 @@ export class CkEditableArray extends HTMLElement {
 
     // Append the wrapper to the container
     container.appendChild(contentWrapper);
+
+    // Update validation state after wrapper is in DOM (edit mode only)
+    if (mode === 'edit') {
+      this.updateSaveButtonState(rowIndex);
+    }
   }
 
   /**
@@ -459,8 +462,7 @@ export class CkEditableArray extends HTMLElement {
     const editButtons = ['button-save', 'button-cancel'];
 
     // Determine which buttons to inject based on mode
-    const buttonsToInject =
-      mode === 'display' ? displayButtons : editButtons;
+    const buttonsToInject = mode === 'display' ? displayButtons : editButtons;
 
     // Find the first child element to append buttons to
     const targetContainer = wrapper.querySelector('div, span') || wrapper;
@@ -908,18 +910,31 @@ export class CkEditableArray extends HTMLElement {
    * Validate a row against the schema (if provided)
    */
   private validateRow(rowIndex: number): boolean {
+    const result = this.validateRowDetailed(rowIndex);
+    return result.isValid;
+  }
+
+  /**
+   * Validate a row and return detailed error information
+   */
+  private validateRowDetailed(rowIndex: number): {
+    isValid: boolean;
+    errors: Record<string, string[]>;
+  } {
+    const errors: Record<string, string[]> = {};
+
     if (rowIndex < 0 || rowIndex >= this._data.length) {
-      return false;
+      return { isValid: false, errors };
     }
 
     const row = this._data[rowIndex];
     if (!this.isRecord(row)) {
-      return true; // Primitive values are always valid
+      return { isValid: true, errors }; // Primitive values are always valid
     }
 
     // If no schema is set, consider the row valid
     if (!this._schema || typeof this._schema !== 'object') {
-      return true;
+      return { isValid: true, errors };
     }
 
     const schema = this._schema as Record<string, unknown>;
@@ -929,8 +944,16 @@ export class CkEditableArray extends HTMLElement {
       const required = schema.required as string[];
       for (const field of required) {
         const value = row[field];
-        if (value === undefined || value === null || value === '') {
-          return false;
+        const isEmpty =
+          value === undefined ||
+          value === null ||
+          value === '' ||
+          (typeof value === 'string' && value.trim() === '');
+        if (isEmpty) {
+          if (!errors[field]) {
+            errors[field] = [];
+          }
+          errors[field].push(`${field} is required`);
         }
       }
     }
@@ -946,18 +969,23 @@ export class CkEditableArray extends HTMLElement {
           // Check minLength for strings
           if (typeof prop.minLength === 'number' && typeof value === 'string') {
             if (value.length < prop.minLength) {
-              return false;
+              if (!errors[key]) {
+                errors[key] = [];
+              }
+              errors[key].push(
+                `${key} must be at least ${prop.minLength} characters`
+              );
             }
           }
         }
       }
     }
 
-    return true;
+    return { isValid: Object.keys(errors).length === 0, errors };
   }
 
   /**
-   * Update the disabled state of Save buttons for a specific row
+   * Update the disabled state of Save buttons and validation UI for a specific row
    */
   private updateSaveButtonState(rowIndex: number): void {
     if (!this.shadowRoot) return;
@@ -971,14 +999,50 @@ export class CkEditableArray extends HTMLElement {
       '[data-action="save"]'
     );
 
-    const isValid = this.validateRow(rowIndex);
+    const validationResult = this.validateRowDetailed(rowIndex);
+    const isValid = validationResult.isValid;
 
+    // Update Save button state
     saveButtons.forEach(btn => {
       btn.disabled = !isValid;
       if (!isValid) {
         btn.setAttribute('aria-disabled', 'true');
       } else {
         btn.removeAttribute('aria-disabled');
+      }
+    });
+
+    // Update row-level validation indicator
+    if (isValid) {
+      editWrapper.removeAttribute('data-row-invalid');
+    } else {
+      editWrapper.setAttribute('data-row-invalid', 'true');
+    }
+
+    // Update field-level validation indicators and error messages
+    const inputs = editWrapper.querySelectorAll<
+      HTMLInputElement | HTMLTextAreaElement
+    >('[data-bind]');
+    inputs.forEach(input => {
+      const fieldName = input.getAttribute('data-bind');
+      if (!fieldName) return;
+
+      const fieldErrors = validationResult.errors[fieldName] || [];
+      const hasErrors = fieldErrors.length > 0;
+
+      // Update field invalid indicator
+      if (hasErrors) {
+        input.setAttribute('data-invalid', 'true');
+      } else {
+        input.removeAttribute('data-invalid');
+      }
+
+      // Update error message display
+      const errorElement = editWrapper.querySelector(
+        `[data-field-error="${fieldName}"]`
+      );
+      if (errorElement) {
+        errorElement.textContent = fieldErrors.join(', ');
       }
     });
   }
