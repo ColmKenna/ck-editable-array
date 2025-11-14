@@ -411,9 +411,10 @@ export class CkEditableArray extends HTMLElement {
     contentWrapper.setAttribute('data-row', String(rowIndex));
     contentWrapper.setAttribute('data-mode', mode);
 
-    // Mark deleted items with data-deleted="true"
+    // Mark deleted items with data-deleted="true" and add deleted class
     if (this.isRecord(rowData) && rowData.deleted === true) {
       contentWrapper.setAttribute('data-deleted', 'true');
+      contentWrapper.classList.add('deleted');
     }
 
     // Apply locked state if this row is locked
@@ -1201,12 +1202,10 @@ export class CkEditableArray extends HTMLElement {
       return;
     }
 
-    // Remove the deleted flag from the row
+    // Set the deleted flag to false for the row
     const nextData = this._data.map((entry, idx) => {
       if (idx === rowIndex && this.isRecord(entry)) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { deleted, ...rest } = entry;
-        return rest;
+        return { ...entry, deleted: false };
       }
       return this.isRecord(entry) ? { ...entry } : entry;
     });

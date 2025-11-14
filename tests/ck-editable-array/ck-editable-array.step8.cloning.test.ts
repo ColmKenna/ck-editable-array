@@ -397,3 +397,143 @@ describe('CkEditableArray - Step 8.2: Deep vs Shallow Clone Behaviour', () => {
     });
   });
 });
+
+describe('CkEditableArray - Step 8.3: Cloning & "deleted" flag consistency', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('Test 8.3.1 — Soft delete sets deleted flag without affecting previous data snapshots', () => {
+    test('Given el.data initially set to [{ name: "Alice", deleted: false }], And a row is rendered from that data, When I click Delete to soft-delete the row, Then reading el.data now returns an item whose deleted property is true, And if I cached an earlier copy of el.data before clicking Delete, that cached copy still has deleted: false', async () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with delete button
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="delete">Delete</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with explicit deleted: false
+      el.data = [{ name: 'Alice', deleted: false }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Cache a copy of el.data before deletion
+      const cachedBeforeDelete = el.data as Array<{
+        name: string;
+        deleted: boolean;
+      }>;
+
+      // Verify initial state
+      expect(cachedBeforeDelete[0].deleted).toBe(false);
+
+      // Act - Click Delete button
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const deleteButton = row0Display?.querySelector(
+        '[data-action="delete"]'
+      ) as HTMLButtonElement;
+      deleteButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert
+      // 1. Reading el.data now shows deleted: true
+      const currentData = el.data as Array<{
+        name: string;
+        deleted: boolean;
+      }>;
+      expect(currentData[0].deleted).toBe(true);
+
+      // 2. The cached copy still has deleted: false (immutability)
+      expect(cachedBeforeDelete[0].deleted).toBe(false);
+    });
+  });
+
+  describe('Test 8.3.2 — Restoring a row flips deleted flag back cleanly', () => {
+    test('Given a row with an item whose deleted is currently true in el.data, When I click Restore, Then reading el.data returns the same item with deleted: false, And the visual deleted styling on that row disappears', async () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template with restore button
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="restore">Restore</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with deleted: true
+      el.data = [{ name: 'Alice', deleted: true }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Verify initial state - row should have deleted styling
+      const row0DisplayBefore = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0DisplayBefore?.classList.contains('deleted')).toBe(true);
+
+      // Verify initial data state
+      const dataBefore = el.data as Array<{
+        name: string;
+        deleted: boolean;
+      }>;
+      expect(dataBefore[0].deleted).toBe(true);
+
+      // Act - Click Restore button
+      const restoreButton = row0DisplayBefore?.querySelector(
+        '[data-action="restore"]'
+      ) as HTMLButtonElement;
+      restoreButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert
+      // 1. Reading el.data now shows deleted: false
+      const currentData = el.data as Array<{
+        name: string;
+        deleted: boolean;
+      }>;
+      expect(currentData[0].deleted).toBe(false);
+
+      // 2. The visual deleted styling disappears
+      const row0DisplayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0DisplayAfter?.classList.contains('deleted')).toBe(false);
+    });
+  });
+});

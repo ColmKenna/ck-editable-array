@@ -1527,17 +1527,17 @@ describe('CkEditableArray - Step 6.6: Soft Delete & Restore', () => {
       );
       expect(row0DisplayAfter?.hasAttribute('data-deleted')).toBe(false);
 
-      // 2. Data no longer has deleted flag
+      // 2. Data now has deleted: false (not undefined, for consistency with cloning)
       const currentData = el.data as Array<Record<string, unknown>>;
-      expect(currentData[0].deleted).toBeUndefined();
+      expect(currentData[0].deleted).toBe(false);
       expect(currentData[0].name).toBe('Alice'); // Other data preserved
 
       // 3. datachanged event was fired
       expect(eventCount).toBe(1);
 
-      // 4. Event detail contains restored item
+      // 4. Event detail contains restored item with deleted: false
       const eventData = lastEventData as Array<Record<string, unknown>>;
-      expect(eventData[0].deleted).toBeUndefined();
+      expect(eventData[0].deleted).toBe(false);
       expect(eventData[0].name).toBe('Alice');
     });
   });

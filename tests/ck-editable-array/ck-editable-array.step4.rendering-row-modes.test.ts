@@ -405,11 +405,11 @@ describe('Test 4.3 — Display vs edit visibility (hidden class)', () => {
 
       // For each row, display should be visible (no hidden class)
       // and edit should be hidden (has hidden class)
-      displayWrappers?.forEach((displayWrapper, index) => {
+      displayWrappers?.forEach(displayWrapper => {
         expect(displayWrapper.classList.contains('hidden')).toBe(false);
       });
 
-      editWrappers?.forEach((editWrapper, index) => {
+      editWrappers?.forEach(editWrapper => {
         expect(editWrapper.classList.contains('hidden')).toBe(true);
       });
     });
@@ -566,7 +566,7 @@ describe('Test 4.4 — Toggle button surface (no events yet, just DOM shape)', (
       expect(displayWrappers?.length).toBe(2);
 
       // Each row should have a toggle control
-      displayWrappers?.forEach((displayWrapper, index) => {
+      displayWrappers?.forEach(displayWrapper => {
         const toggleControl = displayWrapper.querySelector(
           '[data-action="toggle"]'
         );
