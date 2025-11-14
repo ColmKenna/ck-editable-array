@@ -277,20 +277,14 @@ export class CkEditableArray extends HTMLElement {
 
   private render(): void {
     if (!this.shadowRoot) return;
-    const rowsContainer = this.shadowRoot.querySelector(
-      '[part="rows"]'
-    ) as HTMLElement;
+    const rowsContainer = this.getRowsContainer();
     if (!rowsContainer) return;
 
     // Clear previous rows content only (preserve scaffolding)
     rowsContainer.innerHTML = '';
 
-    const displayTpl = this.querySelector(
-      'template[slot="display"]'
-    ) as HTMLTemplateElement | null;
-    const editTpl = this.querySelector(
-      'template[slot="edit"]'
-    ) as HTMLTemplateElement | null;
+    const displayTpl = this.getDisplayTemplate();
+    const editTpl = this.getEditTemplate();
 
     // Check if any row is in edit mode for exclusive locking
     const hasEditingRow = this.isEditLocked();
@@ -743,12 +737,54 @@ export class CkEditableArray extends HTMLElement {
     return rowIndex >= 0 && rowIndex < this._data.length;
   }
 
-  private renderAddButton(): void {
-    if (!this.shadowRoot) return;
+  /**
+   * Get the rows container from shadow DOM
+   */
+  private getRowsContainer(): HTMLElement | null {
+    if (!this.shadowRoot) return null;
+    return this.shadowRoot.querySelector('[part="rows"]') as HTMLElement | null;
+  }
 
-    const addButtonContainer = this.shadowRoot.querySelector(
+  /**
+   * Get the add button container from shadow DOM
+   */
+  private getAddButtonContainer(): HTMLElement | null {
+    if (!this.shadowRoot) return null;
+    return this.shadowRoot.querySelector(
       '[part="add-button"]'
-    ) as HTMLElement;
+    ) as HTMLElement | null;
+  }
+
+  /**
+   * Get the display template from light DOM
+   */
+  private getDisplayTemplate(): HTMLTemplateElement | null {
+    return this.querySelector(
+      'template[slot="display"]'
+    ) as HTMLTemplateElement | null;
+  }
+
+  /**
+   * Get the edit template from light DOM
+   */
+  private getEditTemplate(): HTMLTemplateElement | null {
+    return this.querySelector(
+      'template[slot="edit"]'
+    ) as HTMLTemplateElement | null;
+  }
+
+  /**
+   * Get row wrapper elements for a specific row index
+   */
+  private getRowWrappers(rowIndex: number): HTMLElement[] {
+    if (!this.shadowRoot) return [];
+    return Array.from(
+      this.shadowRoot.querySelectorAll<HTMLElement>(`[data-row="${rowIndex}"]`)
+    );
+  }
+
+  private renderAddButton(): void {
+    const addButtonContainer = this.getAddButtonContainer();
     if (!addButtonContainer) return;
 
     // Clear previous add button content
@@ -1101,10 +1137,9 @@ export class CkEditableArray extends HTMLElement {
    * Update the disabled state of Save buttons and validation UI for a specific row
    */
   private updateSaveButtonState(rowIndex: number): void {
-    if (!this.shadowRoot) return;
-
-    const editWrapper = this.shadowRoot.querySelector(
-      `.edit-content[data-row="${rowIndex}"]`
+    const rowWrappers = this.getRowWrappers(rowIndex);
+    const editWrapper = rowWrappers.find(el =>
+      el.classList.contains('edit-content')
     );
     if (!editWrapper) return;
 
