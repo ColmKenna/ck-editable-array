@@ -35,9 +35,18 @@ export class CkEditableArray extends HTMLElement {
   }
 
   get data(): unknown[] {
-    return this._data.map(item =>
-      typeof item === 'string' ? item : { ...item }
-    );
+    return this._data.map(item => {
+      if (typeof item === 'string') {
+        return item;
+      }
+      // Remove internal properties from public data
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { __originalSnapshot, ...publicData } = item as Record<
+        string,
+        unknown
+      >;
+      return { ...publicData };
+    });
   }
 
   set data(v: unknown[]) {
@@ -337,6 +346,14 @@ export class CkEditableArray extends HTMLElement {
       });
       // Set initial Save button state based on validation
       this.updateSaveButtonState(rowIndex);
+
+      // Attach Cancel button click handlers
+      const cancelButtons = root.querySelectorAll<HTMLButtonElement>(
+        '[data-action="cancel"]'
+      );
+      cancelButtons.forEach(btn => {
+        btn.addEventListener('click', () => this.handleCancelClick(rowIndex));
+      });
     }
 
     // Attach Toggle button click handlers
@@ -599,9 +616,13 @@ export class CkEditableArray extends HTMLElement {
     // Create a new item using the factory
     const newItem = this._newItemFactory();
 
-    // Mark the new item as being in editing mode
+    // Mark the new item as being in editing mode and store original snapshot
     const newItemWithEditing = this.isRecord(newItem)
-      ? { ...newItem, editing: true }
+      ? {
+          ...newItem,
+          editing: true,
+          __originalSnapshot: JSON.parse(JSON.stringify(newItem)),
+        }
       : newItem;
 
     // Add the new item to the data array
@@ -694,13 +715,17 @@ export class CkEditableArray extends HTMLElement {
     const nextData = this._data.map((entry, idx) => {
       if (idx === rowIndex && this.isRecord(entry)) {
         if (isCurrentlyEditing) {
-          // Remove editing flag
+          // Remove editing flag and original snapshot
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { editing, ...rest } = entry;
+          const { editing, __originalSnapshot, ...rest } = entry;
           return rest;
         } else {
-          // Add editing flag
-          return { ...entry, editing: true };
+          // Add editing flag and store original snapshot for cancel
+          return {
+            ...entry,
+            editing: true,
+            __originalSnapshot: JSON.parse(JSON.stringify(entry)),
+          };
         }
       }
       return this.isRecord(entry) ? { ...entry } : entry;
@@ -728,6 +753,79 @@ export class CkEditableArray extends HTMLElement {
     if (this.isConnected) {
       this.dispatchDataChanged();
     }
+  }
+
+  private handleCancelClick(rowIndex: number): void {
+    // Don't cancel if readonly
+    if (this.hasAttribute('readonly')) {
+      return;
+    }
+
+    // Validate row index
+    if (rowIndex < 0 || rowIndex >= this._data.length) {
+      return;
+    }
+
+    const currentRow = this._data[rowIndex];
+    if (!this.isRecord(currentRow)) {
+      return;
+    }
+
+    // Dispatch beforetogglemode event (edit → display)
+    const beforeEvent = new CustomEvent('beforetogglemode', {
+      bubbles: true,
+      composed: true,
+      cancelable: true,
+      detail: {
+        index: rowIndex,
+        from: 'edit',
+        to: 'display',
+      },
+    });
+
+    const allowed = this.dispatchEvent(beforeEvent);
+
+    // If event was canceled, don't proceed
+    if (!allowed) {
+      return;
+    }
+
+    // Restore original data from snapshot
+    const nextData = this._data.map((entry, idx) => {
+      if (idx === rowIndex && this.isRecord(entry)) {
+        // Restore from snapshot if available, otherwise just remove editing flag
+        const snapshot = entry.__originalSnapshot;
+        if (snapshot && typeof snapshot === 'object') {
+          return JSON.parse(JSON.stringify(snapshot)) as Record<
+            string,
+            unknown
+          >;
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { editing, __originalSnapshot, ...rest } = entry;
+          return rest;
+        }
+      }
+      return this.isRecord(entry) ? { ...entry } : entry;
+    });
+
+    this._data = nextData;
+
+    // Re-render (but don't dispatch datachanged - cancel doesn't change data)
+    if (this.isConnected) {
+      this.render();
+    }
+
+    // Dispatch aftertogglemode event
+    const afterEvent = new CustomEvent('aftertogglemode', {
+      bubbles: true,
+      composed: true,
+      detail: {
+        index: rowIndex,
+        mode: 'display',
+      },
+    });
+    this.dispatchEvent(afterEvent);
   }
 
   /**
@@ -770,10 +868,7 @@ export class CkEditableArray extends HTMLElement {
           const value = row[key];
 
           // Check minLength for strings
-          if (
-            typeof prop.minLength === 'number' &&
-            typeof value === 'string'
-          ) {
+          if (typeof prop.minLength === 'number' && typeof value === 'string') {
             if (value.length < prop.minLength) {
               return false;
             }

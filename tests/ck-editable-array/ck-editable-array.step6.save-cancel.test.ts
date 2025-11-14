@@ -793,9 +793,7 @@ describe('CkEditableArray - Step 6.4: Save Behavior', () => {
       expect(currentData[0].email).toBe('alice.updated@example.com');
 
       // 3. Display content shows updated values
-      const displayName = row0DisplayAfter?.querySelector(
-        '[data-bind="name"]'
-      );
+      const displayName = row0DisplayAfter?.querySelector('[data-bind="name"]');
       const displayEmail = row0DisplayAfter?.querySelector(
         '[data-bind="email"]'
       );
@@ -953,7 +951,7 @@ describe('CkEditableArray - Step 6.4: Save Behavior', () => {
       const row0Edit = el.shadowRoot?.querySelector(
         '.edit-content[data-row="0"]'
       );
-      
+
       const nameInput = row0Edit?.querySelector(
         'input[data-bind="name"]'
       ) as HTMLInputElement;
@@ -1030,6 +1028,303 @@ describe('CkEditableArray - Step 6.4: Save Behavior', () => {
 
       // Verify datachanged event fired from Save button click
       expect(eventCount).toBe(1);
+    });
+  });
+});
+
+describe('CkEditableArray - Step 6.5: Cancel Behavior', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('Test 6.5.1 — Cancel discards changes and restores original values', () => {
+    test('Given a row in edit mode, And I change one or more input values, When I click the Cancel control, Then the row returns to display mode, And the display values match the original data before entering edit mode, And el.data has not changed compared to its state prior to editing', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <span data-bind="email"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template with Cancel button
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <input data-bind="email" />
+          <button data-action="save">Save</button>
+          <button data-action="cancel">Cancel</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice', email: 'alice@example.com' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Store original data for comparison
+      const originalData = JSON.parse(JSON.stringify(el.data));
+
+      // Toggle row to edit mode
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const toggleButton = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      // Get edit elements and modify values
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const nameInput = row0Edit?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      const emailInput = row0Edit?.querySelector(
+        'input[data-bind="email"]'
+      ) as HTMLInputElement;
+
+      nameInput.value = 'Modified Name';
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      emailInput.value = 'modified@example.com';
+      emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Verify changes are reflected in data (before cancel)
+      const dataBeforeCancel = el.data as Array<Record<string, unknown>>;
+      expect(dataBeforeCancel[0].name).toBe('Modified Name');
+      expect(dataBeforeCancel[0].email).toBe('modified@example.com');
+
+      // Act - Click Cancel button
+      const cancelButton = row0Edit?.querySelector(
+        '[data-action="cancel"]'
+      ) as HTMLButtonElement;
+      expect(cancelButton).not.toBeNull();
+      cancelButton?.click();
+
+      // Assert
+      // 1. Row returns to display mode
+      const row0DisplayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const row0EditAfter = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(row0DisplayAfter?.classList.contains('hidden')).toBe(false);
+      expect(row0EditAfter?.classList.contains('hidden')).toBe(true);
+
+      // 2. Data is restored to original values
+      const dataAfterCancel = el.data as Array<Record<string, unknown>>;
+      expect(dataAfterCancel[0].name).toBe(originalData[0].name);
+      expect(dataAfterCancel[0].email).toBe(originalData[0].email);
+
+      // 3. Display content shows original values
+      const displayName = row0DisplayAfter?.querySelector(
+        '[data-bind="name"]'
+      );
+      const displayEmail = row0DisplayAfter?.querySelector(
+        '[data-bind="email"]'
+      );
+      expect(displayName?.textContent).toBe('Alice');
+      expect(displayEmail?.textContent).toBe('alice@example.com');
+    });
+  });
+
+  describe('Test 6.5.2 — Cancel does not emit a datachanged event', () => {
+    test('Given a listener for datachanged events on the element, And a row in edit mode with unsaved changes, When I click Cancel to exit edit mode, Then no datachanged event is fired, And only the beforetogglemode/aftertogglemode pair (for edit → display) is observed', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template with Cancel button
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="cancel">Cancel</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Toggle row to edit mode
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const toggleButton = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      // Modify input value
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const nameInput = row0Edit?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      nameInput.value = 'Modified';
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Setup event listeners AFTER modifications
+      let dataChangedCount = 0;
+      let beforeToggleCount = 0;
+      let afterToggleCount = 0;
+
+      el.addEventListener('datachanged', () => {
+        dataChangedCount++;
+      });
+
+      el.addEventListener('beforetogglemode', () => {
+        beforeToggleCount++;
+      });
+
+      el.addEventListener('aftertogglemode', () => {
+        afterToggleCount++;
+      });
+
+      // Act - Click Cancel button
+      const cancelButton = row0Edit?.querySelector(
+        '[data-action="cancel"]'
+      ) as HTMLButtonElement;
+      cancelButton?.click();
+
+      // Assert
+      // 1. No datachanged event fired
+      expect(dataChangedCount).toBe(0);
+
+      // 2. beforetogglemode and aftertogglemode events fired
+      expect(beforeToggleCount).toBe(1);
+      expect(afterToggleCount).toBe(1);
+
+      // 3. Row is in display mode
+      const row0DisplayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0DisplayAfter?.classList.contains('hidden')).toBe(false);
+    });
+  });
+
+  describe('Test 6.5.3 — Cancel also releases locks and re-enables Add', () => {
+    test('Given a row in edit mode with the rest of the list locked and Add disabled, When I click Cancel, Then the row returns to display mode, And all other rows become interactive again, And the Add button becomes enabled', () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template with Cancel button
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <button data-action="cancel">Cancel</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with multiple rows
+      el.data = [{ name: 'Alice' }, { name: 'Bob' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Toggle row 0 to edit mode
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const toggleButton = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      // Verify row 1 is locked and Add is disabled
+      const row1DisplayLocked = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      expect(row1DisplayLocked?.getAttribute('data-locked')).toBe('true');
+
+      const addButtonLocked = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      expect(addButtonLocked?.disabled).toBe(true);
+
+      // Act - Click Cancel button
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const cancelButton = row0Edit?.querySelector(
+        '[data-action="cancel"]'
+      ) as HTMLButtonElement;
+      cancelButton?.click();
+
+      // Assert
+      // 1. Row 0 returns to display mode
+      const row0DisplayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const row0EditAfter = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(row0DisplayAfter?.classList.contains('hidden')).toBe(false);
+      expect(row0EditAfter?.classList.contains('hidden')).toBe(true);
+
+      // 2. Row 1 is unlocked
+      const row1DisplayUnlocked = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      expect(row1DisplayUnlocked?.hasAttribute('data-locked')).toBe(false);
+      expect(row1DisplayUnlocked?.hasAttribute('aria-disabled')).toBe(false);
+      expect(row1DisplayUnlocked?.hasAttribute('inert')).toBe(false);
+
+      // 3. Add button is re-enabled
+      const addButtonUnlocked = el.shadowRoot?.querySelector(
+        '[data-action="add"]'
+      ) as HTMLButtonElement;
+      expect(addButtonUnlocked?.disabled).toBe(false);
+
+      // 4. Toggle controls are re-enabled
+      const row1Toggle = row1DisplayUnlocked?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      expect(row1Toggle?.disabled).toBe(false);
     });
   });
 });
