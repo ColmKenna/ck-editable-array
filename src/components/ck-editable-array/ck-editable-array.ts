@@ -598,7 +598,15 @@ export class CkEditableArray extends HTMLElement {
     if (this.isConnected) {
       // Update only bound nodes for the affected row/key instead of full re-render
       this.updateBoundNodes(rowIndex, key);
-      this.dispatchDataChanged();
+
+      // Only dispatch datachanged if the row is NOT in editing mode
+      // If the row is in editing mode, changes are temporary until Save is clicked
+      // If the row is NOT in editing mode, changes are committed immediately (backward compatibility)
+      const row = this._data[rowIndex];
+      const isEditing = this.isRecord(row) && row.editing === true;
+      if (!isEditing) {
+        this.dispatchDataChanged();
+      }
     }
   }
 
@@ -836,16 +844,28 @@ export class CkEditableArray extends HTMLElement {
     const nextData = this._data.map((entry, idx) => {
       if (idx === rowIndex && this.isRecord(entry)) {
         if (isCurrentlyEditing) {
-          // Remove editing flag and original snapshot
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { editing, __originalSnapshot, ...rest } = entry;
-          return rest;
+          // Exiting edit mode - restore from snapshot (acts like Cancel)
+          const snapshot = entry.__originalSnapshot;
+          if (snapshot && typeof snapshot === 'object') {
+            return JSON.parse(JSON.stringify(snapshot)) as Record<
+              string,
+              unknown
+            >;
+          } else {
+            // No snapshot available, just remove editing flag
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { editing, __originalSnapshot, ...rest } = entry;
+            return rest;
+          }
         } else {
-          // Add editing flag and store original snapshot for cancel
+          // Entering edit mode - store original snapshot
+          // Create a clean copy without internal markers for the snapshot
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { __originalSnapshot, __isNew, editing, ...cleanEntry } = entry;
           return {
             ...entry,
             editing: true,
-            __originalSnapshot: JSON.parse(JSON.stringify(entry)),
+            __originalSnapshot: JSON.parse(JSON.stringify(cleanEntry)),
           };
         }
       }
@@ -870,10 +890,8 @@ export class CkEditableArray extends HTMLElement {
     });
     this.dispatchEvent(afterEvent);
 
-    // Dispatch datachanged event
-    if (this.isConnected) {
-      this.dispatchDataChanged();
-    }
+    // Don't dispatch datachanged here - toggle is a UI state change, not a data change
+    // Data changes are only dispatched when Save, Add, Delete, or Restore are clicked
   }
 
   private handleCancelClick(rowIndex: number): void {

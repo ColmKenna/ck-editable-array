@@ -1165,7 +1165,9 @@ describe('CkEditableArray - Step 8.6: Meta Regression & Safety Tests', () => {
 
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      let row0Edit = el.shadowRoot?.querySelector('.edit-content[data-row="0"]');
+      let row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
       let nameInput = row0Edit?.querySelector(
         'input[data-bind="name"]'
       ) as HTMLInputElement;
@@ -1185,7 +1187,9 @@ describe('CkEditableArray - Step 8.6: Meta Regression & Safety Tests', () => {
       expect(dataChangedListener).toHaveBeenCalledTimes(1);
       let currentData = el.data as Array<{ name: string }>;
       expect(currentData[0].name).toBe('Alice Updated');
-      row0Display = el.shadowRoot?.querySelector('.display-content[data-row="0"]');
+      row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
       expect(row0Display?.classList.contains('hidden')).toBe(false);
       row0Edit = el.shadowRoot?.querySelector('.edit-content[data-row="0"]');
       expect(row0Edit?.classList.contains('hidden')).toBe(true);
@@ -1201,7 +1205,9 @@ describe('CkEditableArray - Step 8.6: Meta Regression & Safety Tests', () => {
 
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      let row1Edit = el.shadowRoot?.querySelector('.edit-content[data-row="1"]');
+      let row1Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="1"]'
+      );
       nameInput = row1Edit?.querySelector(
         'input[data-bind="name"]'
       ) as HTMLInputElement;
@@ -1221,12 +1227,14 @@ describe('CkEditableArray - Step 8.6: Meta Regression & Safety Tests', () => {
       expect(dataChangedListener).toHaveBeenCalledTimes(1);
       currentData = el.data as Array<{ name: string }>;
       expect(currentData[1].name).toBe('Bob'); // Unchanged
-      row1Display = el.shadowRoot?.querySelector('.display-content[data-row="1"]');
+      row1Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
       expect(row1Display?.classList.contains('hidden')).toBe(false);
       row1Edit = el.shadowRoot?.querySelector('.edit-content[data-row="1"]');
       expect(row1Edit?.classList.contains('hidden')).toBe(true);
 
-      // Step 3: Add a new row
+      // Step 3: Add a new row and Save
       const addButton = el.shadowRoot?.querySelector(
         '[data-action="add"]'
       ) as HTMLButtonElement;
@@ -1234,10 +1242,24 @@ describe('CkEditableArray - Step 8.6: Meta Regression & Safety Tests', () => {
 
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      // Assert after step 3 - datachanged should fire for add
+      // Assert after add - datachanged should fire
       expect(dataChangedListener).toHaveBeenCalledTimes(2);
       currentData = el.data as Array<{ name: string }>;
       expect(currentData.length).toBe(4);
+
+      // Save the new row
+      const row3Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="3"]'
+      );
+      const saveButtonRow3 = row3Edit?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      saveButtonRow3?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert after save - datachanged should fire again
+      expect(dataChangedListener).toHaveBeenCalledTimes(3);
 
       // Step 4: Soft-delete row 2
       const row2Display = el.shadowRoot?.querySelector(
@@ -1251,12 +1273,16 @@ describe('CkEditableArray - Step 8.6: Meta Regression & Safety Tests', () => {
       await new Promise(resolve => setTimeout(resolve, 10));
 
       // Assert after step 4 - datachanged should fire for delete
-      expect(dataChangedListener).toHaveBeenCalledTimes(3);
-      const currentDataWithDeleted = el.data as Array<{ name: string; deleted?: boolean }>;
+      expect(dataChangedListener).toHaveBeenCalledTimes(4);
+      const currentDataWithDeleted = el.data as Array<{
+        name: string;
+        deleted?: boolean;
+      }>;
       expect(currentDataWithDeleted[2].deleted).toBe(true);
 
       // Final verification - all rows are in correct mode
-      const allDisplayRows = el.shadowRoot?.querySelectorAll('.display-content');
+      const allDisplayRows =
+        el.shadowRoot?.querySelectorAll('.display-content');
       const allEditRows = el.shadowRoot?.querySelectorAll('.edit-content');
       expect(allDisplayRows?.length).toBe(4);
       expect(allEditRows?.length).toBe(4);
@@ -1313,6 +1339,17 @@ describe('CkEditableArray - Step 8.6: Meta Regression & Safety Tests', () => {
 
       await new Promise(resolve => setTimeout(resolve, 10));
 
+      // Save the newly added row so it's not in edit mode
+      let row1Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="1"]'
+      );
+      let saveButtonRow1 = row1Edit?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      saveButtonRow1?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
       const row0Display = el.shadowRoot?.querySelector(
         '.display-content[data-row="0"]'
       );
@@ -1323,7 +1360,9 @@ describe('CkEditableArray - Step 8.6: Meta Regression & Safety Tests', () => {
 
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      const row0Edit = el.shadowRoot?.querySelector('.edit-content[data-row="0"]');
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
       const nameInput = row0Edit?.querySelector(
         'input[data-bind="name"]'
       ) as HTMLInputElement;
@@ -1397,17 +1436,19 @@ describe('CkEditableArray - Step 8.6: Meta Regression & Safety Tests', () => {
       const displayName = row0DisplayNew?.querySelector('[data-bind="name"]');
       expect(displayName?.textContent).toBe('Bob');
 
-      // Perform toggle operation
-      const toggleButtonNew = row0DisplayNew?.querySelector(
-        '[data-action="toggle"]'
+      // Perform delete operation to test events
+      const row1DisplayCycle2 = el.shadowRoot?.querySelector(
+        '.display-content[data-row="1"]'
+      );
+      const deleteButtonCycle2 = row1DisplayCycle2?.querySelector(
+        '[data-action="delete"]'
       ) as HTMLButtonElement;
-      toggleButtonNew?.click();
+      deleteButtonCycle2?.click();
 
       await new Promise(resolve => setTimeout(resolve, 10));
 
       // Verify events fired exactly once (no duplicates)
-      expect(beforeToggleListener).toHaveBeenCalledTimes(1);
-      expect(afterToggleListener).toHaveBeenCalledTimes(1);
+      expect(dataChangedListener).toHaveBeenCalledTimes(1);
 
       // Detach again
       document.body.removeChild(el);
@@ -1430,12 +1471,28 @@ describe('CkEditableArray - Step 8.6: Meta Regression & Safety Tests', () => {
       const addButtonNew = el.shadowRoot?.querySelector(
         '[data-action="add"]'
       ) as HTMLButtonElement;
+
+      // Verify button exists and is not disabled
+      expect(addButtonNew).toBeTruthy();
+      expect(addButtonNew?.disabled).toBe(false);
+
       addButtonNew?.click();
 
       await new Promise(resolve => setTimeout(resolve, 10));
 
       // Verify event fired exactly once
       expect(dataChangedListener).toHaveBeenCalledTimes(1);
+
+      // Save the newly added row so it's not in edit mode
+      const row3EditCycle3 = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="3"]'
+      );
+      const saveButtonCycle3 = row3EditCycle3?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      saveButtonCycle3?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
 
       // Verify data is correct
       const currentData = el.data as Array<{ name: string }>;
