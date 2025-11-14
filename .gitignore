@@ -76,3 +76,15 @@ dist/ck-editable-array/ck-editable-array.min.js
 dist/ck-editable-array/ck-editable-array.min.js.map
 dist/ck-editable-array/components/ck-editable-array/ck-editable-array.d.ts
 
+prompts/webcomponent.guided.creation.prompt.md
+docs/step7-complete-summary.md
+docs/step7-quick-reference.md
+docs/step7-summary.md
+docs/step7-validation-field-change.md
+docs/step7.3-summary.md
+prompts/add-or-extend-webcomponent-feature-tdd.prompt.md
+prompts/create-blank-webcomponent-from-template.post-generate.prompt.md
+prompts/document-existing-webcomponent.prompt.md
+prompts/document.requiredtests.prompt.md
+prompts/improve-coverage-js.prompt.md
+prompts/refactor-js-step-by-step-with-tests.prompt.md
