@@ -322,6 +322,16 @@ export class CkEditableArray extends HTMLElement {
         btn.disabled = true;
       });
     }
+
+    // Attach Save button click handler
+    if (mode === 'edit') {
+      const saveButtons = root.querySelectorAll<HTMLButtonElement>(
+        '[data-action="save"]'
+      );
+      saveButtons.forEach(btn => {
+        btn.addEventListener('click', () => this.handleSaveClick(rowIndex));
+      });
+    }
   }
 
   private appendRowFromTemplate(
@@ -582,6 +592,37 @@ export class CkEditableArray extends HTMLElement {
 
     // Add the new item to the data array
     this._data = [...this._data, newItemWithEditing];
+
+    // Re-render and dispatch datachanged event
+    if (this.isConnected) {
+      this.render();
+      this.dispatchDataChanged();
+    }
+  }
+
+  private handleSaveClick(rowIndex: number): void {
+    // Don't save if readonly
+    if (this.hasAttribute('readonly')) {
+      return;
+    }
+
+    // Validate row index
+    if (rowIndex < 0 || rowIndex >= this._data.length) {
+      return;
+    }
+
+    // Remove editing flag from the row
+    const nextData = this._data.map((entry, idx) => {
+      if (idx === rowIndex && this.isRecord(entry)) {
+        // Remove editing flag
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { editing, ...rest } = entry;
+        return rest;
+      }
+      return this.isRecord(entry) ? { ...entry } : entry;
+    });
+
+    this._data = nextData;
 
     // Re-render and dispatch datachanged event
     if (this.isConnected) {
