@@ -268,7 +268,7 @@ describe('CkEditableArray - Step 7.1: Validation Logic Debug', () => {
     el.data = [{ name: '' }];
 
     // Access private method for testing
-    const validateRow = (el as unknown).validateRow.bind(el);
+    const validateRow = (el as any).validateRow.bind(el);
     const result = validateRow(0);
 
     expect(result).toBe(false);
@@ -906,6 +906,361 @@ describe('CkEditableArray - Step 7.3: Row-level Error Indicators & Accessibility
 
       // 2. Row-level invalid indicator is removed
       expect(row0Edit?.hasAttribute('data-row-invalid')).toBe(false);
+    });
+  });
+});
+
+
+describe('CkEditableArray - Step 7.4: Save/Cancel & Validation Interplay', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('Test 7.4.1 — Save on invalid row does not exit edit mode', () => {
+    test('Given a row in edit mode with an invalid field, When I click Save, Then the row remains in edit mode, And the invalid field(s) still show their error messages, And el.data does not change, And no datachanged event is emitted', async () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Set schema with required field
+      el.schema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string', minLength: 1 },
+        },
+        required: ['name'],
+      };
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <span class="field-error" data-field-error="name"></span>
+          <button data-action="save">Save</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with empty name (invalid)
+      el.data = [{ name: '' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Toggle row to edit mode
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const toggleButton = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Capture initial data state
+      const dataBefore = JSON.stringify(el.data);
+
+      // Set up event listener to track datachanged events
+      let dataChangedFired = false;
+      el.addEventListener('datachanged', () => {
+        dataChangedFired = true;
+      });
+
+      // Act - Click Save button (should be disabled, but test the behavior)
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const saveButton = row0Edit?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+
+      // Verify Save button is disabled
+      expect(saveButton?.disabled).toBe(true);
+
+      // Try to click it anyway (simulating programmatic click or user attempting)
+      saveButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert
+      // 1. Row remains in edit mode (edit wrapper is visible, display is hidden)
+      const row0EditAfter = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const row0DisplayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0EditAfter?.classList.contains('hidden')).toBe(false);
+      expect(row0DisplayAfter?.classList.contains('hidden')).toBe(true);
+
+      // 2. Error messages still visible
+      const errorSpan = row0EditAfter?.querySelector(
+        '[data-field-error="name"]'
+      );
+      expect(errorSpan?.textContent).not.toBe('');
+      expect(errorSpan?.textContent).toContain('required');
+
+      // 3. Data has not changed
+      const dataAfter = JSON.stringify(el.data);
+      expect(dataAfter).toBe(dataBefore);
+
+      // 4. No datachanged event was emitted
+      expect(dataChangedFired).toBe(false);
+    });
+  });
+
+  describe('Test 7.4.2 — Save on valid row clears errors and exits edit mode', () => {
+    test('Given a row in edit mode that initially had validation errors, And I correct all invalid fields so the row becomes valid, When I click Save, Then any field-level and row-level error indicators are cleared, And the row returns to display mode, And the displayed values reflect the corrected values, And datachanged fires once with the updated row', async () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Set schema with required field
+      el.schema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string', minLength: 1 },
+        },
+        required: ['name'],
+      };
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <span class="field-error" data-field-error="name"></span>
+          <button data-action="save">Save</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with empty name (invalid)
+      el.data = [{ name: '' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Toggle row to edit mode
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const toggleButton = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Verify initial invalid state
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      expect(row0Edit?.hasAttribute('data-row-invalid')).toBe(true);
+
+      // Set up event listener to track datachanged events
+      let dataChangedCount = 0;
+      let lastEventData: unknown = null;
+      el.addEventListener('datachanged', (event: Event) => {
+        dataChangedCount++;
+        lastEventData = (event as CustomEvent).detail.data;
+      });
+
+      // Act - Fix the invalid field
+      const nameInput = row0Edit?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      nameInput.value = 'Alice';
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Verify field is now valid
+      expect(nameInput?.hasAttribute('data-invalid')).toBe(false);
+      expect(row0Edit?.hasAttribute('data-row-invalid')).toBe(false);
+
+      // Reset event counter (input event may have fired datachanged)
+      dataChangedCount = 0;
+
+      // Click Save button
+      const saveButton = row0Edit?.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      expect(saveButton?.disabled).toBe(false);
+      saveButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert
+      // 1. Row returns to display mode
+      const row0EditAfter = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const row0DisplayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0EditAfter?.classList.contains('hidden')).toBe(true);
+      expect(row0DisplayAfter?.classList.contains('hidden')).toBe(false);
+
+      // 2. Error indicators are cleared (no data-row-invalid on edit wrapper)
+      expect(row0EditAfter?.hasAttribute('data-row-invalid')).toBe(false);
+
+      // 3. Displayed values reflect corrected values
+      const displayName = row0DisplayAfter?.querySelector('[data-bind="name"]');
+      expect(displayName?.textContent).toBe('Alice');
+
+      // 4. Data is updated
+      expect(el.data).toEqual([{ name: 'Alice' }]);
+
+      // 5. datachanged event fired once
+      expect(dataChangedCount).toBe(1);
+      expect(lastEventData).toEqual([{ name: 'Alice' }]);
+    });
+  });
+
+  describe('Test 7.4.3 — Cancel ignores validation state and discards unsaved values', () => {
+    test('Given a row in edit mode with some invalid values and visible error messages, And some of the edited values differ from the original data, When I click Cancel, Then the row returns to display mode, And any validation errors disappear, And the displayed values revert to the original data, And el.data remains unchanged, And no datachanged event is fired', async () => {
+      // Arrange
+      const el = new CkEditableArray();
+
+      // Set schema with required field
+      el.schema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string', minLength: 1 },
+        },
+        required: ['name'],
+      };
+
+      // Create display template
+      const tplDisplay = document.createElement('template');
+      tplDisplay.setAttribute('slot', 'display');
+      tplDisplay.innerHTML = `
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      `;
+      el.appendChild(tplDisplay);
+
+      // Create edit template
+      const tplEdit = document.createElement('template');
+      tplEdit.setAttribute('slot', 'edit');
+      tplEdit.innerHTML = `
+        <div class="row-edit">
+          <input data-bind="name" />
+          <span class="field-error" data-field-error="name"></span>
+          <button data-action="save">Save</button>
+          <button data-action="cancel">Cancel</button>
+        </div>
+      `;
+      el.appendChild(tplEdit);
+
+      // Set initial data with valid name
+      el.data = [{ name: 'Alice' }];
+
+      // Attach to document
+      document.body.appendChild(el);
+
+      // Capture original data
+      const originalData = JSON.stringify(el.data);
+
+      // Toggle row to edit mode
+      const row0Display = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      const toggleButton = row0Display?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Set up event listener to track datachanged events
+      let dataChangedFired = false;
+      el.addEventListener('datachanged', () => {
+        dataChangedFired = true;
+      });
+
+      // Act - Make the field invalid by clearing it
+      const row0Edit = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const nameInput = row0Edit?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      nameInput.value = '';
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Verify field is now invalid
+      expect(nameInput?.hasAttribute('data-invalid')).toBe(true);
+      expect(row0Edit?.hasAttribute('data-row-invalid')).toBe(true);
+
+      const errorSpan = row0Edit?.querySelector('[data-field-error="name"]');
+      expect(errorSpan?.textContent).not.toBe('');
+
+      // Reset event flag (input may have fired datachanged)
+      dataChangedFired = false;
+
+      // Click Cancel button
+      const cancelButton = row0Edit?.querySelector(
+        '[data-action="cancel"]'
+      ) as HTMLButtonElement;
+      cancelButton?.click();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert
+      // 1. Row returns to display mode
+      const row0EditAfter = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const row0DisplayAfter = el.shadowRoot?.querySelector(
+        '.display-content[data-row="0"]'
+      );
+      expect(row0EditAfter?.classList.contains('hidden')).toBe(true);
+      expect(row0DisplayAfter?.classList.contains('hidden')).toBe(false);
+
+      // 2. Validation errors disappear (no data-row-invalid on edit wrapper)
+      expect(row0EditAfter?.hasAttribute('data-row-invalid')).toBe(false);
+
+      // 3. Displayed values revert to original data
+      const displayName = row0DisplayAfter?.querySelector('[data-bind="name"]');
+      expect(displayName?.textContent).toBe('Alice');
+
+      // 4. el.data remains unchanged
+      const dataAfter = JSON.stringify(el.data);
+      expect(dataAfter).toBe(originalData);
+      expect(el.data).toEqual([{ name: 'Alice' }]);
+
+      // 5. No datachanged event was fired
+      expect(dataChangedFired).toBe(false);
     });
   });
 });
