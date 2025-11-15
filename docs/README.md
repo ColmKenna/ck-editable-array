@@ -1,23 +1,83 @@
-﻿# ck-editable-array docs overview
+﻿# ck-editable-array
 
-`ck-editable-array` renders repeatable rows based on templates you supply. Provide `template[slot="display"]` for read-only views and `template[slot="edit"]` for inputs.
+`ck-editable-array` is a web component that renders repeatable rows based on templates you supply. Provide `template[slot="display"]` for read-only views and `template[slot="edit"]` for inputs.
+
+## Installation
+
+Install via npm:
+
+```bash
+npm install @colmkenna/ck-editable-array
+```
+
+Or via yarn:
+
+```bash
+yarn add @colmkenna/ck-editable-array
+```
+
+Then import in your JavaScript/TypeScript:
+
+```javascript
+import '@colmkenna/ck-editable-array';
+```
+
+Or include directly in HTML:
+
+```html
+<script type="module" src="path/to/ck-editable-array.js"></script>
+```
+
+## Browser Support
+
+| Browser | Minimum Version | Notes |
+|---------|----------------|-------|
+| Chrome | 53+ | Full support |
+| Firefox | 63+ | Full support |
+| Safari | 10.1+ | Full support |
+| Edge | 79+ | Full support (Chromium-based) |
+| Edge Legacy | Not supported | Use polyfills for Shadow DOM and Custom Elements |
+
+**Requirements:**
+- Custom Elements v1
+- Shadow DOM v1
+- ES6 support
+
+For older browsers, use the [webcomponents polyfills](https://github.com/webcomponents/polyfills).
 
 ## Quick start
 
 ```html
 <ck-editable-array id="letters">
+  <!-- Template for displaying rows in read-only mode -->
   <template slot="display">
-    <div class="row-display"><span data-bind="value"></span></div>
+    <div class="row-display">
+      <span data-bind="value"></span>
+      <button data-action="toggle">Edit</button>
+    </div>
   </template>
+  
+  <!-- Template for editing rows -->
   <template slot="edit">
-    <div class="row-edit"><input data-bind="value" /></div>
+    <div class="row-edit">
+      <input data-bind="value" />
+      <button data-action="save">Save</button>
+      <button data-action="cancel">Cancel</button>
+    </div>
   </template>
 </ck-editable-array>
+
 <script>
+  // Get reference to the component
   const el = document.getElementById('letters');
+  
+  // Set initial data (can be primitives or objects)
   el.data = ['A', 'B', 'C'];
+  
+  // Listen for data changes
   el.addEventListener('datachanged', event => {
-    console.log('updated array', event.detail.data);
+    console.log('Updated array:', event.detail.data);
+    // Send to server, update state, etc.
   });
 </script>
 ```
@@ -28,6 +88,216 @@
 - **Accessibility**: Full ARIA support with `aria-invalid`, `aria-describedby`, and live regions
 - **Save Control**: Save button automatically disabled when validation fails
 - **Clear Error Messages**: Field-level and row-level error indicators
+- **Nested Properties**: Support for dot notation in data binding (e.g., `person.name`)
+- **Soft Delete**: Mark rows as deleted without removing them from the array
+- **Exclusive Locking**: Only one row can be edited at a time
+
+## API Reference
+
+### Attributes
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | `""` | Base name for form field naming. When set, inputs get names like `name[0].fieldName` |
+| `readonly` | boolean | `false` | When present, disables all editing functionality (add, edit, delete, restore) |
+
+**Example:**
+```html
+<!-- With name attribute for form integration -->
+<ck-editable-array name="contacts">
+  <!-- inputs will have names like: contacts[0].name, contacts[0].email -->
+</ck-editable-array>
+
+<!-- Readonly mode -->
+<ck-editable-array readonly>
+  <!-- All edit buttons and inputs are disabled -->
+</ck-editable-array>
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `data` | `Array<any>` | **Getter/Setter.** The array of row data. Can be primitives (strings, numbers) or objects. Setting this property triggers a re-render. Reading returns a deep clone for immutability. |
+| `schema` | `object \| null` | **Getter/Setter.** Validation schema in JSON Schema-like format. Supports `required` array and `properties` with `minLength` constraints. Set to `null` to disable validation. |
+| `newItemFactory` | `() => any` | **Getter/Setter.** Factory function that creates new items when the Add button is clicked. Default returns an empty object `{}`. Customize to provide default values for new rows. |
+
+**Example:**
+```javascript
+const el = document.querySelector('ck-editable-array');
+
+// Set data (primitives)
+el.data = ['Apple', 'Banana', 'Cherry'];
+
+// Set data (objects)
+el.data = [
+  { name: 'Alice', email: 'alice@example.com' },
+  { name: 'Bob', email: 'bob@example.com' }
+];
+
+// Get data (returns a clone)
+const currentData = el.data;
+console.log(currentData); // Safe to mutate without affecting component
+
+// Set validation schema
+el.schema = {
+  type: 'object',
+  properties: {
+    name: { type: 'string', minLength: 2 },
+    email: { type: 'string', minLength: 5 }
+  },
+  required: ['name', 'email']
+};
+
+// Customize new item factory
+el.newItemFactory = () => ({
+  name: '',
+  email: '',
+  role: 'user', // Default value
+  active: true
+});
+```
+
+### Methods
+
+The component does not expose public methods. All interactions are done through properties, attributes, and events.
+
+### Events
+
+All events bubble and are composed (cross shadow DOM boundaries).
+
+| Event | Cancelable | Detail | Description |
+|-------|-----------|--------|-------------|
+| `datachanged` | No | `{ data: Array }` | Fired when data changes (add, save, delete, restore). Detail contains the complete current array. |
+| `beforetogglemode` | **Yes** | `{ index: number, from: 'display'\|'edit', to: 'display'\|'edit' }` | Fired before a row switches modes. Call `preventDefault()` to block the mode change. |
+| `aftertogglemode` | No | `{ index: number, mode: 'display'\|'edit' }` | Fired after a row successfully switches modes. |
+
+**Example:**
+```javascript
+const el = document.querySelector('ck-editable-array');
+
+// Listen for data changes
+el.addEventListener('datachanged', (e) => {
+  console.log('New data:', e.detail.data);
+  // Sync with server, update app state, etc.
+});
+
+// Prevent specific rows from being edited
+el.addEventListener('beforetogglemode', (e) => {
+  if (e.detail.index === 0 && e.detail.to === 'edit') {
+    e.preventDefault(); // Block editing of first row
+    console.log('First row cannot be edited');
+  }
+});
+
+// Track when rows enter edit mode
+el.addEventListener('aftertogglemode', (e) => {
+  if (e.detail.mode === 'edit') {
+    console.log(`Row ${e.detail.index} is now being edited`);
+  }
+});
+```
+
+### Slots
+
+| Slot | Required | Description |
+|------|----------|-------------|
+| `display` | Yes | Template for rendering rows in display (read-only) mode |
+| `edit` | Yes | Template for rendering rows in edit mode |
+| `styles` | No | Custom CSS styles to inject into shadow DOM |
+| `add-button` | No | Custom template for the Add button |
+| `button-edit` | No | Custom button to replace default Edit button |
+| `button-save` | No | Custom button to replace default Save button |
+| `button-cancel` | No | Custom button to replace default Cancel button |
+| `button-delete` | No | Custom button to replace default Delete button |
+| `button-restore` | No | Custom button to replace default Restore button |
+
+**Example:**
+```html
+<ck-editable-array>
+  <template slot="display">
+    <div><span data-bind="name"></span></div>
+  </template>
+  
+  <template slot="edit">
+    <div><input data-bind="name" /></div>
+  </template>
+  
+  <!-- Custom styles -->
+  <style slot="styles">
+    .row-display { padding: 10px; border: 1px solid #ccc; }
+    .row-edit { background: #f0f0f0; }
+  </style>
+  
+  <!-- Custom Add button -->
+  <template slot="add-button">
+    <button data-action="add">➕ Add New Item</button>
+  </template>
+</ck-editable-array>
+```
+
+### CSS Parts
+
+Use CSS `::part()` selector to style shadow DOM elements from outside.
+
+| Part | Description |
+|------|-------------|
+| `root` | The root container element |
+| `rows` | Container for all row elements |
+| `add-button` | Container for the Add button |
+
+**Example:**
+```css
+/* Style the root container */
+ck-editable-array::part(root) {
+  border: 2px solid #333;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+/* Style the rows container */
+ck-editable-array::part(rows) {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Style the add button container */
+ck-editable-array::part(add-button) {
+  margin-top: 15px;
+  text-align: center;
+}
+```
+
+### Data Binding Attributes
+
+Use these attributes in your templates to bind data and actions.
+
+| Attribute | Usage | Description |
+|-----------|-------|-------------|
+| `data-bind="fieldName"` | On any element | Binds element content/value to a data field. Supports nested paths like `person.name` |
+| `data-action="add"` | On buttons | Triggers add new row action |
+| `data-action="toggle"` | On buttons | Toggles between display and edit mode |
+| `data-action="save"` | On buttons | Saves changes and exits edit mode |
+| `data-action="cancel"` | On buttons | Discards changes and exits edit mode |
+| `data-action="delete"` | On buttons | Soft-deletes a row (sets `deleted: true`) |
+| `data-action="restore"` | On buttons | Restores a deleted row (sets `deleted: false`) |
+
+### Validation Attributes
+
+Use these attributes in your edit template to display validation errors.
+
+| Attribute | Usage | Description |
+|-----------|-------|-------------|
+| `data-field-error="fieldName"` | On any element | Displays error message for a specific field |
+| `data-error-count` | On any element | Displays total error count (e.g., "2 errors") |
+| `data-error-summary` | On any element | Displays all error messages (for screen readers) |
+
+**Automatic Attributes:**
+- `data-invalid` - Added to input fields that fail validation
+- `data-row-invalid` - Added to edit wrapper when row has errors
+- `aria-invalid="true"` - Added to invalid inputs for accessibility
+- `aria-describedby` - Links inputs to their error messages
 
 ## Behavior cheatsheet
 - Setting `data` accepts arrays of primitives or objects (object fields map to `data-bind` names).
@@ -524,3 +794,336 @@ document.body.addEventListener('datachanged', (e) => {
   }
 });
 ```
+
+## Troubleshooting
+
+### Common Issues and Solutions
+
+#### Issue: Changes not appearing in the UI
+
+**Cause:** Mutating the data array directly instead of reassigning it.
+
+**Solution:** Always reassign the `data` property to trigger a re-render:
+
+```javascript
+// ❌ Wrong - mutating directly
+el.data.push({ name: 'New Item' });
+
+// ✅ Correct - reassign the property
+const current = el.data;
+current.push({ name: 'New Item' });
+el.data = current;
+```
+
+#### Issue: Template not rendering or showing blank rows
+
+**Cause:** Missing or incorrectly named slot attributes on templates.
+
+**Solution:** Ensure templates have the correct `slot` attribute:
+
+```html
+<!-- ✅ Correct -->
+<template slot="display">...</template>
+<template slot="edit">...</template>
+
+<!-- ❌ Wrong - missing slot attribute -->
+<template>...</template>
+```
+
+#### Issue: Data binding not working
+
+**Cause:** Typo in `data-bind` attribute or field name doesn't match data structure.
+
+**Solution:** Verify field names match your data exactly (case-sensitive):
+
+```javascript
+// Data structure
+el.data = [{ firstName: 'Alice' }];
+
+// Template must match exactly
+<span data-bind="firstName"></span>  <!-- ✅ Correct -->
+<span data-bind="firstname"></span>  <!-- ❌ Wrong - case mismatch -->
+```
+
+#### Issue: Validation not working
+
+**Cause:** Schema not set or incorrect schema format.
+
+**Solution:** Ensure schema is set before or after data, and follows the correct format:
+
+```javascript
+// ✅ Correct schema format
+el.schema = {
+  type: 'object',
+  properties: {
+    name: { type: 'string', minLength: 1 }
+  },
+  required: ['name']
+};
+```
+
+#### Issue: Custom styles not applying
+
+**Cause:** Styles not in a `<style slot="styles">` element.
+
+**Solution:** Use the styles slot to inject CSS into shadow DOM:
+
+```html
+<!-- ✅ Correct -->
+<style slot="styles">
+  .row-display { color: blue; }
+</style>
+
+<!-- ❌ Wrong - regular style tag won't affect shadow DOM -->
+<style>
+  .row-display { color: blue; }
+</style>
+```
+
+#### Issue: Form submission not including array data
+
+**Cause:** Missing `name` attribute on the component.
+
+**Solution:** Add a `name` attribute to enable form field naming:
+
+```html
+<form>
+  <ck-editable-array name="contacts">
+    <!-- Inputs will have names like: contacts[0].name -->
+  </ck-editable-array>
+</form>
+```
+
+#### Issue: Cannot edit any rows
+
+**Cause:** Component has `readonly` attribute or another row is already in edit mode.
+
+**Solution:** Remove `readonly` attribute and ensure only one row is edited at a time:
+
+```javascript
+// Check if readonly
+console.log(el.hasAttribute('readonly')); // Should be false
+
+// Check if any row is in edit mode
+const hasEditingRow = el.data.some(row => row.editing === true);
+console.log(hasEditingRow); // Should be false to allow editing
+```
+
+#### Issue: Nested property binding not working
+
+**Cause:** Data structure doesn't match the nested path or path syntax is incorrect.
+
+**Solution:** Ensure data structure matches the dot notation path:
+
+```javascript
+// ✅ Correct - data structure matches binding
+el.data = [{ person: { name: 'Alice' } }];
+// Template: <span data-bind="person.name"></span>
+
+// ❌ Wrong - structure doesn't match
+el.data = [{ name: 'Alice' }];
+// Template: <span data-bind="person.name"></span> (will be empty)
+```
+
+### Debugging Tips
+
+**Enable console logging for data changes:**
+```javascript
+el.addEventListener('datachanged', (e) => {
+  console.log('Data changed:', JSON.stringify(e.detail.data, null, 2));
+});
+```
+
+**Inspect current data state:**
+```javascript
+console.log('Current data:', el.data);
+console.log('Current schema:', el.schema);
+console.log('Is readonly:', el.hasAttribute('readonly'));
+```
+
+**Check validation state:**
+```javascript
+// Look for validation indicators in the DOM
+const editRow = el.shadowRoot.querySelector('.edit-content');
+console.log('Has validation errors:', editRow?.hasAttribute('data-row-invalid'));
+```
+
+**Verify templates are present:**
+```javascript
+const displayTpl = el.querySelector('template[slot="display"]');
+const editTpl = el.querySelector('template[slot="edit"]');
+console.log('Display template:', displayTpl ? 'Found' : 'Missing');
+console.log('Edit template:', editTpl ? 'Found' : 'Missing');
+```
+
+## Performance Tips
+
+### Best Practices for Large Datasets
+
+#### 1. Limit Array Size
+
+For optimal performance, keep arrays under 100 items. For larger datasets, implement pagination or virtual scrolling externally.
+
+```javascript
+// ✅ Good - reasonable size
+el.data = items.slice(0, 50);
+
+// ⚠️ Caution - may impact performance
+el.data = items.slice(0, 500);
+```
+
+#### 2. Minimize Template Complexity
+
+Keep templates simple and avoid deeply nested DOM structures.
+
+```html
+<!-- ✅ Good - simple template -->
+<template slot="display">
+  <div>
+    <span data-bind="name"></span>
+    <button data-action="toggle">Edit</button>
+  </div>
+</template>
+
+<!-- ⚠️ Avoid - overly complex -->
+<template slot="display">
+  <div>
+    <div>
+      <div>
+        <div>
+          <span data-bind="name"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+```
+
+#### 3. Batch Data Updates
+
+When making multiple changes, batch them into a single data assignment:
+
+```javascript
+// ❌ Inefficient - multiple re-renders
+el.data = [...el.data, item1];
+el.data = [...el.data, item2];
+el.data = [...el.data, item3];
+
+// ✅ Efficient - single re-render
+const current = el.data;
+current.push(item1, item2, item3);
+el.data = current;
+```
+
+#### 4. Optimize Validation Schema
+
+Keep validation rules simple and avoid complex regex patterns:
+
+```javascript
+// ✅ Good - simple validation
+el.schema = {
+  properties: {
+    name: { minLength: 1 },
+    email: { minLength: 5 }
+  },
+  required: ['name']
+};
+
+// ⚠️ Slower - complex validation (not yet supported, but avoid in future)
+el.schema = {
+  properties: {
+    email: { pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$' }
+  }
+};
+```
+
+#### 5. Use Efficient Data Structures
+
+For nested data, keep nesting shallow (2-3 levels max):
+
+```javascript
+// ✅ Good - shallow nesting
+el.data = [
+  { user: { name: 'Alice', email: 'alice@example.com' } }
+];
+
+// ⚠️ Avoid - deep nesting
+el.data = [
+  { company: { department: { team: { user: { name: 'Alice' } } } } }
+];
+```
+
+#### 6. Debounce External Updates
+
+If syncing with a server, debounce the `datachanged` event:
+
+```javascript
+let debounceTimer;
+el.addEventListener('datachanged', (e) => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    // Send to server
+    fetch('/api/save', {
+      method: 'POST',
+      body: JSON.stringify(e.detail.data)
+    });
+  }, 500); // Wait 500ms after last change
+});
+```
+
+#### 7. Avoid Unnecessary Re-renders
+
+Only update data when actually needed:
+
+```javascript
+// ✅ Good - check before updating
+const current = el.data;
+if (current[0].name !== newName) {
+  current[0].name = newName;
+  el.data = current;
+}
+
+// ❌ Wasteful - updates even if unchanged
+const current = el.data;
+current[0].name = newName; // Might be the same value
+el.data = current; // Triggers re-render anyway
+```
+
+#### 8. Optimize Custom Styles
+
+Keep CSS selectors simple and avoid expensive properties:
+
+```html
+<style slot="styles">
+  /* ✅ Good - simple selectors */
+  .row-display { padding: 10px; }
+  
+  /* ⚠️ Avoid - expensive properties */
+  .row-display {
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+    filter: blur(2px);
+  }
+</style>
+```
+
+### Performance Monitoring
+
+Monitor render performance using browser DevTools:
+
+```javascript
+// Measure render time
+const start = performance.now();
+el.data = largeArray;
+requestAnimationFrame(() => {
+  const end = performance.now();
+  console.log(`Render took ${end - start}ms`);
+});
+```
+
+### When to Consider Alternatives
+
+If you need to display more than 100-200 items with frequent updates, consider:
+- Implementing virtual scrolling externally
+- Using pagination
+- Splitting data across multiple component instances
+- Using a more specialized data grid component

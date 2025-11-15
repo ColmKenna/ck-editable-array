@@ -5,235 +5,358 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>ck-editable-array — Comprehensive Feature Demo</title>
     <style>
+      /* ============================================
+         BASE STYLES
+         ============================================ */
       * { box-sizing: border-box; }
       
       body { 
-        font-family: system-ui, -apple-system, sans-serif; 
-        padding: 24px; 
-        max-width: 1200px;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        padding: 32px 24px; 
+        max-width: 1400px;
         margin: 0 auto;
-        background: #f5f5f5;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+        line-height: 1.6;
+      }
+      
+      /* ============================================
+         HEADER STYLES
+         ============================================ */
+      .page-header {
+        text-align: center;
+        margin-bottom: 48px;
+        padding: 32px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.07);
       }
       
       h1 { 
-        color: #333; 
-        margin-bottom: 8px;
+        color: #1a202c; 
+        margin: 0 0 12px 0;
+        font-size: 2.5rem;
+        font-weight: 700;
       }
       
       .subtitle {
-        color: #666;
-        font-size: 18px;
-        margin-bottom: 32px;
+        color: #4a5568;
+        font-size: 1.125rem;
+        margin: 0 0 24px 0;
+      }
+      
+      .feature-overview {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 24px;
+      }
+      
+      /* ============================================
+         DEMO SECTION STYLES
+         ============================================ */
+      .demo-section {
+        background: white;
+        padding: 32px;
+        margin-bottom: 40px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+        transition: box-shadow 0.3s ease;
+      }
+      
+      .demo-section:hover {
+        box-shadow: 0 8px 12px rgba(0,0,0,0.1);
+      }
+      
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+      
+      .section-title-group {
+        flex: 1;
+        min-width: 300px;
       }
       
       h2 { 
-        color: #555; 
-        margin-top: 48px;
-        margin-bottom: 16px;
-        padding-bottom: 8px;
-        border-bottom: 2px solid #0066cc;
+        color: #2d3748; 
+        margin: 0 0 12px 0;
+        font-size: 1.75rem;
+        font-weight: 600;
+      }
+      
+      .section-controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
       }
       
       .hint { 
-        color: #666; 
-        font-size: 14px; 
-        margin-bottom: 16px; 
-        padding: 12px;
-        background: #fff;
-        border-left: 4px solid #0066cc;
-        border-radius: 4px;
+        color: #4a5568; 
+        font-size: 0.9375rem; 
+        margin-bottom: 24px; 
+        padding: 16px;
+        background: #f7fafc;
+        border-left: 4px solid #4299e1;
+        border-radius: 6px;
+        line-height: 1.7;
       }
       
-      .demo-section {
-        background: white;
-        padding: 24px;
-        margin-bottom: 32px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      .hint strong {
+        color: #2d3748;
       }
       
+      .hint code {
+        background: #edf2f7;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.875rem;
+        color: #d53f8c;
+      }
+      
+      /* ============================================
+         COMPONENT CONTAINER STYLES
+         ============================================ */
       ck-editable-array { 
         display: block; 
-        border: 1px solid #ddd; 
-        padding: 16px; 
-        margin-bottom: 16px;
-        border-radius: 4px;
-        background: #fafafa;
+        border: 2px solid #e2e8f0; 
+        padding: 20px; 
+        margin-bottom: 20px;
+        border-radius: 8px;
+        background: #fafbfc;
+        transition: border-color 0.2s ease;
       }
       
-      /* Display mode styles */
+      ck-editable-array:focus-within {
+        border-color: #4299e1;
+      }
+      
+      /* ============================================
+         ROW DISPLAY MODE STYLES
+         Styles for rows in display (read-only) mode
+         ============================================ */
       .row-display { 
-        padding: 12px; 
+        padding: 16px; 
         background: white;
-        border-radius: 4px;
-        margin-bottom: 8px;
+        border-radius: 6px;
+        margin-bottom: 10px;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 16px;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+      }
+      
+      .row-display:hover {
+        border-color: #cbd5e0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
       }
       
       .row-display .content {
         flex: 1;
+        min-width: 0; /* Allows text truncation */
       }
       
       .row-display .actions {
         display: flex;
         gap: 8px;
+        flex-shrink: 0;
       }
       
+      /* Action button styles */
       .row-display button {
-        padding: 6px 12px;
-        background: #0066cc;
+        padding: 8px 14px;
+        background: #4299e1;
         color: white;
         border: none;
-        border-radius: 3px;
+        border-radius: 5px;
         cursor: pointer;
-        font-size: 13px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
       }
       
       .row-display button:hover {
-        background: #0052a3;
+        background: #3182ce;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      
+      .row-display button:active {
+        transform: translateY(0);
       }
       
       .row-display button[data-action="delete"] {
-        background: #dc3545;
+        background: #f56565;
       }
       
       .row-display button[data-action="delete"]:hover {
-        background: #c82333;
+        background: #e53e3e;
       }
       
       .row-display button[data-action="restore"] {
-        background: #28a745;
+        background: #48bb78;
       }
       
       .row-display button[data-action="restore"]:hover {
-        background: #218838;
+        background: #38a169;
       }
       
-      /* Edit mode styles */
+      /* ============================================
+         ROW EDIT MODE STYLES
+         Styles for rows in edit mode
+         ============================================ */
       .row-edit { 
-        padding: 16px; 
+        padding: 20px; 
         background: white;
-        border: 2px solid #0066cc;
-        border-radius: 4px;
-        margin-bottom: 8px;
+        border: 2px solid #4299e1;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        box-shadow: 0 4px 6px rgba(66, 153, 225, 0.1);
       }
       
-      /* Invalid row styling */
+      /* Invalid row styling - shown when validation fails */
       .row-edit[data-row-invalid] {
-        border-color: #dc3545;
+        border-color: #f56565;
         background: #fff5f5;
+        box-shadow: 0 4px 6px rgba(245, 101, 101, 0.1);
       }
       
-      /* Error summary */
+      /* ============================================
+         VALIDATION ERROR STYLES
+         ============================================ */
+      /* Error summary banner at top of edit form */
       .error-summary {
-        padding: 12px;
-        background: #dc3545;
-        color: white;
-        border-radius: 4px;
-        margin-bottom: 16px;
+        padding: 14px 16px;
+        background: #fed7d7;
+        color: #742a2a;
+        border-radius: 6px;
+        margin-bottom: 20px;
         font-weight: 500;
+        border-left: 4px solid #f56565;
       }
       
       .error-summary:empty {
         display: none;
       }
       
-      /* Form fields */
+      /* ============================================
+         FORM FIELD STYLES
+         ============================================ */
       .form-field {
-        margin-bottom: 16px;
+        margin-bottom: 20px;
       }
       
       .form-field label {
         display: block;
-        font-weight: 500;
-        margin-bottom: 4px;
-        color: #333;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #2d3748;
+        font-size: 0.9375rem;
       }
       
       .form-field input,
       .form-field textarea {
         width: 100%;
-        padding: 8px 12px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-size: 14px;
+        padding: 10px 14px;
+        border: 2px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 0.9375rem;
         font-family: inherit;
+        transition: all 0.2s ease;
+        background: white;
       }
       
       .form-field input:focus,
       .form-field textarea:focus {
         outline: none;
-        border-color: #0066cc;
-        box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        border-color: #4299e1;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
       }
       
-      /* Invalid field styling */
+      /* Invalid field styling - applied when field has validation error */
       .form-field input[data-invalid],
       .form-field textarea[data-invalid] {
-        border-color: #dc3545;
+        border-color: #f56565;
         background: #fff5f5;
       }
       
       .form-field input[data-invalid]:focus,
       .form-field textarea[data-invalid]:focus {
-        border-color: #dc3545;
-        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+        border-color: #f56565;
+        box-shadow: 0 0 0 3px rgba(245, 101, 101, 0.1);
       }
       
-      /* Field error messages */
+      /* Field-level error messages */
       .field-error {
         display: block;
-        color: #dc3545;
-        font-size: 13px;
-        margin-top: 4px;
+        color: #e53e3e;
+        font-size: 0.8125rem;
+        margin-top: 6px;
+        font-weight: 500;
       }
       
       .field-error:empty {
         display: none;
       }
       
-      /* Button styling */
+      /* ============================================
+         EDIT MODE BUTTON STYLES
+         ============================================ */
       .row-edit button {
-        padding: 8px 16px;
+        padding: 10px 20px;
         border: none;
-        border-radius: 4px;
+        border-radius: 6px;
         cursor: pointer;
-        font-size: 14px;
-        margin-right: 8px;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        margin-right: 10px;
+        transition: all 0.2s ease;
       }
       
       .row-edit button[data-action="save"] {
-        background: #28a745;
+        background: #48bb78;
         color: white;
       }
       
       .row-edit button[data-action="save"]:hover:not(:disabled) {
-        background: #218838;
+        background: #38a169;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(72, 187, 120, 0.3);
       }
       
       .row-edit button[data-action="save"]:disabled {
-        background: #ccc;
+        background: #cbd5e0;
         cursor: not-allowed;
+        opacity: 0.6;
       }
       
       .row-edit button[data-action="cancel"] {
-        background: #6c757d;
+        background: #718096;
         color: white;
       }
       
       .row-edit button[data-action="cancel"]:hover {
-        background: #5a6268;
+        background: #4a5568;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(113, 128, 150, 0.3);
       }
       
-      /* Deleted row styling */
+      /* ============================================
+         DELETED ROW STYLES
+         Soft-deleted rows have reduced opacity and strikethrough
+         ============================================ */
       .display-content.deleted {
-        opacity: 0.6;
+        opacity: 0.5;
       }
       
       .display-content.deleted .content {
         text-decoration: line-through;
+        color: #718096;
       }
       
       /* Hide restore button for active rows */
@@ -246,104 +369,289 @@
         display: none;
       }
       
-      /* Hidden class for toggling visibility */
+      /* ============================================
+         UTILITY CLASSES
+         ============================================ */
       .hidden {
         display: none !important;
       }
       
-      /* Locked row styling */
+      /* Locked row styling - applied when another row is being edited */
       .display-content[data-locked] {
-        opacity: 0.5;
+        opacity: 0.4;
         pointer-events: none;
+        filter: grayscale(50%);
       }
       
-      /* Event log */
+      /* ============================================
+         EVENT LOG STYLES
+         Console-style event logging display
+         ============================================ */
       .event-log {
-        background: #1e1e1e;
-        color: #d4d4d4;
-        padding: 16px;
-        border-radius: 4px;
-        font-family: 'Courier New', monospace;
-        font-size: 13px;
-        max-height: 300px;
+        background: #1a202c;
+        color: #e2e8f0;
+        padding: 20px;
+        border-radius: 8px;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 0.8125rem;
+        max-height: 350px;
         overflow-y: auto;
-        margin-top: 16px;
+        margin-top: 20px;
+        border: 1px solid #2d3748;
       }
       
       .event-log .event-entry {
-        margin-bottom: 12px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid #333;
+        margin-bottom: 16px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #2d3748;
       }
       
       .event-log .event-entry:last-child {
         border-bottom: none;
+        margin-bottom: 0;
       }
       
       .event-log .event-name {
-        color: #4ec9b0;
+        color: #68d391;
         font-weight: bold;
       }
       
       .event-log .event-time {
-        color: #858585;
-        font-size: 11px;
+        color: #a0aec0;
+        font-size: 0.75rem;
       }
       
       .event-log .event-detail {
-        color: #ce9178;
-        margin-top: 4px;
+        color: #fbd38d;
+        margin-top: 6px;
+        white-space: pre-wrap;
+        word-break: break-word;
       }
       
-      /* Feature badges */
+      /* ============================================
+         FEATURE BADGE STYLES
+         Visual indicators for component capabilities
+         ============================================ */
       .feature-badge {
         display: inline-block;
-        padding: 4px 8px;
-        background: #0066cc;
+        padding: 6px 12px;
+        background: #4299e1;
         color: white;
-        border-radius: 3px;
-        font-size: 12px;
-        font-weight: 600;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
         margin-right: 8px;
         margin-bottom: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      
+      .feature-badge.core {
+        background: #4299e1;
       }
       
       .feature-badge.validation {
-        background: #28a745;
+        background: #48bb78;
       }
       
       .feature-badge.accessibility {
-        background: #6f42c1;
+        background: #9f7aea;
       }
       
       .feature-badge.events {
-        background: #fd7e14;
+        background: #ed8936;
+      }
+      
+      .feature-badge.theming {
+        background: #d53f8c;
+      }
+      
+      /* ============================================
+         CODE VIEWER STYLES
+         View Source functionality
+         ============================================ */
+      .code-viewer {
+        margin-top: 20px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #f7fafc;
+      }
+      
+      .code-viewer.hidden {
+        display: none;
+      }
+      
+      .code-viewer-header {
+        background: #edf2f7;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      
+      .code-viewer-title {
+        font-weight: 600;
+        color: #2d3748;
+        font-size: 0.875rem;
+      }
+      
+      .code-viewer-content {
+        padding: 0;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+      
+      .code-viewer pre {
+        margin: 0;
+        padding: 20px;
+        background: #1a202c;
+        color: #e2e8f0;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 0.8125rem;
+        line-height: 1.6;
+        overflow-x: auto;
+      }
+      
+      .code-viewer code {
+        font-family: inherit;
+      }
+      
+      /* ============================================
+         CONTROL BUTTON STYLES
+         View Source and Copy Code buttons
+         ============================================ */
+      .control-btn {
+        padding: 8px 16px;
+        background: #edf2f7;
+        color: #2d3748;
+        border: 1px solid #cbd5e0;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      
+      .control-btn:hover {
+        background: #e2e8f0;
+        border-color: #a0aec0;
+      }
+      
+      .control-btn:active {
+        transform: scale(0.98);
+      }
+      
+      .control-btn.success {
+        background: #c6f6d5;
+        border-color: #48bb78;
+        color: #22543d;
+      }
+      
+      /* ============================================
+         RESPONSIVE DESIGN
+         ============================================ */
+      @media (max-width: 768px) {
+        body {
+          padding: 16px;
+        }
+        
+        .demo-section {
+          padding: 20px;
+        }
+        
+        h1 {
+          font-size: 2rem;
+        }
+        
+        h2 {
+          font-size: 1.5rem;
+        }
+        
+        .section-header {
+          flex-direction: column;
+        }
+        
+        .row-display {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        
+        .row-display .actions {
+          width: 100%;
+          justify-content: flex-start;
+        }
       }
     </style>
   </head>
   <body>
-    <h1>🎯 ck-editable-array — Comprehensive Demo</h1>
-    <p class="subtitle">Explore all features of the editable array web component</p>
+    <!-- ============================================
+         PAGE HEADER
+         Main title and feature overview badges
+         ============================================ -->
+    <div class="page-header">
+      <h1>🎯 ck-editable-array — Comprehensive Demo</h1>
+      <p class="subtitle">Explore all features of the editable array web component</p>
+      
+      <div class="feature-overview">
+        <span class="feature-badge core">CRUD Operations</span>
+        <span class="feature-badge validation">Schema Validation</span>
+        <span class="feature-badge core">Nested Properties</span>
+        <span class="feature-badge core">Exclusive Locking</span>
+        <span class="feature-badge theming">Custom Styling</span>
+        <span class="feature-badge accessibility">Accessibility</span>
+        <span class="feature-badge events">Event System</span>
+      </div>
+    </div>
 
+    <!-- ============================================
+         DEMO 1: BASIC CRUD OPERATIONS
+         Demonstrates core functionality: add, edit, save, cancel, delete, restore
+         Shows event system with live event log
+         ============================================ -->
     <div class="demo-section">
-      <h2>📋 Feature 1: Basic CRUD Operations</h2>
-      <div class="feature-badge">Core</div>
-      <div class="feature-badge">Events</div>
+      <div class="section-header">
+        <div class="section-title-group">
+          <h2>📋 Feature 1: Basic CRUD Operations</h2>
+          <div>
+            <span class="feature-badge core">Core</span>
+            <span class="feature-badge events">Events</span>
+          </div>
+        </div>
+        <div class="section-controls">
+          <button class="control-btn" onclick="toggleCodeViewer('code-demo1')">
+            📄 View Source
+          </button>
+          <button class="control-btn" onclick="copyCode('code-demo1')">
+            📋 Copy Code
+          </button>
+        </div>
+      </div>
       
       <p class="hint">
         <strong>Try this:</strong> Click "Edit" to modify a row, "Add Contact" to create new entries, 
-        and "Delete" to soft-delete rows. Watch the event log below to see all events firing.
+        and "Delete" to soft-delete rows. Watch the event log below to see all events firing in real-time.
+        This demonstrates the component's event system (<code>datachanged</code>, <code>beforetogglemode</code>, <code>aftertogglemode</code>).
       </p>
       
+      <!-- Component instance with display and edit templates -->
       <ck-editable-array id="demo1" name="contact">
+        <!-- Display template: shown when row is in read-only mode -->
         <template slot="display">
           <div class="row-display">
             <div class="content">
+              <!-- data-bind attributes connect to data properties -->
               <strong><span data-bind="name"></span></strong>
               <span> — </span>
               <span data-bind="email"></span>
             </div>
             <div class="actions">
+              <!-- data-action attributes trigger component behaviors -->
               <button data-action="toggle">Edit</button>
               <button data-action="delete">Delete</button>
               <button data-action="restore">Restore</button>
@@ -351,10 +659,12 @@
           </div>
         </template>
 
+        <!-- Edit template: shown when row is in edit mode -->
         <template slot="edit">
           <div class="row-edit">
             <div class="form-field">
               <label>Name</label>
+              <!-- Input fields use data-bind for two-way binding -->
               <input data-bind="name" placeholder="Enter name" />
             </div>
             
@@ -370,45 +680,127 @@
           </div>
         </template>
 
+        <!-- Custom add button template (optional) -->
         <template slot="add-button">
-          <button data-action="add" style="background: #0066cc; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+          <button data-action="add" style="background: #48bb78; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
             ➕ Add Contact
           </button>
         </template>
 
+        <!-- Custom styles injected into shadow DOM -->
         <style slot="styles">
+          /* Soft-deleted rows have reduced opacity */
           .display-content.deleted {
             opacity: 0.6;
           }
           
+          /* Strikethrough text for deleted items */
           .display-content.deleted .content {
             text-decoration: line-through;
           }
           
+          /* Hide restore button for active rows */
           .display-content:not(.deleted) [data-action="restore"] {
             display: none;
           }
           
+          /* Hide delete button for deleted rows */
           .display-content.deleted [data-action="delete"] {
             display: none;
           }
         </style>
       </ck-editable-array>
 
+      <!-- Event log displays component events in real-time -->
       <div class="event-log" id="event-log-1">
-        <div style="color: #858585; font-style: italic;">Waiting for events...</div>
+        <div style="color: #a0aec0; font-style: italic;">Waiting for events...</div>
+      </div>
+      
+      <!-- Code viewer for this demo (initially hidden) -->
+      <div id="code-demo1" class="code-viewer hidden">
+        <div class="code-viewer-header">
+          <span class="code-viewer-title">HTML Template Code</span>
+        </div>
+        <div class="code-viewer-content">
+          <pre><code>&lt;ck-editable-array id="demo1" name="contact"&gt;
+  &lt;template slot="display"&gt;
+    &lt;div class="row-display"&gt;
+      &lt;div class="content"&gt;
+        &lt;strong&gt;&lt;span data-bind="name"&gt;&lt;/span&gt;&lt;/strong&gt;
+        &lt;span&gt; — &lt;/span&gt;
+        &lt;span data-bind="email"&gt;&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;div class="actions"&gt;
+        &lt;button data-action="toggle"&gt;Edit&lt;/button&gt;
+        &lt;button data-action="delete"&gt;Delete&lt;/button&gt;
+        &lt;button data-action="restore"&gt;Restore&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/template&gt;
+
+  &lt;template slot="edit"&gt;
+    &lt;div class="row-edit"&gt;
+      &lt;div class="form-field"&gt;
+        &lt;label&gt;Name&lt;/label&gt;
+        &lt;input data-bind="name" placeholder="Enter name" /&gt;
+      &lt;/div&gt;
+      &lt;div class="form-field"&gt;
+        &lt;label&gt;Email&lt;/label&gt;
+        &lt;input data-bind="email" placeholder="Enter email" /&gt;
+      &lt;/div&gt;
+      &lt;div&gt;
+        &lt;button data-action="save"&gt;Save&lt;/button&gt;
+        &lt;button data-action="cancel"&gt;Cancel&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/template&gt;
+&lt;/ck-editable-array&gt;
+
+&lt;script&gt;
+  // Set initial data
+  demo1.data = [
+    { name: 'Alice Smith', email: 'alice@example.com' },
+    { name: 'Bob Jones', email: 'bob@example.com' }
+  ];
+
+  // Listen for data changes
+  demo1.addEventListener('datachanged', (e) =&gt; {
+    console.log('Data changed:', e.detail.data);
+  });
+&lt;/script&gt;</code></pre>
+        </div>
       </div>
     </div>
 
+    <!-- ============================================
+         DEMO 2: SCHEMA-DRIVEN VALIDATION
+         Demonstrates JSON Schema validation with real-time error feedback
+         Shows accessibility features with ARIA live regions
+         ============================================ -->
     <div class="demo-section">
-      <h2>✅ Feature 2: Schema-Driven Validation</h2>
-      <div class="feature-badge validation">Validation</div>
-      <div class="feature-badge accessibility">Accessibility</div>
+      <div class="section-header">
+        <div class="section-title-group">
+          <h2>✅ Feature 2: Schema-Driven Validation</h2>
+          <div>
+            <span class="feature-badge validation">Validation</span>
+            <span class="feature-badge accessibility">Accessibility</span>
+          </div>
+        </div>
+        <div class="section-controls">
+          <button class="control-btn" onclick="toggleCodeViewer('code-demo2')">
+            📄 View Source
+          </button>
+          <button class="control-btn" onclick="copyCode('code-demo2')">
+            📋 Copy Code
+          </button>
+        </div>
+      </div>
       
       <p class="hint">
         <strong>Try this:</strong> Click "Edit" on the empty row. Notice the Save button is disabled, 
         error messages appear, and the row has a red border. Fill in the fields to see errors clear in real-time.
-        Screen readers will announce errors via ARIA live regions.
+        Screen readers will announce errors via ARIA live regions (<code>role="alert"</code>, <code>aria-live="polite"</code>).
+        The component uses JSON Schema for validation with <code>required</code> and <code>minLength</code> constraints.
       </p>
       
       <ck-editable-array id="demo2" name="user">
@@ -427,7 +819,7 @@
 
         <template slot="edit">
           <div class="row-edit">
-            <!-- Accessible error summary -->
+            <!-- Error summary with ARIA attributes for screen reader announcements -->
             <div class="error-summary" 
                  data-error-summary 
                  role="alert" 
@@ -436,6 +828,7 @@
             <div class="form-field">
               <label>Name *</label>
               <input data-bind="name" placeholder="Enter name" />
+              <!-- Field-level error messages appear here -->
               <span class="field-error" data-field-error="name"></span>
             </div>
             
@@ -446,33 +839,80 @@
             </div>
             
             <div>
+              <!-- Save button is automatically disabled when validation fails -->
               <button data-action="save">Save</button>
               <button data-action="cancel">Cancel</button>
             </div>
           </div>
         </template>
       </ck-editable-array>
+      
+      <!-- Code viewer for validation demo -->
+      <div id="code-demo2" class="code-viewer hidden">
+        <div class="code-viewer-header">
+          <span class="code-viewer-title">Validation Schema Setup</span>
+        </div>
+        <div class="code-viewer-content">
+          <pre><code>// Define JSON Schema for validation
+demo2.schema = {
+  type: 'object',
+  properties: {
+    name: { type: 'string', minLength: 1 },
+    email: { type: 'string', minLength: 1 }
+  },
+  required: ['name', 'email']
+};
+
+// Set initial data (one valid, one invalid)
+demo2.data = [
+  { name: 'Alice Smith', email: 'alice@example.com' },
+  { name: '', email: '' }  // This row will show validation errors
+];</code></pre>
+        </div>
+      </div>
     </div>
 
+    <!-- ============================================
+         DEMO 3: NESTED PROPERTY BINDING
+         Demonstrates dot notation for complex object structures
+         Shows how to work with nested data models
+         ============================================ -->
     <div class="demo-section">
-      <h2>🔗 Feature 3: Nested Property Binding</h2>
-      <div class="feature-badge">Core</div>
+      <div class="section-header">
+        <div class="section-title-group">
+          <h2>🔗 Feature 3: Nested Property Binding</h2>
+          <div>
+            <span class="feature-badge core">Core</span>
+          </div>
+        </div>
+        <div class="section-controls">
+          <button class="control-btn" onclick="toggleCodeViewer('code-demo3')">
+            📄 View Source
+          </button>
+          <button class="control-btn" onclick="copyCode('code-demo3')">
+            📋 Copy Code
+          </button>
+        </div>
+      </div>
       
       <p class="hint">
         <strong>Try this:</strong> Edit a row to see nested property paths in action. 
         The component supports dot notation like <code>data-bind="person.name"</code> and 
-        <code>data-bind="address.city"</code> for complex data structures.
+        <code>data-bind="address.city"</code> for complex data structures. This allows you to work
+        with deeply nested objects without flattening your data model.
       </p>
       
       <ck-editable-array id="demo3" name="employee">
         <template slot="display">
           <div class="row-display">
             <div class="content">
+              <!-- Nested property binding using dot notation -->
               <strong><span data-bind="person.name"></span></strong>
               <span> — </span>
               <span data-bind="person.title"></span>
               <br>
-              <small style="color: #666;">
+              <small style="color: #718096;">
+                <!-- Multiple levels of nesting supported -->
                 <span data-bind="address.city"></span>, 
                 <span data-bind="address.country"></span>
               </small>
@@ -485,6 +925,7 @@
 
         <template slot="edit">
           <div class="row-edit">
+            <!-- Each input binds to a nested property path -->
             <div class="form-field">
               <label>Name</label>
               <input data-bind="person.name" placeholder="Full name" />
@@ -512,16 +953,72 @@
           </div>
         </template>
       </ck-editable-array>
+      
+      <!-- Code viewer for nested properties demo -->
+      <div id="code-demo3" class="code-viewer hidden">
+        <div class="code-viewer-header">
+          <span class="code-viewer-title">Nested Data Structure</span>
+        </div>
+        <div class="code-viewer-content">
+          <pre><code>// Complex nested data structure
+demo3.data = [
+  {
+    person: { 
+      name: 'Alice Smith', 
+      title: 'Software Engineer' 
+    },
+    address: { 
+      city: 'San Francisco', 
+      country: 'USA' 
+    }
+  },
+  {
+    person: { 
+      name: 'Bob Jones', 
+      title: 'Product Manager' 
+    },
+    address: { 
+      city: 'New York', 
+      country: 'USA' 
+    }
+  }
+];
+
+// Access nested properties with dot notation in templates:
+// &lt;span data-bind="person.name"&gt;&lt;/span&gt;
+// &lt;input data-bind="address.city" /&gt;</code></pre>
+        </div>
+      </div>
     </div>
 
+    <!-- ============================================
+         DEMO 4: EXCLUSIVE LOCKING
+         Demonstrates single-row edit mode with automatic locking
+         Prevents concurrent edits and data conflicts
+         ============================================ -->
     <div class="demo-section">
-      <h2>🔒 Feature 4: Exclusive Locking</h2>
-      <div class="feature-badge">Core</div>
+      <div class="section-header">
+        <div class="section-title-group">
+          <h2>🔒 Feature 4: Exclusive Locking</h2>
+          <div>
+            <span class="feature-badge core">Core</span>
+          </div>
+        </div>
+        <div class="section-controls">
+          <button class="control-btn" onclick="toggleCodeViewer('code-demo4')">
+            📄 View Source
+          </button>
+          <button class="control-btn" onclick="copyCode('code-demo4')">
+            📋 Copy Code
+          </button>
+        </div>
+      </div>
       
       <p class="hint">
         <strong>Try this:</strong> Click "Edit" on any row. Notice that other rows become locked 
-        (grayed out and disabled) and the Add button is disabled. Only one row can be edited at a time, 
-        preventing data conflicts.
+        (grayed out and disabled with <code>data-locked</code> attribute) and the Add button is disabled. 
+        Only one row can be edited at a time, preventing data conflicts. The component uses the 
+        <code>inert</code> attribute for accessibility compliance.
       </p>
       
       <ck-editable-array id="demo4" name="task">
@@ -550,23 +1047,68 @@
           </div>
         </template>
 
+        <!-- Custom styles for locked rows -->
         <style slot="styles">
+          /* Locked rows are visually disabled and non-interactive */
           .display-content[data-locked] {
             opacity: 0.5;
             pointer-events: none;
+            filter: grayscale(50%);
           }
         </style>
       </ck-editable-array>
+      
+      <!-- Code viewer for locking demo -->
+      <div id="code-demo4" class="code-viewer hidden">
+        <div class="code-viewer-header">
+          <span class="code-viewer-title">Exclusive Locking Behavior</span>
+        </div>
+        <div class="code-viewer-content">
+          <pre><code>// When one row enters edit mode:
+// 1. All other rows get [data-locked] attribute
+// 2. Add button becomes disabled
+// 3. Locked rows are inert (not keyboard navigable)
+
+// Listen for mode changes
+demo4.addEventListener('aftertogglemode', (e) => {
+  console.log('Mode changed:', e.detail);
+  // detail.mode: 'display' or 'edit'
+  // detail.index: row index
+});
+
+// The component automatically manages locking
+// No manual intervention required!</code></pre>
+        </div>
+      </div>
     </div>
 
+    <!-- ============================================
+         DEMO 5: CUSTOM STYLING WITH CSS
+         Demonstrates style slot for injecting custom CSS
+         Shows gradient styling and complete visual customization
+         ============================================ -->
     <div class="demo-section">
-      <h2>🎨 Feature 5: Custom Styling with CSS Parts</h2>
-      <div class="feature-badge">Theming</div>
+      <div class="section-header">
+        <div class="section-title-group">
+          <h2>🎨 Feature 5: Custom Styling with CSS Parts</h2>
+          <div>
+            <span class="feature-badge theming">Theming</span>
+          </div>
+        </div>
+        <div class="section-controls">
+          <button class="control-btn" onclick="toggleCodeViewer('code-demo5')">
+            📄 View Source
+          </button>
+          <button class="control-btn" onclick="copyCode('code-demo5')">
+            📋 Copy Code
+          </button>
+        </div>
+      </div>
       
       <p class="hint">
         <strong>Try this:</strong> This example uses custom CSS injected via the <code>slot="styles"</code> 
-        to create a unique look. The component provides CSS parts, data attributes, and classes for complete 
-        styling control.
+        to create a unique look with gradient backgrounds. The component provides CSS parts, data attributes, 
+        and classes for complete styling control. All styles are scoped to the shadow DOM, preventing conflicts.
       </p>
       
       <ck-editable-array id="demo5" name="note">
@@ -585,6 +1127,7 @@
           <div class="row-edit">
             <div class="form-field">
               <label>Note</label>
+              <!-- Textarea for multi-line input -->
               <textarea data-bind="note" rows="3" placeholder="Enter note"></textarea>
             </div>
             
@@ -595,14 +1138,18 @@
           </div>
         </template>
 
+        <!-- Custom gradient styling injected into shadow DOM -->
         <style slot="styles">
+          /* Purple gradient for display mode */
           .row-display {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 16px;
             border-radius: 8px;
+            border: none;
           }
           
+          /* Semi-transparent buttons on gradient background */
           .row-display button {
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -613,6 +1160,7 @@
             background: rgba(255, 255, 255, 0.3);
           }
           
+          /* Pink gradient for edit mode */
           .row-edit {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             border: none;
@@ -621,8 +1169,10 @@
           
           .row-edit label {
             color: white;
+            font-weight: 600;
           }
           
+          /* Light inputs on gradient background */
           .row-edit input,
           .row-edit textarea {
             background: rgba(255, 255, 255, 0.9);
@@ -630,17 +1180,72 @@
           }
         </style>
       </ck-editable-array>
+      
+      <!-- Code viewer for styling demo -->
+      <div id="code-demo5" class="code-viewer hidden">
+        <div class="code-viewer-header">
+          <span class="code-viewer-title">Custom Styling Example</span>
+        </div>
+        <div class="code-viewer-content">
+          <pre><code>&lt;ck-editable-array id="demo5"&gt;
+  &lt;!-- Templates omitted for brevity --&gt;
+  
+  &lt;style slot="styles"&gt;
+    /* Styles injected into shadow DOM */
+    .row-display {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px;
+      border-radius: 8px;
+    }
+    
+    .row-edit {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      border: none;
+      color: white;
+    }
+    
+    /* Target specific elements with classes */
+    .row-display button {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  &lt;/style&gt;
+&lt;/ck-editable-array&gt;</code></pre>
+        </div>
+      </div>
     </div>
 
+    <!-- ============================================
+         DEMO 6: READONLY MODE
+         Demonstrates readonly attribute for view-only data
+         Shows disabled add button and read-only inputs
+         ============================================ -->
     <div class="demo-section">
-      <h2>📊 Feature 6: Readonly Mode</h2>
-      <div class="feature-badge">Core</div>
+      <div class="section-header">
+        <div class="section-title-group">
+          <h2>📊 Feature 6: Readonly Mode</h2>
+          <div>
+            <span class="feature-badge core">Core</span>
+          </div>
+        </div>
+        <div class="section-controls">
+          <button class="control-btn" onclick="toggleCodeViewer('code-demo6')">
+            📄 View Source
+          </button>
+          <button class="control-btn" onclick="copyCode('code-demo6')">
+            📋 Copy Code
+          </button>
+        </div>
+      </div>
       
       <p class="hint">
-        <strong>Try this:</strong> This array is in readonly mode. Notice that the Add button is disabled, 
-        and inputs are read-only. This is useful for displaying data that shouldn't be edited.
+        <strong>Try this:</strong> This array is in readonly mode via the <code>readonly</code> attribute. 
+        Notice that the Add button is disabled, and all inputs are read-only. This is useful for displaying 
+        data that shouldn't be edited, such as historical records or audit logs. Users can still view details 
+        but cannot make changes.
       </p>
       
+      <!-- readonly attribute prevents data modification -->
       <ck-editable-array id="demo6" name="readonly" readonly>
         <template slot="display">
           <div class="row-display">
@@ -648,6 +1253,7 @@
               <span data-bind="label"></span>
             </div>
             <div class="actions">
+              <!-- Button text changed to "View" to indicate read-only -->
               <button data-action="toggle">View</button>
             </div>
           </div>
@@ -657,20 +1263,102 @@
           <div class="row-edit">
             <div class="form-field">
               <label>Label (Read-only)</label>
+              <!-- Input is automatically set to readonly -->
               <input data-bind="label" />
             </div>
             
             <div>
+              <!-- No save button in readonly mode -->
               <button data-action="cancel">Close</button>
             </div>
           </div>
         </template>
       </ck-editable-array>
+      
+      <!-- Code viewer for readonly demo -->
+      <div id="code-demo6" class="code-viewer hidden">
+        <div class="code-viewer-header">
+          <span class="code-viewer-title">Readonly Mode Usage</span>
+        </div>
+        <div class="code-viewer-content">
+          <pre><code>&lt;!-- Add readonly attribute to enable readonly mode --&gt;
+&lt;ck-editable-array id="demo6" readonly&gt;
+  &lt;!-- Templates remain the same --&gt;
+&lt;/ck-editable-array&gt;
+
+&lt;script&gt;
+  // Set data as usual
+  demo6.data = [
+    { label: 'This is read-only data' },
+    { label: 'You can view but not edit' }
+  ];
+  
+  // Toggle readonly mode programmatically
+  demo6.readonly = false;  // Enable editing
+  demo6.readonly = true;   // Disable editing
+  
+  // Check readonly state
+  console.log(demo6.readonly);  // true or false
+&lt;/script&gt;</code></pre>
+        </div>
+      </div>
     </div>
 
+    <!-- ============================================
+         JAVASCRIPT CODE
+         Module loading and demo initialization
+         ============================================ -->
     <script type="module">
+      /**
+       * Toggle visibility of code viewer panels
+       * @param {string} viewerId - ID of the code viewer element
+       */
+      window.toggleCodeViewer = function(viewerId) {
+        const viewer = document.getElementById(viewerId);
+        if (viewer) {
+          viewer.classList.toggle('hidden');
+        }
+      };
+
+      /**
+       * Copy code snippet to clipboard
+       * @param {string} viewerId - ID of the code viewer element
+       */
+      window.copyCode = async function(viewerId) {
+        const viewer = document.getElementById(viewerId);
+        if (!viewer) return;
+        
+        const codeElement = viewer.querySelector('code');
+        if (!codeElement) return;
+        
+        const button = event.target;
+        const originalText = button.textContent;
+        
+        try {
+          await navigator.clipboard.writeText(codeElement.textContent);
+          button.textContent = '✓ Copied!';
+          button.classList.add('success');
+          
+          setTimeout(() => {
+            button.textContent = originalText;
+            button.classList.remove('success');
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy code:', err);
+          button.textContent = '✗ Failed';
+          setTimeout(() => {
+            button.textContent = originalText;
+          }, 2000);
+        }
+      };
+
+      /**
+       * Load the ck-editable-array component and initialize all demos
+       */
       async function ensureModuleAndSetData() {
         const path = '../dist/ck-editable-array/ck-editable-array.esm.js';
+        
+        // Try dynamic import first
         try {
           await import(path);
         } catch (err) {
@@ -679,6 +1367,7 @@
 
         await Promise.resolve();
 
+        // Fallback to script tag if dynamic import failed
         if (!customElements.get('ck-editable-array')) {
           await new Promise((resolve, reject) => {
             const s = document.createElement('script');
@@ -692,120 +1381,165 @@
           });
         }
 
+        // Initialize all demos once component is loaded
         if (customElements.get('ck-editable-array')) {
-          // Setup Demo 1: Basic CRUD
-          const demo1 = document.getElementById('demo1');
-          if (demo1) {
-            demo1.data = [
-              { name: 'Alice Smith', email: 'alice@example.com' },
-              { name: 'Bob Jones', email: 'bob@example.com' }
-            ];
-
-            const eventLog1 = document.getElementById('event-log-1');
-            let eventCount = 0;
-
-            const logEvent = (eventName, detail) => {
-              eventCount++;
-              const time = new Date().toLocaleTimeString();
-              const entry = document.createElement('div');
-              entry.className = 'event-entry';
-              entry.innerHTML = `
-                <div>
-                  <span class="event-name">${eventName}</span>
-                  <span class="event-time"> @ ${time}</span>
-                </div>
-                <div class="event-detail">${JSON.stringify(detail, null, 2)}</div>
-              `;
-              
-              if (eventCount === 1) {
-                eventLog1.innerHTML = '';
-              }
-              
-              eventLog1.insertBefore(entry, eventLog1.firstChild);
-              
-              // Keep only last 5 events
-              while (eventLog1.children.length > 5) {
-                eventLog1.removeChild(eventLog1.lastChild);
-              }
-            };
-
-            demo1.addEventListener('datachanged', (e) => {
-              logEvent('datachanged', { dataLength: e.detail.data.length });
-            });
-
-            demo1.addEventListener('beforetogglemode', (e) => {
-              logEvent('beforetogglemode', e.detail);
-            });
-
-            demo1.addEventListener('aftertogglemode', (e) => {
-              logEvent('aftertogglemode', e.detail);
-            });
-          }
-
-          // Setup Demo 2: Validation
-          const demo2 = document.getElementById('demo2');
-          if (demo2) {
-            demo2.schema = {
-              type: 'object',
-              properties: {
-                name: { type: 'string', minLength: 1 },
-                email: { type: 'string', minLength: 1 },
-              },
-              required: ['name', 'email'],
-            };
-            demo2.data = [
-              { name: 'Alice Smith', email: 'alice@example.com' },
-              { name: '', email: '' }
-            ];
-          }
-
-          // Setup Demo 3: Nested Properties
-          const demo3 = document.getElementById('demo3');
-          if (demo3) {
-            demo3.data = [
-              {
-                person: { name: 'Alice Smith', title: 'Software Engineer' },
-                address: { city: 'San Francisco', country: 'USA' }
-              },
-              {
-                person: { name: 'Bob Jones', title: 'Product Manager' },
-                address: { city: 'New York', country: 'USA' }
-              }
-            ];
-          }
-
-          // Setup Demo 4: Exclusive Locking
-          const demo4 = document.getElementById('demo4');
-          if (demo4) {
-            demo4.data = [
-              { task: 'Review pull requests' },
-              { task: 'Update documentation' },
-              { task: 'Fix bug #123' }
-            ];
-          }
-
-          // Setup Demo 5: Custom Styling
-          const demo5 = document.getElementById('demo5');
-          if (demo5) {
-            demo5.data = [
-              { note: 'Remember to update the README' },
-              { note: 'Schedule team meeting for next week' }
-            ];
-          }
-
-          // Setup Demo 6: Readonly Mode
-          const demo6 = document.getElementById('demo6');
-          if (demo6) {
-            demo6.data = [
-              { label: 'This is read-only data' },
-              { label: 'You can view but not edit' }
-            ];
-          }
+          initDemo1();
+          initDemo2();
+          initDemo3();
+          initDemo4();
+          initDemo5();
+          initDemo6();
         } else {
           console.warn('ck-editable-array is not registered after import.');
         }
       }
 
+      /**
+       * Initialize Demo 1: Basic CRUD Operations with Event Logging
+       */
+      function initDemo1() {
+        const demo1 = document.getElementById('demo1');
+        if (!demo1) return;
+        
+        // Set initial data
+        demo1.data = [
+          { name: 'Alice Smith', email: 'alice@example.com' },
+          { name: 'Bob Jones', email: 'bob@example.com' }
+        ];
+
+        // Setup event logging
+        const eventLog1 = document.getElementById('event-log-1');
+        let eventCount = 0;
+
+        const logEvent = (eventName, detail) => {
+          eventCount++;
+          const time = new Date().toLocaleTimeString();
+          const entry = document.createElement('div');
+          entry.className = 'event-entry';
+          entry.innerHTML = `
+            <div>
+              <span class="event-name">${eventName}</span>
+              <span class="event-time"> @ ${time}</span>
+            </div>
+            <div class="event-detail">${JSON.stringify(detail, null, 2)}</div>
+          `;
+          
+          // Clear placeholder on first event
+          if (eventCount === 1) {
+            eventLog1.innerHTML = '';
+          }
+          
+          // Add new event at top
+          eventLog1.insertBefore(entry, eventLog1.firstChild);
+          
+          // Keep only last 5 events
+          while (eventLog1.children.length > 5) {
+            eventLog1.removeChild(eventLog1.lastChild);
+          }
+        };
+
+        // Listen for all component events
+        demo1.addEventListener('datachanged', (e) => {
+          logEvent('datachanged', { dataLength: e.detail.data.length });
+        });
+
+        demo1.addEventListener('beforetogglemode', (e) => {
+          logEvent('beforetogglemode', e.detail);
+        });
+
+        demo1.addEventListener('aftertogglemode', (e) => {
+          logEvent('aftertogglemode', e.detail);
+        });
+      }
+
+      /**
+       * Initialize Demo 2: Schema-Driven Validation
+       */
+      function initDemo2() {
+        const demo2 = document.getElementById('demo2');
+        if (!demo2) return;
+        
+        // Define JSON Schema for validation
+        demo2.schema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string', minLength: 1 },
+            email: { type: 'string', minLength: 1 },
+          },
+          required: ['name', 'email'],
+        };
+        
+        // Set initial data (one valid, one invalid)
+        demo2.data = [
+          { name: 'Alice Smith', email: 'alice@example.com' },
+          { name: '', email: '' }  // This row will show validation errors
+        ];
+      }
+
+      /**
+       * Initialize Demo 3: Nested Property Binding
+       */
+      function initDemo3() {
+        const demo3 = document.getElementById('demo3');
+        if (!demo3) return;
+        
+        // Set data with nested object structure
+        demo3.data = [
+          {
+            person: { name: 'Alice Smith', title: 'Software Engineer' },
+            address: { city: 'San Francisco', country: 'USA' }
+          },
+          {
+            person: { name: 'Bob Jones', title: 'Product Manager' },
+            address: { city: 'New York', country: 'USA' }
+          }
+        ];
+      }
+
+      /**
+       * Initialize Demo 4: Exclusive Locking
+       */
+      function initDemo4() {
+        const demo4 = document.getElementById('demo4');
+        if (!demo4) return;
+        
+        // Set initial task data
+        demo4.data = [
+          { task: 'Review pull requests' },
+          { task: 'Update documentation' },
+          { task: 'Fix bug #123' }
+        ];
+      }
+
+      /**
+       * Initialize Demo 5: Custom Styling
+       */
+      function initDemo5() {
+        const demo5 = document.getElementById('demo5');
+        if (!demo5) return;
+        
+        // Set initial note data
+        demo5.data = [
+          { note: 'Remember to update the README' },
+          { note: 'Schedule team meeting for next week' }
+        ];
+      }
+
+      /**
+       * Initialize Demo 6: Readonly Mode
+       */
+      function initDemo6() {
+        const demo6 = document.getElementById('demo6');
+        if (!demo6) return;
+        
+        // Set readonly data
+        demo6.data = [
+          { label: 'This is read-only data' },
+          { label: 'You can view but not edit' }
+        ];
+      }
+
+      // Start initialization when DOM is ready
       ensureModuleAndSetData();
     </script>
   </body>
