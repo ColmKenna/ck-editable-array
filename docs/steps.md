@@ -197,6 +197,39 @@ Files touched:
 Test status: All 48 tests pass (4 suites, 0 failures). Step 3 now has 1/1 tests passing.
 
 ## 2025-11-13 - Step 3: Lifecycle & Styles - Test 3.1.2
+## 2025-11-15 - Feature F1: Radio Group Binding
+
+Goal: Ensure radio button groups (multiple `input[type="radio"]` elements sharing the same `data-bind` field) correctly reflect the current row value in edit mode and propagate user selection back to data.
+
+RED:
+- Added `tests/ck-editable-array/ck-editable-array.radio-binding.test.ts` with two tests:
+  1. "radio with matching value is checked in edit mode" – expected the radio corresponding to the row's field value (`priority: 'medium'`) to be checked after entering edit mode.
+  2. "changing selection updates data after save" – expected selecting a different radio, saving, and reading `el.data[0].priority` to reflect the new value (`'high'`).
+- Initial failure due to missing module import and lack of radio binding logic (radios did not auto-check nor trigger commit on selection).
+
+GREEN:
+- Updated `bindDataToNode` to treat radio inputs specially: set `checked` (instead of overwriting `value`) and add `aria-checked` for accessibility.
+- Updated `attachInputListeners` to use `change` events for radio inputs and commit only when the radio is checked.
+- All radio binding tests now pass (2/2) alongside prior suites (existing unrelated failures documented separately).
+
+REFACTOR:
+- Added minimal accessibility attribute (`aria-checked`) for potential AT improvements.
+- Consolidated listener logic for radios without altering other input paths.
+- Added README and technical notes sections documenting radio group binding behavior.
+
+Files touched:
+- `src/components/ck-editable-array/ck-editable-array.ts` (radio handling in `bindDataToNode` & `attachInputListeners`).
+- `tests/ck-editable-array/ck-editable-array.radio-binding.test.ts` (new test file).
+- `docs/README.md` (Radio Groups section under Data Binding Attributes).
+- `docs/readme.technical.md` (Radio Group Binding Internals subsection).
+
+Test status (feature scope): Radio binding tests passing; remaining suite retains pre-existing failures (simple strings & advanced inputs tests slated for cleanup).
+
+Next considerations:
+- Add keyboard navigation tests for radio groups.
+- Integrate internationalization hooks for error messages.
+- Optimize partial row re-renders (performance strategy).
+
 
 - Goal: verify that when data is set before connecting to the DOM, the rows are properly rendered when the element connects.
 - RED: added Test 3.1.2 in `tests/ck-editable-array/ck-editable-array.step3.lifecycle-styles.test.ts` asserting that when data is set to 2 items before connecting, exactly 2 rows are rendered on connect.

@@ -281,8 +281,10 @@ describe('CkEditableArray - Security Tests', () => {
       el.data = [{ name: 'Bob' }];
 
       // Event data should not contain internal markers
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((eventData[0] as any).__originalSnapshot).toBeUndefined();
-      expect((eventData[0] as unknown).__isNew).toBeUndefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((eventData[0] as any).__isNew).toBeUndefined();
     });
 
     test('Mutating event data does not affect component state', () => {

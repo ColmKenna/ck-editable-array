@@ -388,12 +388,22 @@ export class CkEditableArray extends HTMLElement {
         // Configure readonly state
         this.configureReadonlyState(node, isReadonly);
 
-        // Attach input listener if not readonly
+        // Attach input / change listener if not readonly
         if (!isReadonly) {
-          node.addEventListener('input', () => {
-            this.commitRowValue(rowIndex, key, node.value);
-            this.updateSaveButtonState(rowIndex);
-          });
+          if (node instanceof HTMLInputElement && node.type === 'radio') {
+            // Use change for radio; only commit when checked
+            node.addEventListener('change', () => {
+              if (node.checked) {
+                this.commitRowValue(rowIndex, key, node.value);
+                this.updateSaveButtonState(rowIndex);
+              }
+            });
+          } else {
+            node.addEventListener('input', () => {
+              this.commitRowValue(rowIndex, key, (node as HTMLInputElement | HTMLTextAreaElement).value);
+              this.updateSaveButtonState(rowIndex);
+            });
+          }
         }
       }
     });
@@ -484,9 +494,15 @@ export class CkEditableArray extends HTMLElement {
       const key = node.getAttribute(CkEditableArray.ATTR_DATA_BIND) ?? '';
       const value = this.resolveBindingValue(data, key);
 
-      // Set value for input elements, textContent for others
       if (node instanceof HTMLInputElement) {
-        node.value = value;
+        if (node.type === 'radio') {
+          // Preserve original value attribute and set checked state based on data
+          const shouldCheck = node.value === value;
+          node.checked = shouldCheck;
+          node.setAttribute('aria-checked', shouldCheck ? 'true' : 'false');
+        } else {
+          node.value = value;
+        }
       } else if (node instanceof HTMLTextAreaElement) {
         node.value = value;
       } else {

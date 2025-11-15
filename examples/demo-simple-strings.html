@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ck-editable-array — Simple Strings Demo</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 24px; background:#f7f9fb; }
+    h1 { margin-top:0; }
+    ck-editable-array { display:block; max-width:600px; margin:0 0 32px; padding:16px; border:1px solid #ccd; border-radius:8px; background:#fff; }
+    .row-display { display:flex; align-items:center; gap:12px; padding:8px 10px; border:1px solid #e2e8f0; border-radius:6px; background:#fcfcfd; }
+    .row-edit { display:flex; align-items:center; gap:12px; padding:12px 14px; border:2px solid #4299e1; border-radius:6px; background:#ffffff; }
+    .row-edit[data-row-invalid] { border-color:#e53e3e; background:#fff5f5; }
+    input[data-invalid] { border-color:#e53e3e; background:#fff5f5; }
+    .value-pill { font-weight:600; letter-spacing:0.5px; }
+    button { cursor:pointer; font-size:0.8rem; padding:6px 10px; border-radius:4px; border:1px solid #888; background:#f0f3f7; }
+    button[data-action=save] { background:#38a169; color:#fff; border:none; }
+    button[data-action=cancel] { background:#718096; color:#fff; border:none; }
+    button[data-action=toggle] { background:#4299e1; color:#fff; border:none; }
+  </style>
+</head>
+<body>
+  <h1>Simple Array of Strings</h1>
+  <p>This example shows <code>ck-editable-array</code> bound to a primitive string array. Each row is a string (no object). Any <code>data-bind</code> key maps to the whole string value.</p>
+
+  <ck-editable-array id="letters" name="letters">
+    <template slot="display">
+      <div class="row-display">
+        <span class="value-pill" data-bind="value"></span>
+        <button data-action="toggle">Edit</button>
+        <button data-action="delete">Delete</button>
+        <button data-action="restore">Restore</button>
+      </div>
+    </template>
+    <template slot="edit">
+      <div class="row-edit">
+        <input data-bind="value" aria-label="Letter value" />
+        <button data-action="save">Save</button>
+        <button data-action="cancel">Cancel</button>
+      </div>
+    </template>
+  </ck-editable-array>
+
+  <pre id="log" aria-live="polite" style="background:#1a202c;color:#e2e8f0;padding:12px;border-radius:6px;max-width:600px;font-size:0.75rem;">Event log...</pre>
+
+  <script type="module">
+    import '../dist/ck-editable-array/ck-editable-array.esm.js';
+    const el = document.getElementById('letters');
+    // Primitive data (strings)
+    el.data = ['A','B','C'];
+    // Provide factory to create a default new string (empty)
+    el.newItemFactory = () => '';
+    el.addEventListener('datachanged', e => {
+      document.getElementById('log').textContent = 'datachanged: ' + JSON.stringify(e.detail.data);
+    });
+  </script>
+</body>
+</html>

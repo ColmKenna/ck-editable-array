@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ck-editable-array — Dates & Select/Radio/Combo Demo</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 24px; background:#f5f7fa; }
+    h1 { margin-top:0; }
+    ck-editable-array { display:block; max-width:860px; margin:0 0 40px; padding:20px; border:1px solid #d1d9e6; background:#fff; border-radius:12px; }
+    .row-display { display:grid; grid-template-columns: 140px 120px 130px 100px 1fr auto; gap:12px; align-items:center; padding:10px 12px; border:1px solid #e2e8f0; border-radius:8px; background:#ffffff; font-size:0.85rem; }
+    .row-edit { display:grid; grid-template-columns: repeat(6, 1fr); gap:12px; padding:16px; border:2px solid #805ad5; border-radius:10px; background:#fdfcff; }
+    .row-edit[data-row-invalid] { border-color:#e53e3e; }
+    fieldset { border:none; padding:0; margin:0; }
+    legend { font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
+    label.inline { display:flex; align-items:center; gap:4px; font-size:0.7rem; }
+    input[type="date"], select, input[list], input[type="text"] { width:100%; padding:6px 8px; font-size:0.75rem; }
+    .actions { display:flex; gap:6px; justify-self:flex-end; }
+    button { cursor:pointer; font-size:0.7rem; padding:6px 10px; border-radius:4px; border:none; }
+    button[data-action=toggle] { background:#4299e1; color:#fff; }
+    button[data-action=save] { background:#38a169; color:#fff; }
+    button[data-action=cancel] { background:#718096; color:#fff; }
+    button[data-action=delete] { background:#e53e3e; color:#fff; }
+    button[data-action=restore] { background:#48bb78; color:#fff; }
+    [data-field-error] { color:#c53030; font-size:0.6rem; display:block; margin-top:2px; }
+    .error-summary { grid-column:1 / -1; background:#fed7d7; color:#742a2a; padding:8px 10px; border-radius:6px; font-size:0.65rem; }
+  </style>
+</head>
+<body>
+  <h1>Dates + Select + Combo + Radio Demo</h1>
+  <p>This example demonstrates binding to object rows containing a date, status select dropdown, category combo (datalist), and priority radio group. Validation ensures required fields and minimum lengths where configured.</p>
+
+  <ck-editable-array id="schedule" name="schedule">
+    <!-- Display mode template -->
+    <template slot="display">
+      <div class="row-display">
+        <span data-bind="date"></span>
+        <span data-bind="status"></span>
+        <span data-bind="category"></span>
+        <span data-bind="priority"></span>
+        <span data-bind="notes"></span>
+        <div class="actions">
+          <button data-action="toggle">Edit</button>
+          <button data-action="delete">Delete</button>
+          <button data-action="restore">Restore</button>
+        </div>
+      </div>
+    </template>
+
+    <!-- Edit mode template -->
+    <template slot="edit">
+      <div class="row-edit">
+        <div>
+          <legend>Date</legend>
+          <input type="date" data-bind="date" />
+          <span data-field-error="date"></span>
+        </div>
+        <div>
+          <legend>Status</legend>
+          <select data-bind="status" aria-label="Status">
+            <option value="">--</option>
+            <option value="planned">Planned</option>
+            <option value="in-progress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+          <span data-field-error="status"></span>
+        </div>
+        <div>
+          <legend>Category (Combo)</legend>
+          <input list="category-list" data-bind="category" aria-label="Category" placeholder="Choose or type" />
+          <datalist id="category-list">
+            <option value="feature"></option>
+            <option value="bug"></option>
+            <option value="research"></option>
+            <option value="test"></option>
+          </datalist>
+          <span data-field-error="category"></span>
+        </div>
+        <fieldset>
+          <legend>Priority</legend>
+          <label class="inline"><input type="radio" name="priority-group" value="low" data-bind="priority" /> Low</label>
+          <label class="inline"><input type="radio" name="priority-group" value="medium" data-bind="priority" /> Medium</label>
+          <label class="inline"><input type="radio" name="priority-group" value="high" data-bind="priority" /> High</label>
+          <span data-field-error="priority"></span>
+        </fieldset>
+        <div style="grid-column:1 / span 3;">
+          <legend>Notes</legend>
+          <input type="text" data-bind="notes" placeholder="Short notes" />
+          <span data-field-error="notes"></span>
+        </div>
+        <div style="grid-column:4 / -1; display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
+          <div class="error-summary" data-error-summary role="alert" aria-live="polite"></div>
+          <div><span data-error-count></span></div>
+          <div class="actions">
+            <button data-action="save" disabled>Save</button>
+            <button data-action="cancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Custom new row defaults -->
+    <script slot="styles">/* Styles can be injected separately if desired */</script>
+  </ck-editable-array>
+
+  <pre id="schedule-log" aria-live="polite" style="background:#1a202c;color:#e2e8f0;padding:12px;border-radius:6px;font-size:0.7rem;">Event log...</pre>
+
+  <script type="module">
+    import '../dist/ck-editable-array/ck-editable-array.esm.js';
+    const sched = document.getElementById('schedule');
+
+    // Validation schema (all fields required except notes minLength)
+    sched.schema = {
+      required: ['date','status','category','priority'],
+      properties: {
+        notes: { minLength: 3 }
+      }
+    };
+
+    // Provide a factory for new rows (defaults date to today)
+    sched.newItemFactory = () => {
+      const today = new Date().toISOString().substring(0,10);
+      return {
+        date: today,
+        status: 'planned',
+        category: 'feature',
+        priority: 'medium',
+        notes: ''
+      };
+    };
+
+    // Seed with initial data
+    sched.data = [
+      {
+        date: '2025-11-15',
+        status: 'planned',
+        category: 'feature',
+        priority: 'high',
+        notes: 'Initial kickoff'
+      },
+      {
+        date: '2025-11-20',
+        status: 'in-progress',
+        category: 'bug',
+        priority: 'low',
+        notes: '' // Will show validation for notes length only if edited & schema constraint
+      }
+    ];
+
+    sched.addEventListener('datachanged', e => {
+      document.getElementById('schedule-log').textContent = 'datachanged: ' + JSON.stringify(e.detail.data);
+    });
+  </script>
+</body>
+</html>

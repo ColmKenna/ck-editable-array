@@ -120,6 +120,12 @@
         border-color: #dc3545;
         box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
       }
+
+      /* Valid field styling (heuristic: has value and not marked invalid) */
+      .form-field input[data-bind]:not([data-invalid]):not(:placeholder-shown) {
+        border-color: #28a745;
+        background: #f6fff9;
+      }
       
       /* Field error message styling */
       .field-error {
@@ -370,6 +376,140 @@
       </template>
     </ck-editable-array>
 
+    <h2>Example 4: minLength Constraints</h2>
+    <p class="hint">
+      This example uses a schema that requires <strong>username</strong> to be at least <strong>3 characters</strong> and <strong>email</strong> to be non-empty. Try typing fewer than 3 characters in the username.
+    </p>
+
+    <ck-editable-array id="demo4" name="account">
+      <template slot="display">
+        <div class="row-display">
+          <strong><span data-bind="username"></span></strong>
+          <span> — </span>
+          <span data-bind="email"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      </template>
+
+      <template slot="edit">
+        <div class="row-edit">
+          <div class="error-summary" 
+               data-error-summary 
+               role="alert" 
+               aria-live="polite"></div>
+
+          <div class="form-field">
+            <label for="username-input">Username (min 3)</label>
+            <input id="username-input" data-bind="username" placeholder="Enter username" />
+            <span class="field-error" data-field-error="username"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="email-input-2">Email *</label>
+            <input id="email-input-2" data-bind="email" placeholder="Enter email" />
+            <span class="field-error" data-field-error="email"></span>
+          </div>
+
+          <div>
+            <button data-action="save">Save</button>
+            <button data-action="cancel">Cancel</button>
+            <span class="error-count" data-error-count></span>
+          </div>
+        </div>
+      </template>
+    </ck-editable-array>
+
+    <h2>Example 5: Custom Error Message Formatting</h2>
+    <p class="hint">
+      You can customize how error messages are <em>displayed</em> without changing the component by post-processing the error text in your application. Below we map default messages to friendlier phrasing.
+    </p>
+
+    <ck-editable-array id="demo5" name="profile">
+      <template slot="display">
+        <div class="row-display">
+          <strong><span data-bind="name"></span></strong>
+          <span> — </span>
+          <span data-bind="email"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      </template>
+
+      <template slot="edit">
+        <div class="row-edit">
+          <div class="error-summary" 
+               data-error-summary 
+               role="status" 
+               aria-live="polite"></div>
+
+          <div class="form-field">
+            <label>Name *</label>
+            <input data-bind="name" placeholder="Enter your full name" />
+            <span class="field-error" data-field-error="name"></span>
+          </div>
+
+          <div class="form-field">
+            <label>Email *</label>
+            <input data-bind="email" placeholder="Enter a valid email" />
+            <span class="field-error" data-field-error="email"></span>
+          </div>
+
+          <div>
+            <button data-action="save">Save</button>
+            <button data-action="cancel">Cancel</button>
+            <span class="error-count" data-error-count></span>
+          </div>
+        </div>
+      </template>
+    </ck-editable-array>
+
+    <h2>Example 6: Schema Variations</h2>
+    <p class="hint">
+      Toggle between different validation schemas. After switching, click "Edit" on a row to see the updated rules applied.
+    </p>
+    <div style="margin-bottom:12px;">
+      <label><input type="radio" name="schema6" value="emailOnly" checked /> Email required only</label>
+      <label style="margin-left:16px;"><input type="radio" name="schema6" value="strict" /> Name min 2, Email required</label>
+    </div>
+    <ck-editable-array id="demo6" name="contactsV2">
+      <template slot="display">
+        <div class="row-display">
+          <strong><span data-bind="name"></span></strong>
+          <span> — </span>
+          <span data-bind="email"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      </template>
+      <template slot="edit">
+        <div class="row-edit">
+          <div class="error-summary" data-error-summary role="alert" aria-live="polite"></div>
+          <div class="form-field">
+            <label>Name</label>
+            <input data-bind="name" placeholder="Enter name" />
+            <span class="field-error" data-field-error="name"></span>
+          </div>
+          <div class="form-field">
+            <label>Email</label>
+            <input data-bind="email" placeholder="Enter email" />
+            <span class="field-error" data-field-error="email"></span>
+          </div>
+          <div>
+            <button data-action="save">Save</button>
+            <button data-action="cancel">Cancel</button>
+            <span class="error-count" data-error-count></span>
+          </div>
+        </div>
+      </template>
+    </ck-editable-array>
+
+    <h2>Screen Reader Testing Tips</h2>
+    <ol class="hint" style="list-style: decimal inside;">
+      <li>Turn on a screen reader (NVDA/JAWS on Windows, VoiceOver on macOS).</li>
+      <li>Activate an "Edit" button and navigate through inputs with Tab/Shift+Tab.</li>
+      <li>Leave a required field empty to hear <code>aria-invalid</code> announced.</li>
+      <li>Listen for the error summary live region after edits. It should read out changes.</li>
+      <li>Confirm that error text is associated to inputs via <code>aria-describedby</code>.</li>
+    </ol>
+
     <script type="module">
       async function ensureModuleAndSetData() {
         const path = '../dist/ck-editable-array/ck-editable-array.esm.js';
@@ -431,6 +571,124 @@
             demo3.schema = schema;
             demo3.data = [];
             demo3.newItemFactory = () => ({ name: '', email: '' });
+          }
+
+          // Setup demo 4 - minLength example
+          const demo4 = document.getElementById('demo4');
+          if (demo4) {
+            const schema4 = {
+              type: 'object',
+              properties: {
+                username: { type: 'string', minLength: 3 },
+                email: { type: 'string', minLength: 1 },
+              },
+              required: ['email'],
+            };
+            // @ts-ignore
+            demo4.schema = schema4;
+            // @ts-ignore
+            demo4.data = [
+              { username: 'an', email: 'short@example.com' },
+              { username: 'ann', email: '' }
+            ];
+          }
+
+          // Setup demo 5 - custom error message formatting
+          const demo5 = document.getElementById('demo5');
+          if (demo5) {
+            // @ts-ignore
+            demo5.schema = schema;
+            // @ts-ignore
+            demo5.data = [
+              { name: '', email: '' }
+            ];
+
+            // Post-process error messages to friendlier text
+            const mapMessage = (text) => {
+              if (!text) return text;
+              // Examples:
+              // "name is required" -> "Please enter your name"
+              // "name must be at least 3 characters" -> "Name must be 3+ characters"
+              let t = String(text);
+              t = t.replace(/^name is required$/i, 'Please enter your name');
+              t = t.replace(/^email is required$/i, 'Please enter your email');
+              t = t.replace(/^(.*) must be at least (\d+) characters$/i, (m, field, n) => {
+                const cap = field.charAt(0).toUpperCase() + field.slice(1);
+                return `${cap} must be ${n}+ characters`;
+              });
+              return t;
+            };
+
+            const applyFriendlyMessages = () => {
+              // For each currently open edit row, rewrite messages
+              // @ts-ignore
+              const edits = demo5.shadowRoot?.querySelectorAll('.edit-content');
+              edits?.forEach((edit) => {
+                // field errors
+                edit.querySelectorAll('[data-field-error]')
+                  .forEach((el) => { el.textContent = mapMessage(el.textContent); });
+                // summary
+                const summary = edit.querySelector('[data-error-summary]');
+                if (summary && summary.textContent) {
+                  summary.textContent = summary.textContent.split(/\.\s*/)
+                    .filter(Boolean)
+                    .map(mapMessage)
+                    .join('. ') + '.';
+                }
+              });
+            };
+
+            // Observe changes inside demo5 to re-map messages as validation updates
+            // @ts-ignore
+            const mo = new MutationObserver(() => applyFriendlyMessages());
+            // @ts-ignore
+            mo.observe(demo5, { subtree: true, childList: true, characterData: true });
+            // Also run on input to be responsive
+            // @ts-ignore
+            demo5.addEventListener('input', applyFriendlyMessages);
+            // Initial pass after microtask
+            setTimeout(applyFriendlyMessages, 0);
+          }
+
+          // Setup demo 6 - schema variations
+          const demo6 = document.getElementById('demo6');
+          if (demo6) {
+            const schemas = {
+              emailOnly: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  email: { type: 'string', minLength: 1 },
+                },
+                required: ['email'],
+              },
+              strict: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', minLength: 2 },
+                  email: { type: 'string', minLength: 1 },
+                },
+                required: ['name', 'email'],
+              }
+            };
+            // @ts-ignore
+            demo6.schema = schemas.emailOnly;
+            // @ts-ignore
+            demo6.data = [
+              { name: 'Dave', email: 'dave@example.com' },
+              { name: 'Eve', email: '' }
+            ];
+
+            // Wire schema switcher
+            const radios = document.querySelectorAll('input[name="schema6"]');
+            radios.forEach(r => r.addEventListener('change', (e) => {
+              const value = /** @type {HTMLInputElement} */ (e.target).value;
+              // @ts-ignore
+              demo6.schema = schemas[value];
+              // Hint: Toggle a quick input event to refresh validation in open edit rows
+              // @ts-ignore
+              demo6.dispatchEvent(new Event('input', { bubbles: true }));
+            }));
           }
         } else {
           console.warn('ck-editable-array is not registered after import.');

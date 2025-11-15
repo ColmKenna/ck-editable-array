@@ -3,157 +3,797 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>ck-editable-array — AC-1 demo</title>
+    <title>ck-editable-array — AC-1 Basic CRUD Demo</title>
     <style>
-      body { font-family: system-ui, Arial, sans-serif; padding: 16px; }
-      ck-editable-array { display: block; border: 1px solid #ddd; padding: 12px; max-width: 540px; }
-      .row-display { padding: 6px 0; }
-      .row-edit input { margin-right: 8px; }
-      .hint { color: #666; font-size: 13px; margin-bottom: 12px; }
-      .event-log { background: #111; color: #9ef; padding: 12px; border-radius: 4px; min-height: 48px; font-size: 13px; }
-      .event-log strong { color: #fff; display: block; margin-bottom: 4px; }
-      .event-log pre { margin: 0; white-space: pre-wrap; color: #9ef; }
-      /* Hidden class for toggling visibility */
-      .hidden { display: none !important; }
+      body { 
+        font-family: system-ui, Arial, sans-serif; 
+        padding: 16px; 
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      
+      /* Component styling */
+      ck-editable-array { 
+        display: block; 
+        border: 1px solid #ddd; 
+        padding: 12px; 
+        margin-bottom: 16px;
+        border-radius: 4px;
+        background: #fafafa;
+      }
+      
+      /* Row templates */
+      .row-display { 
+        padding: 6px 0; 
+        transition: background-color 0.2s;
+      }
+      .row-display:hover {
+        background-color: #f0f0f0;
+      }
+      .row-edit input { 
+        margin-right: 8px; 
+        padding: 6px 8px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        font-size: 14px;
+      }
+      .row-edit input:focus {
+        outline: 2px solid #0066cc;
+        border-color: #0066cc;
+      }
+      
+      /* Utility classes */
+      .hint { 
+        color: #666; 
+        font-size: 13px; 
+        margin-bottom: 12px; 
+        line-height: 1.5;
+      }
+      .hidden { 
+        display: none !important; 
+      }
+      
+      /* Layout grid for side-by-side panels */
+      .demo-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 32px;
+      }
+      
+      @media (max-width: 768px) {
+        .demo-container {
+          grid-template-columns: 1fr;
+        }
+      }
+      
+      /* Data inspection panel */
+      .inspection-panel {
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 12px;
+      }
+      .inspection-panel h3 {
+        margin-top: 0;
+        font-size: 16px;
+        color: #333;
+      }
+      .inspection-content {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        padding: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      
+      /* Event log styling */
+      .event-log { 
+        background: #1a1a1a; 
+        color: #9ef; 
+        padding: 12px; 
+        border-radius: 4px; 
+        min-height: 80px; 
+        font-size: 13px;
+        margin-top: 16px;
+      }
+      .event-log strong { 
+        color: #fff; 
+        display: block; 
+        margin-bottom: 8px; 
+        font-size: 14px;
+      }
+      .event-log pre { 
+        margin: 0; 
+        white-space: pre-wrap; 
+        color: #9ef; 
+        line-height: 1.4;
+      }
+      
+      /* Form submission section */
+      .form-section {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 16px;
+        margin-top: 24px;
+      }
+      .form-section h3 {
+        margin-top: 0;
+        color: #333;
+      }
+      .form-controls {
+        display: flex;
+        gap: 12px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+      }
+      .form-controls button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+      .btn-primary {
+        background: #0066cc;
+        color: white;
+      }
+      .btn-primary:hover {
+        background: #0052a3;
+      }
+      .btn-secondary {
+        background: #6c757d;
+        color: white;
+      }
+      .btn-secondary:hover {
+        background: #5a6268;
+      }
+      .btn-success {
+        background: #28a745;
+        color: white;
+      }
+      .btn-success:hover {
+        background: #218838;
+      }
+      
+      /* Server response display */
+      .server-response {
+        background: #e7f3ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 4px;
+        padding: 12px;
+        margin-top: 12px;
+        display: none;
+      }
+      .server-response.show {
+        display: block;
+      }
+      .server-response h4 {
+        margin: 0 0 8px 0;
+        color: #004085;
+        font-size: 14px;
+      }
+      .server-response pre {
+        margin: 0;
+        font-size: 12px;
+        color: #004085;
+        white-space: pre-wrap;
+      }
+      
+      /* Visual feedback indicators */
+      .feedback {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: 500;
+        margin-left: 8px;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .feedback.show {
+        opacity: 1;
+      }
+      .feedback.success {
+        background: #d4edda;
+        color: #155724;
+      }
+      .feedback.info {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
+      
+      /* Section headers */
+      h2 {
+        color: #333;
+        border-bottom: 2px solid #0066cc;
+        padding-bottom: 8px;
+        margin-top: 32px;
+      }
+      
+      /* Code highlighting */
+      code {
+        background: #f4f4f4;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+      }
     </style>
   </head>
   <body>
-    <h1>ck-editable-array – AC-1 demo</h1>
-    <p class="hint">This demo shows how to provide light-DOM templates for <code>slot="display"</code> and <code>slot="edit"</code> and set the <code>data</code> property. Build the project and include the component module for a live demo.</p>
-    <p class="hint">Edit any input below to see the <code>datachanged</code> event payload.</p>
+    <h1>ck-editable-array – Basic CRUD Operations Demo</h1>
+    <p class="hint">
+      This demo demonstrates basic <strong>Create, Read, Update, Delete (CRUD)</strong> operations using the ck-editable-array component.
+      It shows how to provide light-DOM templates for <code>slot="display"</code> and <code>slot="edit"</code>, 
+      set the <code>data</code> property, handle form submissions, and inspect component state in real-time.
+    </p>
+    <p class="hint">
+      <strong>Try it:</strong> Click "Add" to create new rows, click "Edit" to modify existing data, 
+      or click "Delete" to remove rows. Watch the data inspection panel update in real-time!
+    </p>
 
-    <h2>Default Add Button</h2>
-    <p class="hint">This example uses the default Add button (no custom template).</p>
-    <!-- Example usage: provide light DOM templates for display and edit -->
-    <ck-editable-array id="demo" name="person">
-      <template slot="display">
-        <div class="row-display">
-          <strong><span data-bind="address1"></span></strong>
-          <span> — </span>
-          <span data-bind="address2"></span>
+    <h2>1. Default Add Button with Data Inspection</h2>
+    <p class="hint">
+      This example uses the <strong>default Add button</strong> (no custom template). 
+      The component has a <code>name="addresses"</code> attribute, which means when used in a form, 
+      the data will be submitted as a field named "addresses".
+    </p>
+    
+    <div class="demo-container">
+      <div>
+        <!-- 
+          BASIC CRUD OPERATIONS:
+          - The component displays an array of address objects
+          - Each row can be toggled between display mode and edit mode
+          - Users can Add new rows, Edit existing rows, Save changes, or Delete rows
+          - The 'name' attribute determines the form field name for submission
+        -->
+        <ck-editable-array id="demo" name="addresses">
+          <!-- 
+            DISPLAY TEMPLATE:
+            Defines how each row appears in read-only/display mode.
+            Uses data-bind attributes to bind data properties to DOM elements.
+          -->
+          <template slot="display">
+            <div class="row-display">
+              <strong><span data-bind="address1"></span></strong>
+              <span> — </span>
+              <span data-bind="address2"></span>
+            </div>
+          </template>
+
+          <!-- 
+            EDIT TEMPLATE:
+            Defines how each row appears in edit mode.
+            Input elements with data-bind attributes allow users to modify data.
+            Changes are captured on input events and stored in component state.
+          -->
+          <template slot="edit">
+            <div class="row-edit">
+              <input data-bind="address1" placeholder="Address 1" />
+              <input data-bind="address2" placeholder="Address 2" />
+            </div>
+          </template>
+        </ck-editable-array>
+      </div>
+      
+      <!-- 
+        DATA INSPECTION PANEL:
+        Shows the current state of the component's data array in real-time.
+        Updates automatically when data changes (add, edit, delete operations).
+      -->
+      <div class="inspection-panel">
+        <h3>📊 Current Data State</h3>
+        <div class="inspection-content">
+          <pre id="data-inspector-1">[]</pre>
         </div>
-      </template>
+        <p class="hint" style="margin-top: 8px; margin-bottom: 0;">
+          This panel shows the live data array. Try adding, editing, or deleting rows to see it update!
+        </p>
+      </div>
+    </div>
 
-      <template slot="edit">
-        <div class="row-edit">
-          <input data-bind="address1" placeholder="Address 1" />
-          <input data-bind="address2" placeholder="Address 2" />
+    <h2>2. Custom Add Button with Different Data Types</h2>
+    <p class="hint">
+      This example demonstrates a <strong>custom Add button</strong> template with custom styling.
+      It also shows how the component handles different data types (strings for name and email).
+      The <code>name="contacts"</code> attribute means this data will be submitted as "contacts" in a form.
+    </p>
+    
+    <div class="demo-container">
+      <div>
+        <!-- 
+          CUSTOM ADD BUTTON:
+          You can customize the Add button by providing a template with slot="add-button".
+          The button must have data-action="add" to trigger the add functionality.
+          This allows you to match your application's design system.
+        -->
+        <ck-editable-array id="demo2" name="contacts">
+          <template slot="display">
+            <div class="row-display">
+              <strong><span data-bind="name"></span></strong>
+              <span> — </span>
+              <span data-bind="email"></span>
+            </div>
+          </template>
+
+          <template slot="edit">
+            <div class="row-edit">
+              <input data-bind="name" placeholder="Name" />
+              <input data-bind="email" type="email" placeholder="Email" />
+            </div>
+          </template>
+
+          <!-- Custom styled Add button -->
+          <template slot="add-button">
+            <button data-action="add" style="background: #0066cc; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
+              ➕ Add Contact
+            </button>
+          </template>
+        </ck-editable-array>
+      </div>
+      
+      <div class="inspection-panel">
+        <h3>📊 Current Data State</h3>
+        <div class="inspection-content">
+          <pre id="data-inspector-2">[]</pre>
         </div>
-      </template>
-    </ck-editable-array>
+        <p class="hint" style="margin-top: 8px; margin-bottom: 0;">
+          Notice how this component handles string data types for both name and email fields.
+        </p>
+      </div>
+    </div>
 
-    <h2>Custom Add Button</h2>
-    <p class="hint">This example uses a custom Add button template with custom text and styling.</p>
-    <ck-editable-array id="demo2" name="contact">
-      <template slot="display">
-        <div class="row-display">
-          <strong><span data-bind="name"></span></strong>
-          <span> — </span>
-          <span data-bind="email"></span>
+    <h2>3. Readonly Mode</h2>
+    <p class="hint">
+      This example demonstrates <strong>readonly mode</strong>. When the <code>readonly</code> attribute is set,
+      all edit controls (Add, Edit, Delete buttons) are disabled. This is useful for displaying data that shouldn't be modified.
+    </p>
+    
+    <div class="demo-container">
+      <div>
+        <!-- 
+          READONLY MODE:
+          Setting the 'readonly' attribute disables all editing functionality.
+          - Add button is disabled
+          - Edit buttons are hidden/disabled
+          - Delete buttons are hidden/disabled
+          - Users can only view the data
+        -->
+        <ck-editable-array id="demo3" name="items" readonly>
+          <template slot="display">
+            <div class="row-display">
+              <span data-bind="label"></span>
+            </div>
+          </template>
+
+          <template slot="edit">
+            <div class="row-edit">
+              <input data-bind="label" placeholder="Label" />
+            </div>
+          </template>
+        </ck-editable-array>
+        
+        <div class="form-controls">
+          <button id="toggle-readonly" class="btn-secondary">Enable Editing</button>
+          <span id="readonly-feedback" class="feedback"></span>
         </div>
-      </template>
-
-      <template slot="edit">
-        <div class="row-edit">
-          <input data-bind="name" placeholder="Name" />
-          <input data-bind="email" placeholder="Email" />
+      </div>
+      
+      <div class="inspection-panel">
+        <h3>📊 Current Data State</h3>
+        <div class="inspection-content">
+          <pre id="data-inspector-3">[]</pre>
         </div>
-      </template>
-
-      <template slot="add-button">
-        <button data-action="add" style="background: #0066cc; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
-          ➕ Add Contact
-        </button>
-      </template>
-    </ck-editable-array>
-
-    <h2>Readonly Mode</h2>
-    <p class="hint">This example shows the Add button disabled in readonly mode.</p>
-    <ck-editable-array id="demo3" name="item" readonly>
-      <template slot="display">
-        <div class="row-display">
-          <span data-bind="label"></span>
-        </div>
-      </template>
-
-      <template slot="edit">
-        <div class="row-edit">
-          <input data-bind="label" placeholder="Label" />
-        </div>
-      </template>
-    </ck-editable-array>
+        <p class="hint" style="margin-top: 8px; margin-bottom: 0;">
+          Toggle readonly mode to see how the component behavior changes.
+        </p>
+      </div>
+    </div>
+    
+    <!-- 
+      EVENT LOG:
+      Displays the payload of 'datachanged' events fired by the component.
+      This event fires whenever data is modified (add, edit, delete operations).
+      The event detail contains the complete updated data array.
+    -->
     <div class="event-log">
-      <strong>datachanged detail</strong>
-      <pre id="event-log">Waiting for edit…</pre>
+      <strong>📡 Last 'datachanged' Event Detail</strong>
+      <pre id="event-log">Waiting for data changes...</pre>
+    </div>
+
+    <!-- 
+      FORM SUBMISSION DEMONSTRATION:
+      Shows how to integrate ck-editable-array with HTML forms.
+      The component's 'name' attribute determines the field name in form data.
+      When the form is submitted, the component's data array is serialized as JSON.
+    -->
+    <div class="form-section">
+      <h3>📤 Form Submission Example</h3>
+      <p class="hint">
+        The ck-editable-array component integrates seamlessly with HTML forms. 
+        When placed inside a form, the component's data is automatically included in form submissions.
+        The <code>name</code> attribute determines the field name (e.g., "addresses", "contacts", "items").
+      </p>
+      
+      <form id="demo-form">
+        <p class="hint"><strong>Form Field Name Demonstration:</strong></p>
+        <ul class="hint">
+          <li>Demo 1 uses <code>name="addresses"</code> → Form data will include an "addresses" field</li>
+          <li>Demo 2 uses <code>name="contacts"</code> → Form data will include a "contacts" field</li>
+          <li>Demo 3 uses <code>name="items"</code> → Form data will include an "items" field</li>
+        </ul>
+        
+        <div class="form-controls">
+          <button type="button" id="submit-form" class="btn-primary">
+            📤 Simulate Form Submission
+          </button>
+          <button type="button" id="get-form-data" class="btn-secondary">
+            🔍 Inspect Form Data
+          </button>
+          <button type="button" id="reset-all" class="btn-success">
+            🔄 Reset All Data
+          </button>
+        </div>
+      </form>
+      
+      <!-- 
+        SERVER RESPONSE SIMULATION:
+        In a real application, this would show the actual server response.
+        Here we simulate what the server would receive.
+      -->
+      <div id="server-response" class="server-response">
+        <h4>Simulated Server Response:</h4>
+        <pre id="server-response-content"></pre>
+      </div>
     </div>
 
     <script type="module">
-      // Import the built ESM module which registers the custom element.
-      // Adjust the path if you output the build to a different location.
-      // Try dynamic import first (standard way). If after import the element
-      // is not registered (some environments or file:// access may behave
-      // differently), fall back to injecting a module script tag and waiting
-      // for its load event.
-      const demo = document.getElementById('demo');
-
-      const log = document.getElementById('event-log');
-
-      function updateLog(detail) {
-        if (!log) return;
-        log.textContent = JSON.stringify(detail, null, 2);
-      }
-
+      // ============================================================================
+      // MODULE LOADING AND INITIALIZATION
+      // ============================================================================
+      
+      /**
+       * Loads the ck-editable-array component module and initializes all demos.
+       * Uses dynamic import with fallback to script tag injection for compatibility.
+       */
       async function ensureModuleAndSetData() {
         const path = '../dist/ck-editable-array/ck-editable-array.esm.js';
+        
+        // Try dynamic import first (modern browsers)
         try {
           await import(path);
         } catch (err) {
           console.warn('Dynamic import failed for', path, err);
         }
 
-        // next microtask: check registration
+        // Wait for next microtask to check if element is registered
         await Promise.resolve();
 
+        // Fallback: inject script tag if element not registered
         if (!customElements.get('ck-editable-array')) {
-          // Injection fallback
           await new Promise((resolve, reject) => {
-            const s = document.createElement('script');
-            s.type = 'module';
-            s.src = path;
-            s.onload = () => resolve(undefined);
-            s.onerror = () => reject(new Error('failed to load module script ' + path));
-            document.head.appendChild(s);
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = path;
+            script.onload = () => resolve(undefined);
+            script.onerror = () => reject(new Error('Failed to load module script: ' + path));
+            document.head.appendChild(script);
           }).catch(e => {
             console.warn('Could not load module script fallback:', e);
           });
         }
 
+        // Initialize demos if component is registered
         if (customElements.get('ck-editable-array')) {
-          // Setup demo 1 (default Add button)
-          demo.data = [ { address1: 'A1', address2: 'A2' }, { address1: 'B1', address2: 'B2' } ];
-          demo.addEventListener('datachanged', event => {
-            updateLog(event.detail.data);
-          });
-
-          // Setup demo 2 (custom Add button)
-          const demo2 = document.getElementById('demo2');
-          if (demo2) {
-            demo2.data = [ { name: 'Alice', email: 'alice@example.com' } ];
-            demo2.addEventListener('datachanged', event => {
-              console.log('Demo 2 data changed:', event.detail.data);
-            });
-          }
-
-          // Setup demo 3 (readonly mode)
-          const demo3 = document.getElementById('demo3');
-          if (demo3) {
-            demo3.data = [ { label: 'Item 1' }, { label: 'Item 2' } ];
-          }
+          initializeDemos();
         } else {
           console.warn('ck-editable-array is not registered after import.');
         }
       }
 
+      // ============================================================================
+      // DEMO INITIALIZATION
+      // ============================================================================
+      
+      /**
+       * Initializes all three demo instances with sample data and event listeners.
+       * Sets up data inspection panels and visual feedback for user interactions.
+       */
+      function initializeDemos() {
+        // Get references to all demo components
+        const demo1 = document.getElementById('demo');
+        const demo2 = document.getElementById('demo2');
+        const demo3 = document.getElementById('demo3');
+        const eventLog = document.getElementById('event-log');
+        
+        // ========================================================================
+        // DEMO 1: Default Add Button with Address Data
+        // ========================================================================
+        if (demo1) {
+          // Set initial data - array of address objects
+          demo1.data = [
+            { address1: '123 Main St', address2: 'Apt 4B' },
+            { address1: '456 Oak Ave', address2: 'Suite 200' }
+          ];
+          
+          // Listen for data changes and update both the event log and inspection panel
+          demo1.addEventListener('datachanged', event => {
+            updateEventLog(event.detail.data);
+            updateDataInspector('data-inspector-1', demo1.data);
+            showFeedback('Data updated!', 'success');
+          });
+          
+          // Initialize the data inspector with current data
+          updateDataInspector('data-inspector-1', demo1.data);
+        }
+        
+        // ========================================================================
+        // DEMO 2: Custom Add Button with Contact Data
+        // ========================================================================
+        if (demo2) {
+          // Set initial data - array of contact objects with different data types
+          demo2.data = [
+            { name: 'Alice Johnson', email: 'alice@example.com' },
+            { name: 'Bob Smith', email: 'bob@example.com' }
+          ];
+          
+          // Listen for data changes
+          demo2.addEventListener('datachanged', event => {
+            updateEventLog(event.detail.data);
+            updateDataInspector('data-inspector-2', demo2.data);
+            showFeedback('Contacts updated!', 'success');
+          });
+          
+          // Initialize the data inspector
+          updateDataInspector('data-inspector-2', demo2.data);
+        }
+        
+        // ========================================================================
+        // DEMO 3: Readonly Mode with Simple Items
+        // ========================================================================
+        if (demo3) {
+          // Set initial data - array of simple item objects
+          demo3.data = [
+            { label: 'Read-only Item 1' },
+            { label: 'Read-only Item 2' },
+            { label: 'Read-only Item 3' }
+          ];
+          
+          // Listen for data changes (will only fire when readonly is disabled)
+          demo3.addEventListener('datachanged', event => {
+            updateEventLog(event.detail.data);
+            updateDataInspector('data-inspector-3', demo3.data);
+            showFeedback('Items updated!', 'success');
+          });
+          
+          // Initialize the data inspector
+          updateDataInspector('data-inspector-3', demo3.data);
+          
+          // Setup readonly toggle button
+          setupReadonlyToggle(demo3);
+        }
+        
+        // Setup form submission handlers
+        setupFormHandlers(demo1, demo2, demo3);
+      }
+
+      // ============================================================================
+      // DATA INSPECTION HELPERS
+      // ============================================================================
+      
+      /**
+       * Updates a data inspection panel with formatted JSON.
+       * @param {string} inspectorId - The ID of the inspector element
+       * @param {Array} data - The data array to display
+       */
+      function updateDataInspector(inspectorId, data) {
+        const inspector = document.getElementById(inspectorId);
+        if (inspector) {
+          inspector.textContent = JSON.stringify(data, null, 2);
+        }
+      }
+      
+      /**
+       * Updates the event log with the latest datachanged event payload.
+       * @param {Array} data - The data from the event detail
+       */
+      function updateEventLog(data) {
+        const log = document.getElementById('event-log');
+        if (log) {
+          log.textContent = JSON.stringify(data, null, 2);
+        }
+      }
+
+      // ============================================================================
+      // VISUAL FEEDBACK HELPERS
+      // ============================================================================
+      
+      /**
+       * Shows a temporary feedback message to the user.
+       * @param {string} message - The message to display
+       * @param {string} type - The feedback type ('success' or 'info')
+       */
+      function showFeedback(message, type = 'info') {
+        // Create or reuse feedback element
+        let feedback = document.querySelector('.feedback.show');
+        if (!feedback) {
+          feedback = document.createElement('span');
+          feedback.className = 'feedback';
+          document.body.appendChild(feedback);
+        }
+        
+        feedback.textContent = message;
+        feedback.className = `feedback ${type} show`;
+        
+        // Hide after 2 seconds
+        setTimeout(() => {
+          feedback.classList.remove('show');
+        }, 2000);
+      }
+
+      // ============================================================================
+      // READONLY MODE TOGGLE
+      // ============================================================================
+      
+      /**
+       * Sets up the readonly mode toggle button for demo 3.
+       * @param {HTMLElement} demo3 - The demo 3 component element
+       */
+      function setupReadonlyToggle(demo3) {
+        const toggleBtn = document.getElementById('toggle-readonly');
+        const feedback = document.getElementById('readonly-feedback');
+        
+        if (toggleBtn && demo3) {
+          toggleBtn.addEventListener('click', () => {
+            // Toggle the readonly attribute
+            const isReadonly = demo3.hasAttribute('readonly');
+            
+            if (isReadonly) {
+              demo3.removeAttribute('readonly');
+              toggleBtn.textContent = 'Disable Editing';
+              feedback.textContent = '✓ Editing enabled';
+              feedback.className = 'feedback success show';
+            } else {
+              demo3.setAttribute('readonly', '');
+              toggleBtn.textContent = 'Enable Editing';
+              feedback.textContent = '✓ Editing disabled';
+              feedback.className = 'feedback info show';
+            }
+            
+            // Hide feedback after 2 seconds
+            setTimeout(() => {
+              feedback.classList.remove('show');
+            }, 2000);
+          });
+        }
+      }
+
+      // ============================================================================
+      // FORM SUBMISSION HANDLERS
+      // ============================================================================
+      
+      /**
+       * Sets up form submission and data inspection handlers.
+       * Demonstrates how component data integrates with HTML forms.
+       * @param {HTMLElement} demo1 - First demo component
+       * @param {HTMLElement} demo2 - Second demo component
+       * @param {HTMLElement} demo3 - Third demo component
+       */
+      function setupFormHandlers(demo1, demo2, demo3) {
+        const submitBtn = document.getElementById('submit-form');
+        const inspectBtn = document.getElementById('get-form-data');
+        const resetBtn = document.getElementById('reset-all');
+        const responseDiv = document.getElementById('server-response');
+        const responseContent = document.getElementById('server-response-content');
+        
+        // ========================================================================
+        // SIMULATE FORM SUBMISSION
+        // ========================================================================
+        if (submitBtn) {
+          submitBtn.addEventListener('click', () => {
+            // Collect data from all components
+            const formData = {
+              addresses: demo1?.data || [],
+              contacts: demo2?.data || [],
+              items: demo3?.data || []
+            };
+            
+            // Simulate server response
+            const serverResponse = {
+              status: 'success',
+              message: 'Data received successfully',
+              timestamp: new Date().toISOString(),
+              receivedData: formData,
+              recordCounts: {
+                addresses: formData.addresses.length,
+                contacts: formData.contacts.length,
+                items: formData.items.length
+              }
+            };
+            
+            // Display the simulated response
+            if (responseDiv && responseContent) {
+              responseContent.textContent = JSON.stringify(serverResponse, null, 2);
+              responseDiv.classList.add('show');
+            }
+            
+            showFeedback('Form submitted successfully!', 'success');
+            console.log('Form submission data:', formData);
+          });
+        }
+        
+        // ========================================================================
+        // INSPECT FORM DATA
+        // ========================================================================
+        if (inspectBtn) {
+          inspectBtn.addEventListener('click', () => {
+            // Show what would be sent in a form submission
+            const formData = {
+              addresses: demo1?.data || [],
+              contacts: demo2?.data || [],
+              items: demo3?.data || []
+            };
+            
+            console.log('Current form data:', formData);
+            alert('Form data logged to console. Check the browser console (F12) to see the data structure.');
+            showFeedback('Check console for form data', 'info');
+          });
+        }
+        
+        // ========================================================================
+        // RESET ALL DATA
+        // ========================================================================
+        if (resetBtn) {
+          resetBtn.addEventListener('click', () => {
+            // Reset all demos to initial state
+            if (demo1) {
+              demo1.data = [
+                { address1: '123 Main St', address2: 'Apt 4B' },
+                { address1: '456 Oak Ave', address2: 'Suite 200' }
+              ];
+              updateDataInspector('data-inspector-1', demo1.data);
+            }
+            
+            if (demo2) {
+              demo2.data = [
+                { name: 'Alice Johnson', email: 'alice@example.com' },
+                { name: 'Bob Smith', email: 'bob@example.com' }
+              ];
+              updateDataInspector('data-inspector-2', demo2.data);
+            }
+            
+            if (demo3) {
+              demo3.data = [
+                { label: 'Read-only Item 1' },
+                { label: 'Read-only Item 2' },
+                { label: 'Read-only Item 3' }
+              ];
+              updateDataInspector('data-inspector-3', demo3.data);
+            }
+            
+            // Hide server response
+            if (responseDiv) {
+              responseDiv.classList.remove('show');
+            }
+            
+            showFeedback('All data reset to initial state', 'success');
+          });
+        }
+      }
+
+      // ============================================================================
+      // START THE APPLICATION
+      // ============================================================================
+      
+      // Load the component module and initialize all demos
       ensureModuleAndSetData();
     </script>
   </body>
