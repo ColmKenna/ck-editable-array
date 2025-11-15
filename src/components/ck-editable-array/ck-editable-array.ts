@@ -378,15 +378,18 @@ export class CkEditableArray extends HTMLElement {
 
       if (
         node instanceof HTMLInputElement ||
-        node instanceof HTMLTextAreaElement
+        node instanceof HTMLTextAreaElement ||
+        node instanceof HTMLSelectElement
       ) {
         // Set name attribute based on component's name attribute
         if (nameBase && key) {
           node.name = `${nameBase}[${rowIndex}].${key}`;
         }
 
-        // Configure readonly state
-        this.configureReadonlyState(node, isReadonly);
+        // Configure readonly state (not applicable to select)
+        if (!(node instanceof HTMLSelectElement)) {
+          this.configureReadonlyState(node, isReadonly);
+        }
 
         // Attach input / change listener if not readonly
         if (!isReadonly) {
@@ -398,9 +401,19 @@ export class CkEditableArray extends HTMLElement {
                 this.updateSaveButtonState(rowIndex);
               }
             });
+          } else if (node instanceof HTMLSelectElement) {
+            // Use change for select elements
+            node.addEventListener('change', () => {
+              this.commitRowValue(rowIndex, key, node.value);
+              this.updateSaveButtonState(rowIndex);
+            });
           } else {
             node.addEventListener('input', () => {
-              this.commitRowValue(rowIndex, key, (node as HTMLInputElement | HTMLTextAreaElement).value);
+              this.commitRowValue(
+                rowIndex,
+                key,
+                (node as HTMLInputElement | HTMLTextAreaElement).value
+              );
               this.updateSaveButtonState(rowIndex);
             });
           }
@@ -504,6 +517,9 @@ export class CkEditableArray extends HTMLElement {
           node.value = value;
         }
       } else if (node instanceof HTMLTextAreaElement) {
+        node.value = value;
+      } else if (node instanceof HTMLSelectElement) {
+        // Set the select element's value
         node.value = value;
       } else {
         node.textContent = value;
@@ -789,6 +805,11 @@ export class CkEditableArray extends HTMLElement {
             node.value = value;
           }
         } else if (node instanceof HTMLTextAreaElement) {
+          if (node.value !== value) {
+            node.value = value;
+          }
+        } else if (node instanceof HTMLSelectElement) {
+          // Update select element value
           if (node.value !== value) {
             node.value = value;
           }

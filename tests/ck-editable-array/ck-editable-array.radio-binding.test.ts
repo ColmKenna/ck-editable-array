@@ -41,9 +41,15 @@ describe('ck-editable-array radio group binding', () => {
   test('radio with matching value is checked in edit mode', () => {
     const el = setup();
     el.data = [{ priority: 'medium' }];
-    const editBtn = el.shadowRoot!.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+    const editBtn = el.shadowRoot!.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
     editBtn.click();
-    const radios = Array.from(el.shadowRoot!.querySelectorAll('input[type="radio"][data-bind="priority"]')) as HTMLInputElement[];
+    const radios = Array.from(
+      el.shadowRoot!.querySelectorAll(
+        'input[type="radio"][data-bind="priority"]'
+      )
+    ) as HTMLInputElement[];
     const medium = radios.find(r => r.value === 'medium');
     const low = radios.find(r => r.value === 'low');
     expect(medium).toBeDefined();
@@ -54,12 +60,18 @@ describe('ck-editable-array radio group binding', () => {
   test('changing selection updates data after save', () => {
     const el = setup();
     el.data = [{ priority: 'low' }];
-    const editBtn = el.shadowRoot!.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+    const editBtn = el.shadowRoot!.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
     editBtn.click();
-    const highRadio = el.shadowRoot!.querySelector('input[type="radio"][value="high"][data-bind="priority"]') as HTMLInputElement;
+    const highRadio = el.shadowRoot!.querySelector(
+      'input[type="radio"][value="high"][data-bind="priority"]'
+    ) as HTMLInputElement;
     highRadio.checked = true;
     highRadio.dispatchEvent(new Event('change')); // prefer change for radio
-    const saveBtn = el.shadowRoot!.querySelector('[data-action="save"]') as HTMLButtonElement;
+    const saveBtn = el.shadowRoot!.querySelector(
+      '[data-action="save"]'
+    ) as HTMLButtonElement;
     expect(saveBtn.disabled).toBe(false);
     saveBtn.click();
     const row = el.data[0] as { priority: string };

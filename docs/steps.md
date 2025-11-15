@@ -979,3 +979,33 @@ Test status: All 151 tests pass (9 suites, 0 failures). Step 8.5 now has 3/3 tes
 - `beforetogglemode` provides transition context (`from`/`to`) for conditional prevention
 - `aftertogglemode` provides only final state (`mode`) since transition is complete
 - All payloads leverage existing immutability guarantees from Step 8.1-8.3
+
+## 2025-11-15 - HTMLSelectElement Binding Support
+
+- Goal: Enable `data-bind` to work correctly with `<select>` elements in both display and edit modes.
+- Problem: Select dropdowns were not showing their bound values. The component only handled `HTMLInputElement` and `HTMLTextAreaElement`, treating select elements as generic nodes (using `textContent` instead of `value`).
+- RED: Added 5 tests in `tests/ck-editable-array/ck-editable-array.advanced-inputs.test.ts` covering:
+  - Select element displays bound value in display mode
+  - Select element shows correct option selected in edit mode
+  - Changing select value updates data on save
+  - Select element reflects value when switching back to edit mode
+  - Validation works with select element (required field)
+- GREEN: Updated `src/components/ck-editable-array/ck-editable-array.ts` in three locations:
+  - `bindDataToNode()`: Added `else if (node instanceof HTMLSelectElement)` case to set `.value` property (lines 520-522)
+  - `attachInputListeners()`: Added select element handling to attach `change` event listener (lines 380-408)
+  - `updateBoundNodes()`: Added select element case to update `.value` during dynamic updates (lines 794-797)
+- REFACTOR: Maintained consistency with existing input/textarea patterns. Select elements use `change` event (not `input`) and skip readonly configuration (not applicable to select).
+
+Files touched:
+- `src/components/ck-editable-array/ck-editable-array.ts` — added HTMLSelectElement support in three methods.
+- `tests/ck-editable-array/ck-editable-array.advanced-inputs.test.ts` — added 5 new tests for select element binding.
+- `docs/steps.md` — this entry.
+
+Test status: All 192 tests pass (16 suites, 187→192 tests with 5 new select tests). No regressions.
+
+**Technical Notes**:
+- Select elements use `change` event (fires when selection changes), not `input` event
+- `readonly` attribute doesn't apply to select elements, so `configureReadonlyState()` is skipped
+- Select binding works with validation - empty values trigger required field errors as expected
+- Works in both display mode (shows value as text) and edit mode (sets correct option as selected)
+

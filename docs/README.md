@@ -348,6 +348,30 @@ Use these attributes in your templates to bind data and actions.
 | `data-action="delete"` | On buttons | Soft-deletes a row (sets `deleted: true`) |
 | `data-action="restore"` | On buttons | Restores a deleted row (sets `deleted: false`) |
 
+#### Supported Input Types
+
+The `data-bind` attribute works with the following element types:
+
+- **Text inputs**: `<input type="text">`, `<input type="email">`, `<input type="date">`, etc.
+- **Textareas**: `<textarea data-bind="field"></textarea>`
+- **Select dropdowns**: `<select data-bind="field"><option>...</option></select>`
+- **Radio buttons**: Multiple `<input type="radio">` elements with the same `data-bind` (see below)
+- **Display elements**: `<span>`, `<div>`, or any element (sets `textContent` in display mode)
+
+**Select Element Example:**
+```html
+<template slot="edit">
+  <select data-bind="status">
+    <option value="">--</option>
+    <option value="planned">Planned</option>
+    <option value="in-progress">In Progress</option>
+    <option value="done">Done</option>
+  </select>
+</template>
+```
+
+The component automatically sets the selected option based on the data value and listens for changes.
+
 #### Radio Groups
 
 For radio button groups, declare multiple `input[type="radio"]` elements that share the same `data-bind` value (e.g. `data-bind="priority"`) and distinct `value` attributes. The component will:

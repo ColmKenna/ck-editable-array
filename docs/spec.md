@@ -193,6 +193,19 @@ Does NOT fire when:
 **Specification:**
 - Given an initial array such as `["A", "B", "C"]`, the component clones the provided light-DOM templates for both `slot="display"` and `slot="edit"`.
 - Each row receives `data-row` and `data-mode` attributes and populates `[data-bind]` nodes so display text and edit inputs mirror the internal array.
+- Supports multiple input types: text inputs, textareas, select dropdowns, and radio buttons.
+
+**Supported Input Types:**
+- **Text inputs**: `<input>` elements (text, email, date, etc.)
+- **Textareas**: `<textarea>` elements
+- **Select dropdowns**: `<select>` elements with `<option>` children
+- **Radio buttons**: Multiple `<input type="radio">` elements with same `data-bind`
+- **Display elements**: Any element for display mode (uses `textContent`)
+
+**Input Event Handling:**
+- Text inputs and textareas: Use `input` event for immediate updates
+- Select dropdowns: Use `change` event when selection changes
+- Radio buttons: Use `change` event when radio is checked
 
 **Acceptance Criteria:**
 - Component renders immediately when connected to DOM
@@ -201,6 +214,8 @@ Does NOT fire when:
 - `data-bind` attributes correctly populate with data values
 - Changes to inputs update the internal data array
 - `datachanged` event fires on user edits
+- Select elements show correct selected option in edit mode
+- Radio buttons show correct checked state based on data value
 
 ---
 

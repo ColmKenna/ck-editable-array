@@ -44,12 +44,18 @@ describe('ck-editable-array (simple strings demo)', () => {
   test('toggle edit mode and save updates data (object row)', () => {
     const el = setup();
     el.data = [{ value: 'A' }];
-    const editBtn = el.shadowRoot!.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+    const editBtn = el.shadowRoot!.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
     editBtn.click(); // enter edit mode
-    const input = el.shadowRoot!.querySelector('input[data-bind="value"]') as HTMLInputElement;
+    const input = el.shadowRoot!.querySelector(
+      'input[data-bind="value"]'
+    ) as HTMLInputElement;
     input.value = 'Z';
     input.dispatchEvent(new Event('input'));
-    const saveBtn = el.shadowRoot!.querySelector('[data-action="save"]') as HTMLButtonElement;
+    const saveBtn = el.shadowRoot!.querySelector(
+      '[data-action="save"]'
+    ) as HTMLButtonElement;
     expect(saveBtn.disabled).toBe(false);
     saveBtn.click();
     const first = el.data[0] as { value: string };
@@ -59,11 +65,15 @@ describe('ck-editable-array (simple strings demo)', () => {
   test('soft delete & restore (object rows)', () => {
     const el = setup();
     el.data = [{ value: 'A' }, { value: 'B' }];
-    const deleteBtn = el.shadowRoot!.querySelector('[data-action="delete"]') as HTMLButtonElement;
+    const deleteBtn = el.shadowRoot!.querySelector(
+      '[data-action="delete"]'
+    ) as HTMLButtonElement;
     deleteBtn.click();
     const first = el.data[0] as { value: string; deleted?: boolean };
     expect(first.deleted).toBe(true);
-    const restoreBtn = el.shadowRoot!.querySelector('[data-action="restore"]') as HTMLButtonElement;
+    const restoreBtn = el.shadowRoot!.querySelector(
+      '[data-action="restore"]'
+    ) as HTMLButtonElement;
     restoreBtn.click();
     const firstRestored = el.data[0] as { value: string; deleted?: boolean };
     expect(firstRestored.deleted).toBe(false);
