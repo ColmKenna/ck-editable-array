@@ -552,6 +552,43 @@
         border-color: #48bb78;
         color: #22543d;
       }
+
+      /* ============================================
+         BASE BUTTON STYLES
+         Apply consistent styling to all regular buttons
+         ============================================ */
+      button {
+        font-family: inherit;
+        font-size: 0.9375rem;
+        padding: 8px 14px;
+        border-radius: 6px;
+        border: 1px solid #cbd5e0;
+        background: #edf2f7;
+        color: #1a202c;
+        cursor: pointer;
+        transition: all 0.12s ease-in-out;
+        box-shadow: none;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      button:focus {
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.12);
+      }
+
+      button[disabled] {
+        opacity: 0.6;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
       
       /* ============================================
          RESPONSIVE DESIGN
@@ -708,6 +745,69 @@
           .display-content.deleted [data-action="delete"] {
             display: none;
           }
+
+          /* Component scoped: default button styles inside ck-editable-array */
+          :host {
+            --btn-radius: 6px;
+            --btn-padding: 8px 14px;
+            --btn-font-size: 0.9375rem;
+            --btn-border: 1px solid rgba(0,0,0,0.06);
+            --btn-bg: #edf2f7;
+            --btn-color: #1a202c;
+            --btn-primary: #4299e1;
+            --btn-success: #48bb78;
+            --btn-danger: #f56565;
+          }
+
+          button {
+            font-family: inherit;
+            padding: var(--btn-padding);
+            border-radius: var(--btn-radius);
+            font-size: var(--btn-font-size);
+            border: var(--btn-border);
+            background: var(--btn-bg);
+            color: var(--btn-color);
+            cursor: pointer;
+            transition: all 0.12s ease-in-out;
+          }
+
+          button[data-action="save"] {
+            background: var(--btn-success);
+            color: #fff;
+            border: none;
+          }
+
+          button[data-action="cancel"] {
+            background: #718096;
+            color: #fff;
+            border: none;
+          }
+
+          button[data-action="delete"] {
+            background: var(--btn-danger);
+            color: #fff;
+            border: none;
+          }
+
+          button[data-action="restore"] {
+            background: var(--btn-success);
+            color: #fff;
+            border: none;
+          }
+
+          button[data-action="toggle"] {
+            background: var(--btn-primary);
+            color: #fff;
+            border: none;
+          }
+
+          button[data-action="add"] {
+            background: var(--btn-success);
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            padding: 10px 18px;
+          }
         </style>
       </ck-editable-array>
 
@@ -845,6 +945,13 @@
             </div>
           </div>
         </template>
+        <style slot="styles">
+          /* Simple, scoped button styles for the component */
+          button { font-family: inherit; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.06); background: #f3f6f9; color: #172025; cursor: pointer; }
+          button[data-action="save"] { background: #48bb78; color: #fff; border: none; }
+          button[data-action="cancel"] { background: #718096; color: #fff; border: none; }
+          button[data-action="toggle"] { background: #4299e1; color: #fff; border: none; }
+        </style>
       </ck-editable-array>
       
       <!-- Code viewer for validation demo -->
@@ -952,6 +1059,13 @@ demo2.data = [
             </div>
           </div>
         </template>
+        <style slot="styles">
+          /* Default in-component button styling for nested property demo */
+          button { font-family: inherit; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.06); background: #f3f6f9; color: #172025; }
+          button[data-action="save"] { background: #48bb78; color: white; border: none; }
+          button[data-action="cancel"] { background: #718096; color: white; border: none; }
+          button[data-action="toggle"] { background: #4299e1; color: white; border: none; }
+        </style>
       </ck-editable-array>
       
       <!-- Code viewer for nested properties demo -->
@@ -1055,6 +1169,11 @@ demo3.data = [
             pointer-events: none;
             filter: grayscale(50%);
           }
+          /* Buttons inside component (locking demo) */
+          button { padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.06); background: #f3f6f9; color: #172025; }
+          button[data-action="save"] { background: #48bb78; color: #fff; border: none; }
+          button[data-action="cancel"] { background: #718096; color: #fff; border: none; }
+          button[data-action="toggle"] { background: #4299e1; color: #fff; border: none; }
         </style>
       </ck-editable-array>
       
@@ -1178,6 +1297,12 @@ demo4.addEventListener('aftertogglemode', (e) => {
             background: rgba(255, 255, 255, 0.9);
             border: none;
           }
+          /* Fallback/default button styles for gradient demo (do not override .row-display rules) */
+          button { font-family: inherit; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.06); background: rgba(255,255,255,0.9); color: #1a202c; }
+          /* The .row-display button styles above intentionally override defaults for gradient demo */
+          .row-edit button { background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.2); color: white; }
+          button[data-action="save"] { background: rgba(255,255,255,0.95); color: #2d3748; font-weight: 600; }
+          button[data-action="cancel"] { background: rgba(255,255,255,0.14); color: white; }
         </style>
       </ck-editable-array>
       
@@ -1273,6 +1398,12 @@ demo4.addEventListener('aftertogglemode', (e) => {
             </div>
           </div>
         </template>
+        <style slot="styles">
+          /* Readonly demo: small button styling */
+          button { font-family: inherit; padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.06); background: #f3f6f9; color: #172025; }
+          button[data-action="toggle"] { background: #4299e1; color: #fff; border: none; }
+          button[data-action="cancel"] { background: #718096; color: #fff; border: none; }
+        </style>
       </ck-editable-array>
       
       <!-- Code viewer for readonly demo -->
