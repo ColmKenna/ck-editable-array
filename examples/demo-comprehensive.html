@@ -763,9 +763,17 @@
 
         <!-- Custom styles injected into shadow DOM -->
         <style slot="styles">
-          /* Soft-deleted rows have reduced opacity */
+          /* Soft-deleted rows have a distinct visual state (without dimming child controls) */
           .display-content.deleted {
-            opacity: 0.6;
+            background: #fff7ed;
+            border: 1px dashed #fb923c;
+            position: relative;
+            color: #9a3412;
+          }
+
+          /* Ensure restore control remains fully visible */
+          .display-content.deleted [data-action="restore"] {
+            opacity: 1;
           }
           
           /* Strikethrough text for deleted items */
@@ -781,6 +789,25 @@
           /* Hide delete button for deleted rows */
           .display-content.deleted [data-action="delete"] {
             display: none;
+          }
+
+          /* Defensive toggle: only one of delete/restore should ever show */
+          .display-content [data-action="restore"] { display: none; }
+          .display-content[data-deleted="true"] [data-action="restore"] { display: inline-flex; }
+          .display-content[data-deleted="true"] [data-action="delete"] { display: none; }
+
+          /* Visual badge for deleted rows */
+          .display-content.deleted::before {
+            content: 'Deleted';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f97316;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            letter-spacing: 0.02em;
           }
 
           /* Component scoped: default button styles inside ck-editable-array */
@@ -1541,6 +1568,64 @@ demo4.addEventListener('aftertogglemode', (e) => {
           button[data-action="save"] { background: #48bb78; color: white; border: none; }
           button[data-action="cancel"] { background: #718096; color: white; border: none; }
           button[data-action="toggle"] { background: #4299e1; color: white; border: none; }
+          /* Only show one destructive action at a time */
+          .display-content [data-action="restore"] { display: none; }
+          .display-content[data-deleted="true"] [data-action="restore"] { display: inline-flex; }
+          .display-content[data-deleted="true"] [data-action="delete"] { display: none; }
+          /* Visual treatment for deleted rows in modal demo */
+          .display-content.deleted {
+            background: #fff7ed;
+            border: 1px dashed #fb923c;
+            position: relative;
+            color: #9a3412;
+          }
+          .display-content.deleted [data-action="restore"] {
+            opacity: 1;
+          }
+          .display-content.deleted::before {
+            content: 'Deleted';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f97316;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            letter-spacing: 0.02em;
+          }
+          /* Modal chrome enhancements */
+          :host([modal-edit]) .modal-overlay {
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(2px);
+          }
+          :host([modal-edit]) .modal-surface {
+            border-radius: 12px;
+            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+          }
+          :host([modal-edit]) .row-edit {
+            display: grid;
+            gap: 12px;
+            padding: 4px 0;
+          }
+          :host([modal-edit]) .row-edit label {
+            font-weight: 600;
+            color: #111827;
+          }
+          :host([modal-edit]) .row-edit input {
+            width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 0.95rem;
+            background: #f8fafc;
+          }
+          :host([modal-edit]) .row-edit input:focus {
+            outline: 2px solid #4299e1;
+            outline-offset: 1px;
+            background: #fff;
+          }
         </style>
       </ck-editable-array>
       
