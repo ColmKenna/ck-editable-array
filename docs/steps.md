@@ -230,6 +230,37 @@ Next considerations:
 - Integrate internationalization hooks for error messages.
 - Optimize partial row re-renders (performance strategy).
 
+## 2025-11-15 - Feature F2: Multi-select & Checkbox Group Binding
+
+Goal: Add support for multi-select (`<select multiple>`) and checkbox-group bindings where multiple checkboxes map to an array field, while a lone checkbox maps to a boolean value.
+
+RED:
+- Added new tests in `tests/ck-editable-array/ck-editable-array.advanced-inputs.test.ts` validating multi-select and checkbox-group display, edit, and save behavior.
+
+GREEN:
+- Updated `src/components/ck-editable-array/ck-editable-array.ts` to:
+  - Introduce `resolveBindingRawValue()` to retrieve typed values (arrays/booleans/primitives) for correct binding to inputs.
+  - Treat `select[multiple]` as an array: bind selected options to arrays and commit as arrays for object rows (coerce to strings for primitive rows to preserve behaviour).
+  - Treat checkbox groups (`input[type="checkbox"]` sharing the same `data-bind`) as arrays of selected values and single checkboxes as booleans.
+- Updated `attachInputListeners()` to aggregate `selectedOptions` for `select[multiple]` and gather checked inputs for checkbox groups.
+
+REFACTOR:
+- Added helper logic for `bindDataToNode()` and `updateBoundNodes()` to properly set `checked` for checkbox inputs and selectedOptions for multi-selects.
+ - Introduced tests for multi-select and checkbox-group behavior and updated `examples/demo-advanced-inputs.html` with `tags` (multi-select) and `tagsCheckbox` (checkbox group).
+
+Files touched:
+- `src/components/ck-editable-array/ck-editable-array.ts` — array/boolean binding support, raw value resolver, commit changes.
+- `examples/demo-advanced-inputs.html` — add `select multiple` and a checkbox group with seeded data.
+- `tests/ck-editable-array/ck-editable-array.advanced-inputs.test.ts` — new tests for multi-select and checkbox group behavior.
+
+Results:
+- Ran the full test suite; all tests pass: 202/202.
+- Lint autofix applied; minor `any` warnings remain in tests as non-critical items.
+
+Next steps:
+- Consider formal schema support for array types (e.g., minItems, uniqueItems) and extend validation to handle arrays appropriately.
+- Address `@typescript-eslint/no-explicit-any` warnings in tests by typing data shapes more precisely where helpful.
+
 
 - Goal: verify that when data is set before connecting to the DOM, the rows are properly rendered when the element connects.
 - RED: added Test 3.1.2 in `tests/ck-editable-array/ck-editable-array.step3.lifecycle-styles.test.ts` asserting that when data is set to 2 items before connecting, exactly 2 rows are rendered on connect.
@@ -1008,4 +1039,29 @@ Test status: All 192 tests pass (16 suites, 187→192 tests with 5 new select te
 - `readonly` attribute doesn't apply to select elements, so `configureReadonlyState()` is skipped
 - Select binding works with validation - empty values trigger required field errors as expected
 - Works in both display mode (shows value as text) and edit mode (sets correct option as selected)
+
+## 2025-11-15 - Combo (input[list] + datalist) Support
+
+- Goal: Ensure datalist combo inputs work reliably in edit mode and across multiple rows.
+- Problem: When cloning templates per row, `<datalist id="...">` created duplicate IDs, and `<input list="...">` often pointed to the first datalist only. This made the combo appear not to work in the example.
+- RED: Added 3 tests in `tests/ck-editable-array/ck-editable-array.advanced-inputs.test.ts` covering:
+  - Combo input shows bound value in edit mode
+  - Changing combo value updates data on save
+  - Datalist IDs are made unique per row and each input[list] is remapped accordingly
+- GREEN: Updated `appendRowFromTemplate()` to:
+  - Post-clone, find any `input[list]` and sibling `datalist#<id>` within the row wrapper
+  - Rename the datalist id to `<id>-<rowIndex>` and update the input's `list` attribute to match
+  - Best-effort and safe: if the datalist is not in the same wrapper, leave as-is
+- REFACTOR: None required beyond formatting. Kept changes localized and non-breaking.
+
+Files touched:
+- `src/components/ck-editable-array/ck-editable-array.ts` — add datalist id remapping inside `appendRowFromTemplate()`.
+- `tests/ck-editable-array/ck-editable-array.advanced-inputs.test.ts` — add 3 tests for combo/datalist behavior.
+
+Test status: All 195 tests pass (16 suites). No regressions.
+
+**Technical Notes**:
+- The component does not rely on special handling for datalist beyond ensuring unique ids after template clone per row.
+- Combo inputs continue to use the standard `input` event for data updates.
+- If a datalist is defined outside the row wrapper (global scope), the component leaves its id unchanged.
 

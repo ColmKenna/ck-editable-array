@@ -401,10 +401,42 @@ export class CkEditableArray extends HTMLElement {
                 this.updateSaveButtonState(rowIndex);
               }
             });
-          } else if (node instanceof HTMLSelectElement) {
-            // Use change for select elements
+          } else if (
+            node instanceof HTMLInputElement &&
+            node.type === 'checkbox'
+          ) {
+            // Collect all checkboxes with the same bind key within the wrapper and commit as an array
             node.addEventListener('change', () => {
-              this.commitRowValue(rowIndex, key, node.value);
+              const checkboxes = Array.from(
+                wrapper.querySelectorAll<HTMLInputElement>(
+                  `input[type="checkbox"][${CkEditableArray.ATTR_DATA_BIND}="${key}"]`
+                )
+              );
+              const selected = checkboxes
+                .filter(cb => cb.checked)
+                .map(cb => cb.value ?? 'on');
+              const rawVal = this.resolveBindingRawValue(
+                this._data[rowIndex],
+                key
+              );
+              if (checkboxes.length === 1 && typeof rawVal === 'boolean') {
+                this.commitRowValue(rowIndex, key, checkboxes[0].checked);
+              } else {
+                this.commitRowValue(rowIndex, key, selected);
+              }
+              this.updateSaveButtonState(rowIndex);
+            });
+          } else if (node instanceof HTMLSelectElement) {
+            // Use change for select elements; support multiple select producing arrays
+            node.addEventListener('change', () => {
+              if (node.multiple) {
+                const values = Array.from(node.selectedOptions).map(
+                  o => o.value
+                );
+                this.commitRowValue(rowIndex, key, values);
+              } else {
+                this.commitRowValue(rowIndex, key, node.value);
+              }
               this.updateSaveButtonState(rowIndex);
             });
           } else {
@@ -513,14 +545,35 @@ export class CkEditableArray extends HTMLElement {
           const shouldCheck = node.value === value;
           node.checked = shouldCheck;
           node.setAttribute('aria-checked', shouldCheck ? 'true' : 'false');
+        } else if (node.type === 'checkbox') {
+          // For checkboxes, set checked based on whether the data array includes this value,
+          // or if the raw value equals the checkbox value (for single boolean-like checkbox)
+          const rawVal = this.resolveBindingRawValue(data, key);
+          const cbVal = node.value ?? 'on';
+          if (Array.isArray(rawVal)) {
+            node.checked = (rawVal as string[]).includes(cbVal);
+          } else if (typeof rawVal === 'boolean') {
+            node.checked = Boolean(rawVal);
+          } else {
+            node.checked = String(rawVal) === cbVal;
+          }
+          node.setAttribute('aria-checked', node.checked ? 'true' : 'false');
         } else {
           node.value = value;
         }
       } else if (node instanceof HTMLTextAreaElement) {
         node.value = value;
       } else if (node instanceof HTMLSelectElement) {
-        // Set the select element's value
-        node.value = value;
+        // Set the select element's value. For multi-selects, select options that match the bound array value.
+        if (node.multiple) {
+          const valuesArr =
+            value === '' ? [] : value.split(',').map(s => s.trim());
+          Array.from(node.options).forEach(opt => {
+            opt.selected = valuesArr.includes(opt.value);
+          });
+        } else {
+          node.value = value;
+        }
       } else {
         node.textContent = value;
       }
@@ -593,6 +646,33 @@ export class CkEditableArray extends HTMLElement {
 
     // Append the cloned template content to the wrapper
     contentWrapper.appendChild(fragment);
+
+    // Ensure datalist IDs are unique per row and inputs reference the correct list
+    // Move datalists to light DOM so they work with inputs in shadow DOM
+    // (Datalists only associate with inputs in the same DOM tree)
+    try {
+      const inputsWithList = Array.from(
+        contentWrapper.querySelectorAll<HTMLInputElement>('input[list]')
+      );
+      inputsWithList.forEach(input => {
+        const listId = input.getAttribute('list');
+        if (!listId) return;
+        const dl = contentWrapper.querySelector<HTMLDataListElement>(
+          `datalist[id="${listId}"]`
+        );
+        if (!dl) return; // datalist might live outside this wrapper; leave as-is
+        const uniqueId = `${listId}-${rowIndex}`;
+        dl.id = uniqueId;
+        input.setAttribute('list', uniqueId);
+
+        // Move datalist to light DOM (component's light DOM, not shadow DOM)
+        // This allows the input in shadow DOM to associate with it
+        contentWrapper.removeChild(dl);
+        this.appendChild(dl);
+      });
+    } catch {
+      // No-op: best-effort enhancement; never throw during render
+    }
 
     // Inject custom action buttons if available
     this.injectActionButtons(contentWrapper, mode);
@@ -688,7 +768,33 @@ export class CkEditableArray extends HTMLElement {
       if (value === undefined || value === null) {
         return '';
       }
+      // If the value is an array, return a comma separated string
+      if (Array.isArray(value)) {
+        return (value as unknown as string[]).join(', ');
+      }
       return String(value);
+    }
+    return data;
+  }
+
+  /**
+   * Resolve the raw bound value (not coerced to string) for a key on a row
+   * @param data - row data
+   * @param key - dot notation key
+   */
+  private resolveBindingRawValue(data: EditableRow, key: string): unknown {
+    if (this.isRecord(data)) {
+      if (!key) return undefined;
+      const keys = key.split('.');
+      let value: unknown = data;
+      for (const k of keys) {
+        if (value && typeof value === 'object' && k in value) {
+          value = (value as Record<string, unknown>)[k];
+        } else {
+          return undefined;
+        }
+      }
+      return value;
     }
     return data;
   }
@@ -703,16 +809,22 @@ export class CkEditableArray extends HTMLElement {
   private commitRowValue(
     rowIndex: number,
     key: string,
-    nextValue: string
+    nextValue: string | string[] | boolean
   ): void {
     if (!this.isValidRowIndex(rowIndex)) {
       return;
     }
 
-    const normalizedNext = nextValue ?? '';
+    const normalizedNext: string | string[] | boolean =
+      nextValue === undefined || nextValue === null ? '' : nextValue;
     const currentValue = this.resolveBindingValue(this._data[rowIndex], key);
 
-    if (currentValue === normalizedNext) {
+    // Short-circuit if nothing changed. For arrays, compare joined string.
+    const normalizedCurrent = currentValue ?? '';
+    const normalizedNextStr = Array.isArray(normalizedNext)
+      ? (normalizedNext as string[]).join(', ')
+      : String(normalizedNext);
+    if (normalizedCurrent === normalizedNextStr) {
       return;
     }
 
@@ -755,7 +867,14 @@ export class CkEditableArray extends HTMLElement {
         }
       }
     } else {
-      nextData[rowIndex] = normalizedNext;
+      // If the row is a primitive value, avoid setting the entire row to an array/boolean.
+      if (Array.isArray(normalizedNext)) {
+        nextData[rowIndex] = (normalizedNext as string[]).join(', ');
+      } else if (typeof normalizedNext === 'boolean') {
+        nextData[rowIndex] = String(normalizedNext);
+      } else {
+        nextData[rowIndex] = normalizedNext as string;
+      }
     }
 
     this._data = nextData;
@@ -800,9 +919,29 @@ export class CkEditableArray extends HTMLElement {
         const value = this.resolveBindingValue(this._data[rowIndex], bindKey);
 
         if (node instanceof HTMLInputElement) {
-          // Only update input value if it differs (avoid clobbering user typing)
-          if (node.value !== value) {
-            node.value = value;
+          if (node.type === 'radio') {
+            const shouldCheck = node.value === value;
+            node.checked = shouldCheck;
+            node.setAttribute('aria-checked', shouldCheck ? 'true' : 'false');
+          } else if (node.type === 'checkbox') {
+            const rawVal = this.resolveBindingRawValue(
+              this._data[rowIndex],
+              bindKey
+            );
+            const cbVal = node.value ?? 'on';
+            if (Array.isArray(rawVal)) {
+              node.checked = (rawVal as string[]).includes(cbVal);
+            } else if (typeof rawVal === 'boolean') {
+              node.checked = Boolean(rawVal);
+            } else {
+              node.checked = String(rawVal) === cbVal;
+            }
+            node.setAttribute('aria-checked', node.checked ? 'true' : 'false');
+          } else {
+            // Only update input value if it differs (avoid clobbering user typing)
+            if (node.value !== value) {
+              node.value = value;
+            }
           }
         } else if (node instanceof HTMLTextAreaElement) {
           if (node.value !== value) {
@@ -810,8 +949,19 @@ export class CkEditableArray extends HTMLElement {
           }
         } else if (node instanceof HTMLSelectElement) {
           // Update select element value
-          if (node.value !== value) {
-            node.value = value;
+          if (node.multiple) {
+            // If the bound value is an array, ensure matching options are selected
+            const valuesArr =
+              value === ''
+                ? []
+                : (value as string).split(',').map(s => s.trim());
+            Array.from(node.options).forEach(opt => {
+              opt.selected = valuesArr.includes(opt.value);
+            });
+          } else {
+            if (node.value !== value) {
+              node.value = value;
+            }
           }
         } else {
           if (node.textContent !== value) {

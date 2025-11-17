@@ -355,7 +355,12 @@ The `data-bind` attribute works with the following element types:
 - **Text inputs**: `<input type="text">`, `<input type="email">`, `<input type="date">`, etc.
 - **Textareas**: `<textarea data-bind="field"></textarea>`
 - **Select dropdowns**: `<select data-bind="field"><option>...</option></select>`
+- **Select dropdowns**: `<select data-bind="field"><option>...</option></select>`
+- **Multi-select dropdowns**: `<select multiple data-bind="field"><option>...</option></select>` — supports mapping to arrays for object rows. In display mode, values are joined with `, `.
+- **Combo (datalist)**: `<input list="id" data-bind="field">` paired with `<datalist id="id">`
 - **Radio buttons**: Multiple `<input type="radio">` elements with the same `data-bind` (see below)
+ - **Radio buttons**: Multiple `<input type="radio">` elements with the same `data-bind` (see below)
+ - **Checkbox groups**: Multiple `<input type="checkbox">` elements sharing the same `data-bind` map to an array field (e.g., `tagsCheckbox: ['ux', 'backend']`). A single checkbox with a `data-bind` maps to a boolean value on the row.
 - **Display elements**: `<span>`, `<div>`, or any element (sets `textContent` in display mode)
 
 **Select Element Example:**
@@ -371,6 +376,24 @@ The `data-bind` attribute works with the following element types:
 ```
 
 The component automatically sets the selected option based on the data value and listens for changes.
+
+**Combo (Datalist) Example:**
+```html
+<template slot="edit">
+  <input list="category-list" data-bind="category" />
+  <datalist id="category-list">
+    <option value="feature"></option>
+    <option value="bug"></option>
+    <option value="research"></option>
+    <option value="test"></option>
+  </datalist>
+</template>
+```
+
+Notes:
+- The component ensures datalist IDs are unique per row when templates are cloned, by suffixing with the row index (e.g., `category-list-0`).
+- The corresponding `input[list]` attribute is updated to reference the unique id.
+- Combo inputs use the `input` event for real-time updates, same as text inputs.
 
 #### Radio Groups
 
@@ -393,6 +416,26 @@ Example:
 ```
 
 If you set the component's `name` attribute, all radios for a given row will receive a consistent name pattern (`name[rowIndex].priority`) ensuring mutual exclusivity within that row.
+
+**Multi-select Example:**
+```html
+<template slot="edit">
+  <select multiple data-bind="tags">
+    <option value="frontend">Frontend</option>
+    <option value="backend">Backend</option>
+    <option value="ux">UX</option>
+  </select>
+</template>
+```
+
+**Checkbox Group Example:**
+```html
+<template slot="edit">
+  <label><input type="checkbox" value="frontend" data-bind="tagsCheckbox" /> Frontend</label>
+  <label><input type="checkbox" value="backend" data-bind="tagsCheckbox" /> Backend</label>
+  <label><input type="checkbox" value="ux" data-bind="tagsCheckbox" /> UX</label>
+</template>
+```
 
 ### Validation Attributes
 

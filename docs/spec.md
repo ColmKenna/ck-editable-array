@@ -199,12 +199,14 @@ Does NOT fire when:
 - **Text inputs**: `<input>` elements (text, email, date, etc.)
 - **Textareas**: `<textarea>` elements
 - **Select dropdowns**: `<select>` elements with `<option>` children
+- **Combo (datalist)**: `<input list="...">` paired with `<datalist id="...">`
 - **Radio buttons**: Multiple `<input type="radio">` elements with same `data-bind`
 - **Display elements**: Any element for display mode (uses `textContent`)
 
 **Input Event Handling:**
 - Text inputs and textareas: Use `input` event for immediate updates
 - Select dropdowns: Use `change` event when selection changes
+- Combo (datalist): Uses `input` event; component remaps datalist IDs per row to avoid duplicates
 - Radio buttons: Use `change` event when radio is checked
 
 **Acceptance Criteria:**
@@ -215,6 +217,7 @@ Does NOT fire when:
 - Changes to inputs update the internal data array
 - `datachanged` event fires on user edits
 - Select elements show correct selected option in edit mode
+- Combo inputs present suggestions and bind text value correctly
 - Radio buttons show correct checked state based on data value
 
 ---

@@ -8,13 +8,14 @@
     body { font-family: system-ui, sans-serif; padding: 24px; background:#f5f7fa; }
     h1 { margin-top:0; }
     ck-editable-array { display:block; max-width:860px; margin:0 0 40px; padding:20px; border:1px solid #d1d9e6; background:#fff; border-radius:12px; }
-    .row-display { display:grid; grid-template-columns: 140px 120px 130px 100px 1fr auto; gap:12px; align-items:center; padding:10px 12px; border:1px solid #e2e8f0; border-radius:8px; background:#ffffff; font-size:0.85rem; }
+  .row-display { display:grid; grid-template-columns: 140px 120px 130px 140px 100px 1fr auto; gap:12px; align-items:center; padding:10px 12px; border:1px solid #e2e8f0; border-radius:8px; background:#ffffff; font-size:0.85rem; }
     .row-edit { display:grid; grid-template-columns: repeat(6, 1fr); gap:12px; padding:16px; border:2px solid #805ad5; border-radius:10px; background:#fdfcff; }
     .row-edit[data-row-invalid] { border-color:#e53e3e; }
     fieldset { border:none; padding:0; margin:0; }
     legend { font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
     label.inline { display:flex; align-items:center; gap:4px; font-size:0.7rem; }
-    input[type="date"], select, input[list], input[type="text"] { width:100%; padding:6px 8px; font-size:0.75rem; }
+  input[type="date"], select, input[list], input[type="text"] { width:100%; padding:6px 8px; font-size:0.75rem; }
+  select[multiple] { min-height:72px; }
     .actions { display:flex; gap:6px; justify-self:flex-end; }
     button { cursor:pointer; font-size:0.7rem; padding:6px 10px; border-radius:4px; border:none; }
     button[data-action=toggle] { background:#4299e1; color:#fff; }
@@ -34,11 +35,15 @@
     <!-- Display mode template -->
     <template slot="display">
       <div class="row-display">
-        <span data-bind="date"></span>
-        <span data-bind="status"></span>
-        <span data-bind="category"></span>
-        <span data-bind="priority"></span>
-        <span data-bind="notes"></span>
+  <span data-bind="date"></span>
+  <span data-bind="status"></span>
+  <span data-bind="category"></span>
+  <span title="Tags (multi-select)">Tags:</span>
+  <span data-bind="tags"></span>
+  <span title="Tags (checkbox)">Tags (checkbox):</span>
+  <span data-bind="tagsCheckbox"></span>
+  <span data-bind="priority"></span>
+  <span data-bind="notes"></span>
         <div class="actions">
           <button data-action="toggle">Edit</button>
           <button data-action="delete">Delete</button>
@@ -66,14 +71,14 @@
           <span data-field-error="status"></span>
         </div>
         <div>
-          <legend>Category (Combo)</legend>
-          <input list="category-list" data-bind="category" aria-label="Category" placeholder="Choose or type" />
-          <datalist id="category-list">
-            <option value="feature"></option>
-            <option value="bug"></option>
-            <option value="research"></option>
-            <option value="test"></option>
-          </datalist>
+          <legend>Category</legend>
+          <select data-bind="category" aria-label="Category">
+            <option value="">--</option>
+            <option value="feature">Feature</option>
+            <option value="bug">Bug Fix</option>
+            <option value="research">Research</option>
+            <option value="test">Testing</option>
+          </select>
           <span data-field-error="category"></span>
         </div>
         <fieldset>
@@ -87,6 +92,24 @@
           <legend>Notes</legend>
           <input type="text" data-bind="notes" placeholder="Short notes" />
           <span data-field-error="notes"></span>
+        </div>
+        <div>
+          <legend>Tags (multi-select)</legend>
+          <select multiple data-bind="tags" aria-label="Tags">
+            <option value="frontend">Frontend</option>
+            <option value="backend">Backend</option>
+            <option value="ux">UX</option>
+            <option value="ops">Ops</option>
+          </select>
+          <span data-field-error="tags"></span>
+        </div>
+        <div>
+          <legend>Tags (checkbox)</legend>
+          <label class="inline"><input type="checkbox" data-bind="tagsCheckbox" value="design" /> Design</label>
+          <label class="inline"><input type="checkbox" data-bind="tagsCheckbox" value="infrastructure" /> Infrastructure</label>
+          <label class="inline"><input type="checkbox" data-bind="tagsCheckbox" value="security" /> Security</label>
+          <label class="inline"><input type="checkbox" data-bind="tagsCheckbox" value="qa" /> QA</label>
+          <span data-field-error="tagsCheckbox"></span>
         </div>
         <div style="grid-column:4 / -1; display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
           <div class="error-summary" data-error-summary role="alert" aria-live="polite"></div>
@@ -113,19 +136,23 @@
     sched.schema = {
       required: ['date','status','category','priority'],
       properties: {
-        notes: { minLength: 3 }
+        notes: { minLength: 3 },
+        tags: {},
+        tagsCheckbox: {}
       }
     };
 
     // Provide a factory for new rows (defaults date to today)
-    sched.newItemFactory = () => {
+  sched.newItemFactory = () => {
       const today = new Date().toISOString().substring(0,10);
       return {
         date: today,
         status: 'planned',
         category: 'feature',
         priority: 'medium',
-        notes: ''
+        notes: '',
+        tags: ['frontend'],
+  tagsCheckbox: ['infrastructure']
       };
     };
 
@@ -136,14 +163,18 @@
         status: 'planned',
         category: 'feature',
         priority: 'high',
-        notes: 'Initial kickoff'
+        notes: 'Initial kickoff',
+    tags: ['frontend'],
+    tagsCheckbox: ['security']
       },
       {
         date: '2025-11-20',
         status: 'in-progress',
         category: 'bug',
         priority: 'low',
-        notes: '' // Will show validation for notes length only if edited & schema constraint
+        notes: '', // Will show validation for notes length only if edited & schema constraint
+  tags: ['backend'],
+  tagsCheckbox: ['qa']
       }
     ];
 
