@@ -25,6 +25,12 @@ The component uses custom `data-*` attributes for declarative behavior:
 3. All edits create deep clones; original data never mutates
 4. Changes emit `datachanged` event with fresh cloned snapshot
 
+### Modal Edit Mode
+- Opt in by adding the `modal-edit` attribute or setting `el.modalEdit = true`.
+- Display rows stay inline; the active edit template is rendered inside a built-in modal overlay (`part="modal"`) with a dialog surface (`part="modal-surface"`, `role="dialog"`, `aria-modal="true"`). The shared `hidden` class toggles visibility/`aria-hidden`.
+- Save closes the modal and dispatches `datachanged`; Cancel closes the modal without emitting `datachanged` and restores the snapshot.
+- Styling hooks: overlay uses classes `modal-overlay`/`modal-surface`; see `examples/demo-modal-edit.html` for a styled reference. Automated coverage lives in `tests/ck-editable-array/ck-editable-array.modal-edit.test.ts`.
+
 ## TDD Development Workflow
 
 **MANDATORY**: Tests must be written before implementation code. No exceptions.
@@ -45,6 +51,7 @@ All tests live in `tests/ck-editable-array/`:
 - `ck-editable-array.step6.save-cancel.test.ts` — Save/cancel, toggle events
 - `ck-editable-array.step7.validation.test.ts` — Schema-driven validation (2000+ lines)
 - `ck-editable-array.step8.cloning.test.ts` — Deep cloning, immutability guarantees
+- `ck-editable-array.modal-edit.test.ts` — Modal overlay edit mode (Step 9)
 - `ck-editable-array.accessibility.test.ts` — ARIA attributes, keyboard navigation
 - `ck-editable-array.security.test.ts` — XSS protection via `textContent`
 

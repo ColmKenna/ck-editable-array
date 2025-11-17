@@ -156,6 +156,7 @@ For older browsers, use the [webcomponents polyfills](https://github.com/webcomp
 - **Nested Properties**: Support for dot notation in data binding (e.g., `person.name`)
 - **Soft Delete**: Mark rows as deleted without removing them from the array
 - **Exclusive Locking**: Only one row can be edited at a time
+- **Modal Edit Option**: Opt-in to render the edit template in a built-in modal overlay (`modal-edit`)
 
 ## API Reference
 
@@ -165,6 +166,7 @@ For older browsers, use the [webcomponents polyfills](https://github.com/webcomp
 |-----------|------|---------|-------------|
 | `name` | string | `""` | Base name for form field naming. When set, inputs get names like `name[0].fieldName` |
 | `readonly` | boolean | `false` | When present, disables all editing functionality (add, edit, delete, restore) |
+| `modal-edit` | boolean | `false` | When present, edit templates render inside a built-in modal dialog instead of inline rows |
 
 **Example:**
 ```html
@@ -186,6 +188,7 @@ For older browsers, use the [webcomponents polyfills](https://github.com/webcomp
 | `data` | `Array<any>` | **Getter/Setter.** The array of row data. Can be primitives (strings, numbers) or objects. Setting this property triggers a re-render. Reading returns a deep clone for immutability. |
 | `schema` | `object \| null` | **Getter/Setter.** Validation schema in JSON Schema-like format. Supports `required` array and `properties` with `minLength` constraints. Set to `null` to disable validation. |
 | `newItemFactory` | `() => any` | **Getter/Setter.** Factory function that creates new items when the Add button is clicked. Default returns an empty object `{}`. Customize to provide default values for new rows. |
+| `modalEdit` | `boolean` | Mirrors the `modal-edit` attribute. Set to `true` to render edit templates in the modal overlay instead of inline. |
 
 **Example:**
 ```javascript
@@ -222,6 +225,30 @@ el.newItemFactory = () => ({
   active: true
 });
 ```
+
+### Modal edit mode
+
+Enable modal editing by adding the `modal-edit` attribute (or setting `el.modalEdit = true`). The edit template renders inside a built-in modal dialog with `role="dialog"` and `aria-modal="true"`, while display rows remain inline. Save closes the modal and fires `datachanged`; Cancel closes without emitting `datachanged`.
+
+```html
+<ck-editable-array modal-edit>
+  <template slot="display">
+    <div class="row-display">
+      <span data-bind="name"></span>
+      <button data-action="toggle">Edit</button>
+    </div>
+  </template>
+  <template slot="edit">
+    <div class="row-edit">
+      <input data-bind="name" />
+      <button data-action="save">Save</button>
+      <button data-action="cancel">Cancel</button>
+    </div>
+  </template>
+</ck-editable-array>
+```
+
+See `examples/demo-modal-edit.html` for a full demo with styling.
 
 ### Methods
 

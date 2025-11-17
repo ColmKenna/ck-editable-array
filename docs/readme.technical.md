@@ -148,6 +148,14 @@ The component uses internal properties to track state:
 
 These markers are filtered out when data is exposed via the public `data` getter.
 
+### Modal edit rendering
+
+- Opt in with the `modal-edit` attribute or `modalEdit` property. Inline rendering remains the default.
+- Shadow DOM now includes a modal overlay (`part="modal"`, class `modal-overlay`) and a dialog surface (`part="modal-surface"`, class `modal-surface`) with `role="dialog"` and `aria-modal="true"`.
+- When modal editing is enabled, the rows container renders only display templates; the active row's edit template is injected into the modal surface and marked with the same `data-row`/`data-mode` attributes so existing binding and validation utilities keep working.
+- `render()` clears modal content on every run, reusing `openModal`/`closeModal` helpers to toggle the shared hidden class and `aria-hidden` flag.
+- Exclusive locking and event contracts are unchanged: only one row edits at a time, `datachanged` still fires on Save, and Cancel closes the modal without emitting `datachanged`.
+
 ## Architecture Overview
 
 The `ck-editable-array` component follows a Shadow DOM-based architecture with template-driven rendering and reactive data binding.

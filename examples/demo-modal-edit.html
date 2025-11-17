@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ck-editable-array — Modal Edit Demo</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root { color-scheme: light; }
+    body { font-family: system-ui, sans-serif; padding: 24px; background:#f5f7ff; }
+    h1 { margin: 0 0 12px; }
+    p { margin: 0 0 18px; max-width: 720px; }
+    ck-editable-array { display:block; padding:16px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+    .row-display { display:flex; align-items:center; gap:12px; padding:12px; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc; }
+    .row-display strong { min-width:120px; }
+    .row-edit { display:grid; gap:10px; padding:0; }
+    .row-edit label { display:grid; gap:6px; font-size:0.9rem; color:#1f2937; }
+    .row-edit input { padding:8px 10px; border-radius:6px; border:1px solid #cbd5e1; }
+    .row-edit .actions { display:flex; gap:10px; justify-content:flex-end; }
+    button { cursor:pointer; border-radius:6px; border:1px solid #cbd5e1; padding:8px 12px; font-weight:600; }
+    button[data-action="toggle"] { background:#2563eb; color:#fff; border-color:#1d4ed8; }
+    button[data-action="save"] { background:#16a34a; color:#fff; border-color:#15803d; }
+    button[data-action="cancel"] { background:#e2e8f0; }
+    pre { background:#0f172a; color:#e2e8f0; padding:12px; border-radius:8px; font-size:0.8rem; }
+  </style>
+</head>
+<body>
+  <h1>Modal Edit Mode</h1>
+  <p>Enable <code>modal-edit</code> to render the edit template inside a built-in modal overlay. Display rows stay in place while edits happen in the dialog.</p>
+
+  <ck-editable-array id="contacts" modal-edit>
+    <template slot="display">
+      <div class="row-display">
+        <strong data-bind="name"></strong>
+        <span data-bind="email"></span>
+        <button data-action="toggle">Edit</button>
+      </div>
+    </template>
+    <template slot="edit">
+      <div class="row-edit">
+        <label>
+          Name
+          <input data-bind="name" aria-label="Name" />
+        </label>
+        <label>
+          Email
+          <input type="email" data-bind="email" aria-label="Email" />
+        </label>
+        <div class="actions">
+          <button data-action="cancel">Cancel</button>
+          <button data-action="save">Save</button>
+        </div>
+      </div>
+    </template>
+  </ck-editable-array>
+
+  <pre id="log" aria-live="polite">datachanged: (pending)</pre>
+
+  <script type="module">
+    import '../dist/ck-editable-array/ck-editable-array.esm.js';
+
+    const el = document.getElementById('contacts');
+    el.data = [
+      { name: 'Alex Martin', email: 'alex@example.com' },
+      { name: 'Jordan Chen', email: 'jordan@example.com' },
+    ];
+    el.addEventListener('datachanged', e => {
+      document.getElementById('log').textContent =
+        'datachanged: ' + JSON.stringify(e.detail.data, null, 2);
+    });
+  </script>
+</body>
+</html>

@@ -1065,3 +1065,19 @@ Test status: All 195 tests pass (16 suites). No regressions.
 - Combo inputs continue to use the standard `input` event for data updates.
 - If a datalist is defined outside the row wrapper (global scope), the component leaves its id unchanged.
 
+## 2025-11-17 - Baseline before modal edit feature
+
+- Goal: Capture current state before adding modal-based edit mode support (feature request to allow editing in a modal rather than inline).
+- Current capabilities: Inline display/edit templates per row with locking (single row editing at a time), add/save/cancel/toggle/delete/restore actions, validation, custom buttons, select/multiselect/checkbox radio/datalist support, style mirroring, and immutable data cloning.
+- Known limitations: Edit flows are strictly inline; no modal presentation or focus trapping for edit mode exists.
+- Test status: All 205 tests pass (16 suites) via `npm test`.
+- Files touched: Baseline entry only (no code changes yet).
+
+## 2025-11-17 - Modal edit mode (Step 9)
+
+- Goal: Add an opt-in modal experience for edit templates so edits can happen in a dialog instead of inline.
+- RED: Added `tests/ck-editable-array/ck-editable-array.modal-edit.test.ts` with 3 tests covering modal rendering on toggle, save dispatching `datachanged` while closing the modal, and cancel closing without events or mutations.
+- GREEN: Implemented `modal-edit` attribute/property, modal overlay/surface parts in shadow DOM, render path that injects the active edit wrapper into the modal (display rows stay inline), and open/close helpers using the shared hidden class and `aria-hidden`.
+- Docs & Demo: Updated `docs/README.md`, `docs/spec.md`, and `docs/readme.technical.md` to document modal edit behavior; added `examples/demo-modal-edit.html` showcasing the feature.
+- Test status: All 208 tests pass (17 suites) via `npm test` (jest completed successfully before the harness timeout warning).
+

@@ -53,6 +53,7 @@ The component provides an editable array interface with:
 | Step 7 | Validation | Validation System | ✅ Implemented | `step7.validation.test.ts` |
 | Step 8.1 | Data Immutability | Data Cloning & Immutability | ✅ Implemented | `step8.cloning.test.ts` |
 | Step 8.2 | Data Immutability | Deep vs Shallow Clone Behaviour | ✅ Implemented | `step8.cloning.test.ts` |
+| Step 9 | Edit Operations | Modal edit mode renders edit template inside modal overlay when `modal-edit` is set | ✅ Implemented | `ck-editable-array.modal-edit.test.ts` |
 | Accessibility | Accessibility | ARIA & Keyboard Support | ✅ Implemented | `accessibility.test.ts` |
 | Security | Security | XSS Protection | ✅ Implemented | `security.test.ts` |
 
@@ -759,6 +760,18 @@ Visual changes when toggling from edit to display:
 - Semantic visibility via CSS class
 
 
+
+---
+ 
+#### Step 9 - Modal Edit Mode (modal-edit attribute)
+
+**Test File:** `tests/ck-editable-array/ck-editable-array.modal-edit.test.ts`
+
+- Opt in via `modal-edit` attribute or `modalEdit = true` property; inline editing remains the default.
+- Edit templates render inside a shadow DOM modal overlay (`part="modal"`) with a dialog surface (`part="modal-surface"`, `role="dialog"`, `aria-modal="true"`). The shared `hidden` class toggles visibility and `aria-hidden`.
+- When modal editing is enabled, the rows container renders only display wrappers; the active row's edit wrapper is injected into the modal surface and keeps `data-row`/`data-mode` markers so existing binding, validation, and save/cancel handlers continue to work.
+- Save closes the modal and dispatches `datachanged` with updated data; Cancel closes the modal without dispatching `datachanged` and rolls the row back to its snapshot.
+- Exclusive locking is preserved: only one row edits at a time and the Add button/toggles are disabled while editing.
 
 ---
 

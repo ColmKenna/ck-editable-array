@@ -75,6 +75,10 @@ export class CkEditableArray extends HTMLElement {
   private static readonly CLASS_DELETED = 'deleted';
   private static readonly CLASS_DISPLAY_CONTENT = 'display-content';
   private static readonly CLASS_EDIT_CONTENT = 'edit-content';
+  private static readonly CLASS_MODAL_OVERLAY = 'modal-overlay';
+  private static readonly CLASS_MODAL_SURFACE = 'modal-surface';
+  private static readonly PART_MODAL = 'modal';
+  private static readonly PART_MODAL_SURFACE = 'modal-surface';
 
   // ============================================================================
   // PRIVATE PROPERTIES
@@ -90,7 +94,7 @@ export class CkEditableArray extends HTMLElement {
   // ============================================================================
 
   static get observedAttributes(): string[] {
-    return ['name', 'readonly'];
+    return ['name', 'readonly', 'modal-edit'];
   }
 
   constructor() {
@@ -102,7 +106,32 @@ export class CkEditableArray extends HTMLElement {
     if (this.shadowRoot && this.shadowRoot.children.length === 0) {
       // Add base styles for hidden class
       const style = document.createElement('style');
-      style.textContent = `.${CkEditableArray.CLASS_HIDDEN} { display: none !important; }`;
+      style.textContent = `
+.${CkEditableArray.CLASS_HIDDEN} { display: none !important; }
+.${CkEditableArray.CLASS_MODAL_OVERLAY} {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 24px;
+  box-sizing: border-box;
+  z-index: 1000;
+}
+.${CkEditableArray.CLASS_MODAL_SURFACE} {
+  background: #fff;
+  color: inherit;
+  border-radius: 8px;
+  padding: 16px;
+  max-width: 960px;
+  width: min(720px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  box-sizing: border-box;
+}
+`;
       this.shadowRoot.appendChild(style);
 
       const container = document.createElement('div');
@@ -119,6 +148,21 @@ export class CkEditableArray extends HTMLElement {
       container.appendChild(addButtonContainer);
 
       this.shadowRoot.appendChild(container);
+
+      // Create modal overlay for modal edit mode
+      const modalOverlay = document.createElement('div');
+      modalOverlay.setAttribute('part', CkEditableArray.PART_MODAL);
+      modalOverlay.className = `${CkEditableArray.CLASS_MODAL_OVERLAY} ${CkEditableArray.CLASS_HIDDEN}`;
+      modalOverlay.setAttribute('aria-hidden', 'true');
+
+      const modalSurface = document.createElement('div');
+      modalSurface.setAttribute('part', CkEditableArray.PART_MODAL_SURFACE);
+      modalSurface.setAttribute('role', 'dialog');
+      modalSurface.setAttribute('aria-modal', 'true');
+      modalSurface.className = CkEditableArray.CLASS_MODAL_SURFACE;
+      modalOverlay.appendChild(modalSurface);
+
+      this.shadowRoot.appendChild(modalOverlay);
     }
   }
 
@@ -162,6 +206,18 @@ export class CkEditableArray extends HTMLElement {
     }
   }
 
+  get modalEdit(): boolean {
+    return this.hasAttribute('modal-edit');
+  }
+
+  set modalEdit(v: boolean) {
+    if (v) {
+      this.setAttribute('modal-edit', '');
+    } else {
+      this.removeAttribute('modal-edit');
+    }
+  }
+
   connectedCallback(): void {
     // Mirror styles from light DOM to shadow DOM
     this.mirrorStyles();
@@ -189,7 +245,7 @@ export class CkEditableArray extends HTMLElement {
       return;
     }
 
-    if (name === 'name' || name === 'readonly') {
+    if (name === 'name' || name === 'readonly' || name === 'modal-edit') {
       // Re-render to apply the new attribute state
       this.render();
     }
@@ -313,6 +369,11 @@ export class CkEditableArray extends HTMLElement {
 
     const displayTpl = this.getDisplayTemplate();
     const editTpl = this.getEditTemplate();
+    const modalEnabled = this.isModalEditEnabled();
+    const modalSurface = modalEnabled ? this.getModalSurface() : null;
+
+    // Always reset modal content on re-render
+    this.closeModal();
 
     // Check if any row is in edit mode for exclusive locking
     const hasEditingRow = this.isEditLocked();
@@ -329,14 +390,26 @@ export class CkEditableArray extends HTMLElement {
         'display',
         isLocked
       );
-      this.appendRowFromTemplate(
-        editTpl,
-        rowsContainer,
-        item,
-        idx,
-        'edit',
-        isLocked
-      );
+      if (modalEnabled && isEditing && modalSurface && editTpl) {
+        this.appendRowFromTemplate(
+          editTpl,
+          modalSurface,
+          item,
+          idx,
+          'edit',
+          false
+        );
+        this.openModal();
+      } else if (!modalEnabled) {
+        this.appendRowFromTemplate(
+          editTpl,
+          rowsContainer,
+          item,
+          idx,
+          'edit',
+          isLocked
+        );
+      }
     });
 
     // Render Add button
@@ -1026,6 +1099,59 @@ export class CkEditableArray extends HTMLElement {
     return this.shadowRoot.querySelector(
       `[part="${CkEditableArray.PART_ADD_BUTTON}"]`
     ) as HTMLElement | null;
+  }
+
+  /**
+   * Get modal overlay container (wrapper)
+   */
+  private getModalOverlay(): HTMLElement | null {
+    if (!this.shadowRoot) return null;
+    return this.shadowRoot.querySelector(
+      `[part="${CkEditableArray.PART_MODAL}"]`
+    ) as HTMLElement | null;
+  }
+
+  /**
+   * Get modal surface container where edit content is injected
+   */
+  private getModalSurface(): HTMLElement | null {
+    if (!this.shadowRoot) return null;
+    return this.shadowRoot.querySelector(
+      `[part="${CkEditableArray.PART_MODAL_SURFACE}"]`
+    ) as HTMLElement | null;
+  }
+
+  /**
+   * Whether modal-based editing is enabled
+   */
+  private isModalEditEnabled(): boolean {
+    return this.hasAttribute('modal-edit');
+  }
+
+  /**
+   * Hide and clear modal content
+   */
+  private closeModal(): void {
+    const overlay = this.getModalOverlay();
+    const surface = this.getModalSurface();
+    if (surface) {
+      surface.innerHTML = '';
+    }
+    if (overlay) {
+      overlay.classList.add(CkEditableArray.CLASS_HIDDEN);
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  /**
+   * Show modal container
+   */
+  private openModal(): void {
+    const overlay = this.getModalOverlay();
+    if (overlay) {
+      overlay.classList.remove(CkEditableArray.CLASS_HIDDEN);
+      overlay.setAttribute('aria-hidden', 'false');
+    }
   }
 
   /**
