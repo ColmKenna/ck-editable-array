@@ -565,6 +565,43 @@
         border: 1px solid #cbd5e0;
         background: #edf2f7;
         color: #1a202c;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
         cursor: pointer;
         transition: all 0.12s ease-in-out;
         box-shadow: none;
@@ -1436,6 +1473,106 @@ demo4.addEventListener('aftertogglemode', (e) => {
     </div>
 
     <!-- ============================================
+         DEMO 7: MODAL EDIT MODE
+         Demonstrates modal edit overlay (attribute 'modal-edit' or property `modalEdit`)
+         ============================================ -->
+    <div class="demo-section">
+      <div class="section-header">
+        <div class="section-title-group">
+          <h2>🪟 Feature 7: Modal Edit Mode</h2>
+          <div>
+            <span class="feature-badge core">Core</span>
+            <span class="feature-badge accessibility">Accessibility</span>
+          </div>
+        </div>
+        <div class="section-controls">
+          <button class="control-btn" onclick="toggleCodeViewer('code-demo7')">
+            📄 View Source
+          </button>
+          <button class="control-btn" onclick="copyCode('code-demo7')">
+            📋 Copy Code
+          </button>
+        </div>
+      </div>
+      
+      <p class="hint">
+        <strong>Try this:</strong> Click "Edit" on any row to open a modal overlay for editing. This keeps the rest
+        of the list locked and accessible with proper ARIA attributes. The modal respects the `modal-edit`
+        attribute and demonstrates how Save/Cancel behave in overlay mode.
+      </p>
+      
+      <!-- modal-edit enables modal editing for rows -->
+      <ck-editable-array id="demo7" name="modal" modal-edit>
+        <template slot="display">
+          <div class="row-display">
+            <div class="content">
+              <strong><span data-bind="title"></span></strong>
+              <span> — </span>
+              <span data-bind="description"></span>
+            </div>
+            <div class="actions">
+              <button data-action="toggle">Edit</button>
+              <button data-action="delete">Delete</button>
+              <button data-action="restore">Restore</button>
+            </div>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <div class="form-field">
+              <label>Title</label>
+              <input data-bind="title" placeholder="Title" />
+            </div>
+            <div class="form-field">
+              <label>Description</label>
+              <input data-bind="description" placeholder="Description" />
+            </div>
+            <div>
+              <button data-action="save">Save</button>
+              <button data-action="cancel">Cancel</button>
+            </div>
+          </div>
+        </template>
+
+        <style slot="styles">
+          /* Slightly larger modal demo buttons for clarity */
+          button { font-family: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.06); background: #f3f6f9; color: #172025; }
+          button[data-action="save"] { background: #48bb78; color: white; border: none; }
+          button[data-action="cancel"] { background: #718096; color: white; border: none; }
+          button[data-action="toggle"] { background: #4299e1; color: white; border: none; }
+        </style>
+      </ck-editable-array>
+      
+      <!-- Event log for modal demo -->
+      <div class="event-log" id="event-log-7">
+        <div style="color: #a0aec0; font-style: italic;">Waiting for events...</div>
+      </div>
+
+      <!-- Code viewer for modal demo -->
+      <div id="code-demo7" class="code-viewer hidden">
+        <div class="code-viewer-header">
+          <span class="code-viewer-title">Modal Edit Setup</span>
+        </div>
+        <div class="code-viewer-content">
+          <pre><code>&lt;ck-editable-array id="demo7" modal-edit&gt;
+  &lt;!-- display/edit templates --&gt;
+&lt;/ck-editable-array&gt;
+
+&lt;script&gt;
+  // Modal edit mode can be enabled via attribute or property
+  demo7.modalEdit = true; // or: demo7.setAttribute('modal-edit', '')
+
+  demo7.data = [
+    { title: 'Plan sprint', description: 'Plan tasks for next sprint' },
+    { title: 'Retrospective', description: 'Collect feedback from team' }
+  ];
+&lt;/script&gt;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================
          JAVASCRIPT CODE
          Module loading and demo initialization
          ============================================ -->
@@ -1520,6 +1657,7 @@ demo4.addEventListener('aftertogglemode', (e) => {
           initDemo4();
           initDemo5();
           initDemo6();
+          initDemo7();
         } else {
           console.warn('ck-editable-array is not registered after import.');
         }
@@ -1668,6 +1806,59 @@ demo4.addEventListener('aftertogglemode', (e) => {
           { label: 'This is read-only data' },
           { label: 'You can view but not edit' }
         ];
+      }
+
+      /**
+       * Initialize Demo 7: Modal Edit Mode
+       */
+      function initDemo7() {
+        const demo7 = document.getElementById('demo7');
+        if (!demo7) return;
+        
+        // Ensure modal-edit is enabled (the attribute is also set on the element in the HTML)
+        demo7.modalEdit = true;
+
+        // Set initial data
+        demo7.data = [
+          { title: 'Plan sprint', description: 'Plan tasks for next sprint' },
+          { title: 'Retrospective', description: 'Collect feedback from team' }
+        ];
+
+        // Setup event logging similar to demo1
+        const eventLog7 = document.getElementById('event-log-7');
+        if (!eventLog7) return;
+        let eventCount7 = 0;
+
+        const logEvent7 = (eventName, detail) => {
+          eventCount7++;
+          const time = new Date().toLocaleTimeString();
+          const entry = document.createElement('div');
+          entry.className = 'event-entry';
+          entry.innerHTML = `
+            <div>
+              <span class="event-name">${eventName}</span>
+              <span class="event-time"> @ ${time}</span>
+            </div>
+            <div class="event-detail">${JSON.stringify(detail, null, 2)}</div>
+          `;
+          if (eventCount7 === 1) eventLog7.innerHTML = '';
+          eventLog7.insertBefore(entry, eventLog7.firstChild);
+          while (eventLog7.children.length > 5) {
+            eventLog7.removeChild(eventLog7.lastChild);
+          }
+        };
+
+        demo7.addEventListener('datachanged', (e) => {
+          logEvent7('datachanged', { dataLength: e.detail.data.length });
+        });
+
+        demo7.addEventListener('beforetogglemode', (e) => {
+          logEvent7('beforetogglemode', e.detail);
+        });
+
+        demo7.addEventListener('aftertogglemode', (e) => {
+          logEvent7('aftertogglemode', e.detail);
+        });
       }
 
       // Start initialization when DOM is ready
