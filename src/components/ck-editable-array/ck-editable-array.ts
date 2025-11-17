@@ -684,6 +684,7 @@ export class CkEditableArray extends HTMLElement {
 
     // Create a wrapper div with the appropriate class
     const contentWrapper = document.createElement('div');
+    const modalEnabled = this.isModalEditEnabled();
     contentWrapper.className =
       mode === 'display'
         ? CkEditableArray.CLASS_DISPLAY_CONTENT
@@ -711,7 +712,7 @@ export class CkEditableArray extends HTMLElement {
     // If row is in editing mode, hide display and show edit
     // If row is not in editing mode (default), show display and hide edit
     const isEditing = this.isRecord(rowData) && rowData.editing === true;
-    if (mode === 'display' && isEditing) {
+    if (mode === 'display' && isEditing && !modalEnabled) {
       contentWrapper.classList.add(CkEditableArray.CLASS_HIDDEN);
     } else if (mode === 'edit' && !isEditing) {
       contentWrapper.classList.add(CkEditableArray.CLASS_HIDDEN);

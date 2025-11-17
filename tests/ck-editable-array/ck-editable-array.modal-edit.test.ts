@@ -66,6 +66,13 @@ describe('ck-editable-array (modal edit mode)', () => {
     ) as HTMLInputElement;
     expect(nameInput?.value).toBe('Alice');
 
+    // Display content stays visible (no hidden class) while modal is open
+    const displayWrapper = el.shadowRoot!.querySelector(
+      '.display-content[data-row="0"]'
+    ) as HTMLElement;
+    expect(displayWrapper).not.toBeNull();
+    expect(displayWrapper.classList.contains('hidden')).toBe(false);
+
     const rowsContainer = el.shadowRoot!.querySelector(
       '[part="rows"]'
     ) as HTMLElement;

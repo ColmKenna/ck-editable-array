@@ -1077,7 +1077,7 @@ Test status: All 195 tests pass (16 suites). No regressions.
 
 - Goal: Add an opt-in modal experience for edit templates so edits can happen in a dialog instead of inline.
 - RED: Added `tests/ck-editable-array/ck-editable-array.modal-edit.test.ts` with 3 tests covering modal rendering on toggle, save dispatching `datachanged` while closing the modal, and cancel closing without events or mutations.
-- GREEN: Implemented `modal-edit` attribute/property, modal overlay/surface parts in shadow DOM, render path that injects the active edit wrapper into the modal (display rows stay inline), and open/close helpers using the shared hidden class and `aria-hidden`.
+- GREEN: Implemented `modal-edit` attribute/property, modal overlay/surface parts in shadow DOM, render path that injects the active edit wrapper into the modal (display rows stay inline, not hidden), and open/close helpers using the shared hidden class and `aria-hidden`.
 - Docs & Demo: Updated `docs/README.md`, `docs/spec.md`, and `docs/readme.technical.md` to document modal edit behavior; added `examples/demo-modal-edit.html` showcasing the feature.
 - Test status: All 208 tests pass (17 suites) via `npm test` (jest completed successfully before the harness timeout warning).
 
