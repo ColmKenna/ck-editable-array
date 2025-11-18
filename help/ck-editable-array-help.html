@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ck-editable-array – Help</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f7fb;
+      color: #111827;
+    }
+    .page { display: flex; min-height: 100vh; }
+    nav.sidebar {
+      box-sizing: border-box;
+      width: 240px;
+      padding: 20px 18px;
+      background: #f3f4f6;
+      border-right: 1px solid #d1d5db;
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+      max-height: 100vh;
+      overflow-y: auto;
+    }
+    nav.sidebar .brand { font-weight: 600; margin-bottom: 4px; }
+    nav.sidebar .tagline { font-size: 0.8rem; color: #6b7280; margin-bottom: 14px; }
+    nav.sidebar h2 {
+      font-size: 0.9rem;
+      margin: 0 0 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4b5563;
+    }
+    nav.sidebar ul { list-style: none; margin: 0 0 12px; padding: 0; }
+    nav.sidebar li { margin: 2px 0; }
+    nav.sidebar a {
+      display: block;
+      padding: 3px 6px;
+      border-radius: 4px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      color: #111827;
+    }
+    nav.sidebar a:hover, nav.sidebar a:focus {
+      background: #e5e7eb;
+      outline: none;
+    }
+    nav.sidebar .meta { font-size: 0.8rem; color: #6b7280; }
+    main {
+      flex: 1;
+      box-sizing: border-box;
+      padding: 20px 26px 32px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    h1 { margin: 0 0 6px; font-size: 1.7rem; }
+    section { margin-bottom: 2rem; }
+    section > h2 {
+      margin: 0 0 6px;
+      font-size: 1.25rem;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 4px;
+    }
+    h3 { margin: 0.9rem 0 0.35rem; font-size: 1rem; }
+    p { margin: 0.3rem 0; font-size: 0.95rem; line-height: 1.55; }
+    ul, ol { margin: 0.25rem 0 0.7rem 1.4rem; font-size: 0.95rem; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.9rem;
+      background: #e5e7eb;
+      padding: 0 0.2rem;
+      border-radius: 3px;
+    }
+    pre {
+      margin: 0.45rem 0 0.8rem;
+      padding: 0.7rem 0.8rem;
+      background: #111827;
+      color: #e5e7eb;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      overflow: auto;
+    }
+    pre code { background: transparent; padding: 0; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.9rem;
+      margin: 0.5rem 0 1rem;
+    }
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 0.35rem 0.5rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    thead th {
+      background: #f3f4f6;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .note { font-size: 0.85rem; color: #6b7280; }
+    @media (max-width: 900px) {
+      .page { flex-direction: column; }
+      nav.sidebar { position: static; width: auto; border-right: none; border-bottom: 1px solid #d1d5db; }
+      main { padding: 16px 16px 28px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <nav class="sidebar" aria-label="Quick links">
+      <div class="brand">ck-editable-array</div>
+      <div class="tagline">Template-driven editable array field.</div>
+      <h2>Quick links</h2>
+      <ul>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#installation">Installation</a></li>
+        <li><a href="#basic-usage">Basic usage</a></li>
+        <li><a href="#api">Attributes &amp; API</a></li>
+        <li><a href="#events">Events</a></li>
+        <li><a href="#templates">Templates &amp; slots</a></li>
+        <li><a href="#css">CSS &amp; theming</a></li>
+        <li><a href="#frameworks">Using with frameworks</a></li>
+        <li><a href="#examples">Examples</a></li>
+        <li><a href="#example-custom-css">Custom CSS example</a></li>
+        <li><a href="#example-custom-buttons">Custom buttons example</a></li>
+        <li><a href="#example-modal-edit">Modal edit example</a></li>
+        <li><a href="#example-modal-styled">Styled modal example</a></li>
+        <li><a href="#example-modal-validation">Modal validation example</a></li>
+        <li><a href="#accessibility">Accessibility</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+      <div class="meta">
+        Tag: <code>&lt;ck-editable-array&gt;</code><br>
+        Category: form / collection editor
+      </div>
+    </nav>
+
+    <main>
+      <section id="overview">
+        <h1>&lt;ck-editable-array&gt;</h1>
+        <p>
+          <code>&lt;ck-editable-array&gt;</code> renders and manages an editable array of rows (primitive values or objects),
+          using two light-DOM templates: one for display mode and one for edit mode. It wires up add/edit/save/cancel/delete/
+          restore behaviour and emits a <code>datachanged</code> event whenever the underlying data array changes.
+        </p>
+        <p>
+          Common uses include email/phone lists, address lines, and any repeatable form section that needs add/remove/edit
+          capabilities while still posting data back as normal HTML form fields.
+        </p>
+      </section>
+
+      <section id="installation">
+        <h2>Installation</h2>
+        <h3>From npm</h3>
+        <pre><code>npm install @colmkenna/ck-webcomponents/ck-editable-array
+
+// register once in your app entry
+import '@colmkenna/ck-webcomponents/ck-editable-array';</code></pre>
+        <h3>From CDN</h3>
+        <pre><code>&lt;script src="https://unpkg.com/@colmkenna/ck-webcomponents/ck-editable-array@latest/dist/ck-editable-array/ck-editable-array.min.js"&gt;&lt;/script&gt;</code></pre>
+        <p class="note">
+          In this repo, example pages use <code>../dist/ck-editable-array/ck-editable-array.esm.js</code>.
+        </p>
+      </section>
+
+      <section id="basic-usage">
+        <h2>Basic usage</h2>
+        <p>
+          Minimum setup: provide <code>display</code> and <code>edit</code> templates and assign an array to <code>data</code>.
+        </p>
+        <pre><code>&lt;ck-editable-array id="emails" name="emails"&gt;
+  &lt;template slot="display"&gt;
+    &lt;div&gt;
+      &lt;span data-bind="value"&gt;&lt;/span&gt;
+      &lt;button data-action="toggle"&gt;Edit&lt;/button&gt;
+      &lt;button data-action="delete"&gt;Delete&lt;/button&gt;
+      &lt;button data-action="restore"&gt;Restore&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/template&gt;
+  &lt;template slot="edit"&gt;
+    &lt;div&gt;
+      &lt;input data-bind="value" type="email" /&gt;
+      &lt;button data-action="save"&gt;Save&lt;/button&gt;
+      &lt;button data-action="cancel"&gt;Cancel&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/template&gt;
+&lt;/ck-editable-array&gt;
+
+&lt;script type="module"&gt;
+  import '../dist/ck-editable-array/ck-editable-array.esm.js';
+  const el = document.getElementById('emails');
+  el.data = ['alice@example.com', 'bob@example.com'];
+  el.newItemFactory = () =&gt; '';
+  el.addEventListener('datachanged', e =&gt; console.log(e.detail.data));
+&lt;/script&gt;</code></pre>
+      </section>
+
+      <section id="api">
+        <h2>Attributes &amp; API</h2>
+        <h3>Attributes</h3>
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Type</th><th>Default</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>name</code></td>
+              <td>string</td>
+              <td><code>''</code></td>
+              <td>Base name for generated input <code>name</code>s, e.g. <code>person[0].name</code>.</td>
+            </tr>
+            <tr>
+              <td><code>readonly</code></td>
+              <td>boolean</td>
+              <td>absent</td>
+              <td>When present, disables all editing, adding, deleting, and restoring.</td>
+            </tr>
+            <tr>
+              <td><code>modal-edit</code></td>
+              <td>boolean</td>
+              <td>absent</td>
+              <td>When present, renders the edit template in a modal dialog instead of inline. The modal uses <code>::part(modal)</code> for the overlay and <code>::part(modal-surface)</code> for the dialog surface, both fully styleable.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Properties</h3>
+        <table>
+          <thead>
+            <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>data</code></td>
+              <td><code>unknown[]</code></td>
+              <td><code>[]</code></td>
+              <td>Array of rows (primitives or objects). The getter returns a deep-cloned, public-safe snapshot.</td>
+            </tr>
+            <tr>
+              <td><code>schema</code></td>
+              <td>object | null</td>
+              <td><code>null</code></td>
+              <td>JSON-schema-like object supporting <code>required</code> and <code>properties[field].minLength</code>.</td>
+            </tr>
+            <tr>
+              <td><code>newItemFactory</code></td>
+              <td><code>() =&gt; EditableRow</code></td>
+              <td><code>() =&gt; ({})</code></td>
+              <td>Factory for new rows when the Add button is clicked.</td>
+            </tr>
+            <tr>
+              <td><code>modalEdit</code></td>
+              <td>boolean</td>
+              <td><code>false</code></td>
+              <td>Property mirror of the <code>modal-edit</code> attribute.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="events">
+        <h2>Events</h2>
+        <table>
+          <thead>
+            <tr><th>Event</th><th>When</th><th>Detail</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>datachanged</code></td>
+              <td>Whenever a row is added, saved, deleted, restored, or edited (outside of edit mode).</td>
+              <td><code>{ data: unknown[] }</code></td>
+            </tr>
+            <tr>
+              <td><code>beforetogglemode</code></td>
+              <td>Right before a row switches between display and edit.</td>
+              <td><code>{ index, from, to }</code>, cancelable via <code>event.preventDefault()</code>.</td>
+            </tr>
+            <tr>
+              <td><code>aftertogglemode</code></td>
+              <td>Immediately after a row has switched mode.</td>
+              <td><code>{ index, mode }</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <pre><code>const el = document.querySelector('ck-editable-array');
+el.addEventListener('datachanged', (e) =&gt; {
+  console.log('New data:', e.detail.data);
+});</code></pre>
+      </section>
+
+      <section id="templates">
+        <h2>Templates &amp; slots</h2>
+        <h3>Required templates</h3>
+        <ul>
+          <li><code>template[slot="display"]</code> – row layout in read-only mode.</li>
+          <li><code>template[slot="edit"]</code> – row layout in edit mode (usually with inputs).</li>
+        </ul>
+        <h3>Optional slots</h3>
+        <ul>
+          <li><code>template[slot="add-button"]</code> – custom Add button area (use <code>data-action="add"</code>).</li>
+          <li><code>style[slot="styles"]</code> – CSS that is mirrored into the shadow DOM.</li>
+          <li><code>button[slot="button-edit"]</code>, <code>button[slot="button-save"]</code>, etc. – custom action buttons.</li>
+        </ul>
+        <h3>Binding markers</h3>
+        <ul>
+          <li><code>data-bind="field"</code> – bind text/value to a row field (supports nested paths).</li>
+          <li><code>data-action="toggle|save|cancel|delete|restore|add"</code> – wire up built-in actions.</li>
+          <li><code>data-field-error="field"</code> – container for validation messages for that field.</li>
+          <li><code>data-error-summary</code>, <code>data-error-count</code> – optional row-level validation summary.</li>
+        </ul>
+          <h3>Custom action buttons</h3>
+          <p>
+            You can provide your own buttons inside templates and the light DOM; the element wires to buttons using
+            <code>data-action="..."</code>. The Add button is also a slot (<code>slot="add-button"</code>), which lets you inject
+            arbitrary markup or an icon while preserving the built-in behaviour.
+          </p>
+          <pre><code>&lt;!-- Add button (light DOM slot) --&gt;
+  &lt;button slot="add-button" data-action="add" class="add-button"&gt;+ Add&lt;/button&gt;
+
+  &lt;!-- Custom buttons inside templates --&gt;
+  &lt;template slot="display"&gt;
+    &lt;button data-action="toggle" title="Edit"&gt;✎&lt;/button&gt;
+    &lt;button data-action="delete" title="Delete"&gt;🗑&lt;/button&gt;
+  &lt;/template&gt;</code></pre>
+      </section>
+
+      <section id="css">
+        <h2>CSS &amp; theming</h2>
+        <p>
+          The component uses an open shadow DOM. It provides minimal built-in styles (a <code>.hidden</code> helper and
+          modal overlay styling). All row layout and typography come from your templates and optional <code>style[slot="styles"]</code>.
+        </p>
+        <h3>Shadow parts</h3>
+        <ul>
+          <li><code>::part(root)</code> – root container.</li>
+          <li><code>::part(rows)</code> – rows container.</li>
+          <li><code>::part(add-button)</code> – Add button container.</li>
+          <li><code>::part(modal)</code> – modal overlay (when <code>modal-edit</code> is used). Style the backdrop, background color, and blur effects here.</li>
+          <li><code>::part(modal-surface)</code> – modal dialog surface. Style the dialog box, borders, shadows, and animations here.</li>
+        </ul>
+        <pre><code>ck-editable-array {
+  display: block;
+  max-width: 720px;
+  margin: 1rem auto;
+}
+
+ck-editable-array::part(root) {
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+}
+
+/* Style modal overlay and surface */
+ck-editable-array::part(modal) {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+ck-editable-array::part(modal-surface) {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}</code></pre>
+      <h3>Quick example: Custom row styles</h3>
+      <p>Use <code>&lt;style slot="styles"&gt;</code> inside your component to mirror styles into the shadow root and use parts for high-level host styling.</p>
+      <pre><code>&lt;ck-editable-array id="styled" name="tags"&gt;
+  &lt;style slot="styles"&gt;
+    .row { padding: 10px; border-radius: 6px; background: #fff; }
+    .row .label { font-weight: 600; }
+  &lt;/style&gt;
+  &lt;template slot="display"&gt;
+    &lt;div class="row"&gt;&lt;span class="label" data-bind="name"&gt;&lt;/span&gt;&lt;/div&gt;
+  &lt;/template&gt;
+  &lt;template slot="edit"&gt;...&lt;/template&gt;
+&lt;/ck-editable-array&gt;
+
+/* Host-level styling */
+ck-editable-array::part(root) { box-shadow: 0 4px 14px rgba(0,0,0,0.08); }</code></pre>
+      <p class="note">Full runnable example: <a href="ck-editable-array-example-custom-css.html">Custom CSS example – styling with parts and slots</a></p>
+      </section>
+
+      <section id="frameworks">
+        <h2>Using with frameworks</h2>
+
+        <h3>Razor (.cshtml)</h3>
+        <pre><code>&lt;script src="https://unpkg.com/@colmkenna/ck-webcomponents/ck-editable-array@latest/dist/ck-editable-array/ck-editable-array.min.js"&gt;&lt;/script&gt;
+
+&lt;form asp-action="Save"&gt;
+  &lt;ck-editable-array id="people" name="People"&gt;
+    &lt;template slot="display"&gt;
+      &lt;div&gt;
+        &lt;span data-bind="name"&gt;&lt;/span&gt;
+        &lt;button data-action="toggle"&gt;Edit&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/template&gt;
+    &lt;template slot="edit"&gt;
+      &lt;div&gt;
+        &lt;input data-bind="name" /&gt;
+        &lt;button data-action="save"&gt;Save&lt;/button&gt;
+        &lt;button data-action="cancel"&gt;Cancel&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/template&gt;
+  &lt;/ck-editable-array&gt;
+&lt;/form&gt;</code></pre>
+
+        <h3>Blazor (.razor)</h3>
+        <pre><code>&lt;ck-editable-array id="peopleArray" @ref="arrayEl" name="person"&gt;...templates...&lt;/ck-editable-array&gt;
+
+@code {
+  private ElementReference arrayEl;
+  private List&lt;Person&gt; People = new() { new("Alice"), new("Bob") };
+
+  protected override async Task OnAfterRenderAsync(bool firstRender) {
+    if (firstRender) {
+      await JS.InvokeVoidAsync("initEditableArray", arrayEl, People);
+    }
+  }
+}</code></pre>
+
+        <h3>React</h3>
+        <pre><code>import '@colmkenna/ck-webcomponents/ck-editable-array';
+import { useEffect, useRef } from 'react';
+
+function People() {
+  const ref = useRef(null);
+  useEffect(() =&gt; {
+    const el = ref.current;
+    if (!el) return;
+    el.data = [{ name: 'Alice' }, { name: 'Bob' }];
+    const handler = (e) =&gt; console.log(e.detail.data);
+    el.addEventListener('datachanged', handler);
+    return () =&gt; el.removeEventListener('datachanged', handler);
+  }, []);
+  return (&lt;ck-editable-array ref={ref} name="person"&gt;...templates...&lt;/ck-editable-array&gt;);
+}</code></pre>
+
+        <h3>Angular</h3>
+        <pre><code>// app.module.ts
+schemas: [CUSTOM_ELEMENTS_SCHEMA]
+
+// app.component.html
+&lt;ck-editable-array #arrayEl name="person"&gt;...templates...&lt;/ck-editable-array&gt;
+
+// app.component.ts
+@ViewChild('arrayEl') arrayEl!: ElementRef&lt;HTMLElement&gt;;
+ngAfterViewInit() {
+  const el: any = this.arrayEl.nativeElement;
+  el.data = [{ name: 'Alice' }, { name: 'Bob' }];
+}</code></pre>
+      </section>
+
+      <section id="examples">
+        <h2>Examples</h2>
+        <p>Open these files directly in a browser from the <code>help/</code> folder:</p>
+        <ul>
+          <li><a href="ck-editable-array-example-basic.html">Basic example – strings</a></li>
+          <li><a href="ck-editable-array-example-advanced.html">Advanced example – objects &amp; validation</a></li>
+          <li><a href="ck-editable-array-example-custom-css.html">Custom CSS example – styling with parts and slots</a></li>
+          <li><a href="ck-editable-array-example-custom-buttons.html">Custom buttons example – using slotted action buttons</a></li>
+          <li><a href="ck-editable-array-example-modal-edit.html">Modal edit example – editing in an overlay dialog</a></li>
+          <li><a href="ck-editable-array-example-modal-styled.html">Styled modal example – custom modal overlay and surface styling</a></li>
+          <li><a href="ck-editable-array-example-modal-validation.html">Modal validation example – required fields and error messaging</a></li>
+        </ul>
+      </section>
+
+      <section id="example-custom-css">
+        <h2>Custom CSS example (inlined)</h2>
+        <p>Short extract showing CSS mirroring and host parts (full runnable example in the help folder).</p>
+        <pre><code>&lt;ck-editable-array&gt;
+  &lt;style slot="styles"&gt;
+    .row { padding: 10px; border-radius: 6px; background: #fff; }
+    .field { font-size: 14px; }
+  &lt;/style&gt;
+  &lt;template slot="display"&gt;&lt;div class="row"&gt;&lt;span data-bind="name"&gt;&lt;/span&gt;&lt;/div&gt;&lt;/template&gt;
+&lt;/ck-editable-array&gt;</code></pre>
+        <p class="note">Open the full example: <a href="ck-editable-array-example-custom-css.html">Custom CSS example – styling with parts and slots</a></p>
+      </section>
+
+      <section id="example-custom-buttons">
+        <h2>Custom buttons example (inlined)</h2>
+        <p>Short extract showing slotted Add button and custom template buttons wired with <code>data-action</code>.</p>
+        <pre><code>&lt;ck-editable-array&gt;
+  &lt;template slot="display"&gt;
+    &lt;div&gt;
+      &lt;span data-bind="title"&gt;&lt;/span&gt;
+      &lt;button data-action="toggle"&gt;✎&lt;/button&gt;
+      &lt;button data-action="delete"&gt;🗑&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/template&gt;
+  &lt;button slot="add-button" data-action="add"&gt;+ Add&lt;/button&gt;
+&lt;/ck-editable-array&gt;</code></pre>
+        <p class="note">Open the full example: <a href="ck-editable-array-example-custom-buttons.html">Custom buttons example – using slotted action buttons</a></p>
+      </section>
+
+      <section id="example-modal-edit">
+        <h2>Modal edit example (inlined)</h2>
+        <p>Enable <code>modal-edit</code> to render the edit template inside a built-in modal overlay. Display rows stay inline while editing happens in a dialog.</p>
+        <pre><code>&lt;ck-editable-array modal-edit&gt;
+  &lt;template slot="display"&gt;
+    &lt;div&gt;
+      &lt;span data-bind="name"&gt;&lt;/span&gt;
+      &lt;button data-action="toggle"&gt;Edit&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/template&gt;
+  &lt;template slot="edit"&gt;
+    &lt;div&gt;
+      &lt;input data-bind="name" /&gt;
+      &lt;button data-action="save"&gt;Save&lt;/button&gt;
+      &lt;button data-action="cancel"&gt;Cancel&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/template&gt;
+&lt;/ck-editable-array&gt;</code></pre>
+        <p class="note">Open the full example: <a href="ck-editable-array-example-modal-edit.html">Modal edit example – editing in an overlay dialog</a></p>
+      </section>
+
+      <section id="example-modal-styled">
+        <h2>Styled modal example (inlined)</h2>
+        <p>Customize the modal overlay and dialog surface using <code>::part(modal)</code> and <code>::part(modal-surface)</code>. Apply backdrop blur, gradients, shadows, and animations.</p>
+        <pre><code>/* Style the modal overlay with gradient and blur */
+ck-editable-array::part(modal) {
+  background: linear-gradient(135deg, rgba(102,126,234,0.85), rgba(118,75,162,0.85));
+  backdrop-filter: blur(8px);
+}
+
+/* Style the dialog surface */
+ck-editable-array::part(modal-surface) {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 600px;
+  box-shadow: 0 25px 70px rgba(0,0,0,0.4);
+  animation: slideIn 0.3s ease-out;
+}</code></pre>
+        <p class="note">Open the full example: <a href="ck-editable-array-example-modal-styled.html">Styled modal example – custom modal overlay and surface styling</a></p>
+      </section>
+
+      <section id="validation-modal">
+        <h2>Validation in modal edit</h2>
+        <p>
+          Assign a <code>schema</code> to enable validation. Use <code>[data-field-error]</code> for field messages and
+          <code>[data-error-summary]</code> for row summaries. Inputs get <code>aria-invalid</code> when failing rules, and the
+          Save button is disabled until the row is valid.
+        </p>
+        <pre><code>&lt;ck-editable-array id="ex" modal-edit&gt;
+  &lt;template slot="edit"&gt;
+    &lt;div&gt;
+      &lt;div data-error-summary role="alert" aria-live="polite"&gt;&lt;/div&gt;
+      &lt;label&gt;Name &lt;input data-bind="name" /&gt; &lt;span data-field-error="name"&gt;&lt;/span&gt;&lt;/label&gt;
+      &lt;label&gt;Email &lt;input data-bind="email" /&gt; &lt;span data-field-error="email"&gt;&lt;/span&gt;&lt;/label&gt;
+      &lt;button data-action="cancel"&gt;Cancel&lt;/button&gt;
+      &lt;button data-action="save"&gt;Save&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/template&gt;
+&lt;/ck-editable-array&gt;
+
+&lt;script type="module"&gt;
+  const ex = document.getElementById('ex');
+  ex.schema = { required: ['name','email'], properties: { name: { minLength: 2 }, email: { minLength: 5 } } };
+&lt;/script&gt;</code></pre>
+        <p class="note">See the runnable modal demos above for complete working examples with validation.</p>
+      </section>
+
+      <section id="accessibility">
+        <h2>Accessibility</h2>
+        <ul>
+          <li>Invalid inputs receive <code>aria-invalid="true"</code> and can be linked to <code>data-field-error</code> elements.</li>
+          <li><code>data-error-summary</code> containers can be given <code>role="alert"</code> and <code>aria-live</code> for announcements.</li>
+          <li>Modal edit mode uses a dialog surface; ensure your templates provide clear labels and focus handling.</li>
+        </ul>
+      </section>
+
+      <section id="faq">
+        <h2>FAQ</h2>
+        <h3>Does it render anything without templates?</h3>
+        <p>No. You must supply at least <code>display</code> and <code>edit</code> templates.</p>
+        <h3>How do I submit to a server?</h3>
+        <p>Set <code>name</code> on the component and use bound inputs; the generated <code>name</code>s work with normal form posts.</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
+

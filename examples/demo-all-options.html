@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ck-editable-array — All Options Demo</title>
+    <style>
+      /* Basic page + layout styles (trimmed from demo-comprehensive) */
+      * { box-sizing: border-box; }
+      body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 24px; max-width: 1200px; margin: 0 auto; background: #f7fafc; color: #1a202c; }
+      .page-header { text-align: center; padding: 20px; margin-bottom: 16px; }
+      h1 { margin: 0 0 6px 0; font-size: 2rem; }
+      .subtitle { margin: 0 0 16px 0; color: #4a5568; }
+      .demo-section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #e2e8f0; }
+      .section-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom: 12px; }
+      .section-controls { display:flex; gap:8px; }
+      .hint { background: #f1f5f9; padding: 12px; border-radius: 6px; color: #475569; }
+      /* Rows / edit styles small subset */
+      .row-display { padding: 12px; display:flex; gap:8px; align-items:center; }
+      .row-edit { padding: 12px; border-radius: 6px; }
+      /* Buttons */
+      button { padding: 8px 12px; border-radius: 6px; background: #edf2f7; border: 1px solid #cbd5e0; cursor: pointer; }
+      button[data-action="save"] { background: #48bb78; color: white; border: none; }
+      .event-log { background: #111827; color: #e6eef8; padding: 12px; border-radius: 6px; font-family: 'Courier New', monospace; max-height: 300px; overflow-y:auto; border: 1px solid #2d3748; }
+      .code-viewer { margin-top: 12px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; }
+      .code-viewer .code-viewer-header { padding: 8px 10px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; }
+      .code-viewer pre { margin: 0; padding: 12px; background: #0b1220; color: #e6eef8; font-family: 'Courier New', monospace; }
+    </style>
+  </head>
+  <body>
+    <div class="page-header">
+      <h1>ck-editable-array — All Options Demo</h1>
+      <p class="subtitle">Compact, runnable examples that demonstrate the component's API, validation, advanced inputs, modal editing, theming, and custom action slots.</p>
+    </div>
+
+    <div class="demo-section">
+      <div class="section-header">
+        <div>
+          <h2>Basic CRUD + Events</h2>
+          <div class="hint">Add / Edit / Save / Cancel / Delete / Restore — watch events in the logger below.</div>
+        </div>
+        <div class="section-controls">
+          <button onclick="toggleCodeViewer('code-basic')">📄 View Source</button>
+          <button onclick="copyCode('code-basic')">📋 Copy Code</button>
+        </div>
+      </div>
+
+      <ck-editable-array id="basicDemo" name="contact">
+        <template slot="display">
+          <div class="row-display">
+            <div class="content">
+              <strong><span data-bind="name"></span></strong>
+              &nbsp;—&nbsp;
+              <span data-bind="email"></span>
+            </div>
+            <div class="actions">
+              <button data-action="toggle">Edit</button>
+              <button data-action="delete">Delete</button>
+              <button data-action="restore">Restore</button>
+            </div>
+          </div>
+        </template>
+        
+        
+        
+        
+        
+
+        <!-- Scoped styles for the basic demo example -->
+        <style slot="styles">
+          /* Slightly rounded, light buttons inside the component */
+          button { padding: 8px 12px; border-radius: 8px; background: #ffffff; color: #0b1220; border: 1px solid rgba(2,6,23,0.06); }
+          button[data-action="save"] { background: #38a169; color: #fff; border: none; }
+          button[data-action="delete"] { background: #e53e3e; color: #fff; border: none; }
+          button[data-action="restore"] { background: #4299e1; color: #fff; border: none; }
+          button[data-action="toggle"] { background: #2b6cb0; color: #fff; border: none; }
+        </style>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <label>Name</label>
+            <input data-bind="name" />
+            <label>Email</label>
+            <input data-bind="email" />
+            <div style="margin-top:8px">
+              <button data-action="save">Save</button>
+              <button data-action="cancel">Cancel</button>
+            </div>
+          </div>
+        </template>
+
+        <template slot="add-button">
+          <button data-action="add">➕ Add Contact</button>
+        </template>
+      </ck-editable-array>
+
+      <div id="event-log-basic" class="event-log">Waiting for events...</div>
+
+      <div id="code-basic" class="code-viewer hidden" data-component="basicDemo" data-include-data="true">
+        <div class="code-viewer-header">HTML & Data</div>
+        <div class="code-viewer-content"><pre><code>Click View Source</code></pre></div>
+      </div>
+    </div>
+
+    <!-- Advanced inputs demo -->
+    <div class="demo-section">
+      <div class="section-header">
+        <div>
+          <h2>Advanced Inputs</h2>
+          <div class="hint">Demonstrates checkbox groups, radio groups, selects, datalists, and textareas.</div>
+        </div>
+        <div class="section-controls">
+          <button onclick="toggleCodeViewer('code-advanced')">📄 View Source</button>
+          <button onclick="copyCode('code-advanced')">📋 Copy Code</button>
+        </div>
+      </div>
+
+      <ck-editable-array id="advancedDemo" name="advanced">
+        <template slot="display">
+          <div class="row-display">
+            <div class="content">
+              <strong><span data-bind="label"></span></strong>
+              <div><small>Choice: <span data-bind="choice"></span></small></div>
+              <div><small>Tags: <span data-bind="tags"></span></small></div>
+            </div>
+            <div class="actions"><button data-action="toggle">Edit</button></div>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <div class="form-field">
+              <label>Label</label>
+              <input data-bind="label" />
+            </div>
+            <div class="form-field">
+              <label>Choice (radio)</label>
+              <div>
+                <label><input type="radio" name="choice0" value="A" data-bind="choice"> A</label>
+                <label><input type="radio" name="choice0" value="B" data-bind="choice"> B</label>
+                <label><input type="radio" name="choice0" value="C" data-bind="choice"> C</label>
+              </div>
+            </div>
+            <div class="form-field">
+              <label>Tags (checkboxes)</label>
+              <div>
+                <label><input type="checkbox" data-bind="tags" value="urgent"> urgent</label>
+                <label><input type="checkbox" data-bind="tags" value="later"> later</label>
+                <label><input type="checkbox" data-bind="tags" value="optional"> optional</label>
+              </div>
+            </div>
+            <div class="form-field">
+              <label>Category (select)</label>
+              <select data-bind="category">
+                <option value="general">General</option>
+                <option value="task">Task</option>
+                <option value="reminder">Reminder</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Suggestions (datalist)</label>
+              <input list="labels" data-bind="label" />
+              <datalist id="labels">
+                <option value="Follow up">
+                <option value="Onboarding">
+                <option value="Release">
+              </datalist>
+            </div>
+            <div class="form-field">
+              <label>Notes</label>
+              <textarea data-bind="notes"></textarea>
+            </div>
+            <div>
+              <button data-action="save">Save</button>
+              <button data-action="cancel">Cancel</button>
+            </div>
+          </div>
+        </template>
+      </ck-editable-array>
+
+      <div id="code-advanced" class="code-viewer hidden" data-component="advancedDemo" data-include-data="true">
+        <div class="code-viewer-header">Markup & Data</div>
+        <div class="code-viewer-content"><pre><code>Click View Source</code></pre></div>
+      </div>
+    </div>
+
+    <!-- Validation demo -->
+    <div class="demo-section">
+      <div class="section-header">
+        <div>
+          <h2>Validation (Schema)</h2>
+          <div class="hint">Required/minLength with inline field errors and summary. Save disabled when invalid.</div>
+        </div>
+        <div class="section-controls">
+          <button onclick="toggleCodeViewer('code-validation')">📄 View Source</button>
+          <button onclick="copyCode('code-validation')">📋 Copy Code</button>
+        </div>
+      </div>
+
+      <ck-editable-array id="validationDemo" name="user">
+        <template slot="display">
+          <div class="row-display">
+            <div class="content">
+              <strong><span data-bind="name"></span></strong>
+              &nbsp;—&nbsp;<span data-bind="email"></span>
+            </div>
+            <div class="actions"><button data-action="toggle">Edit</button></div>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <div class="error-summary" data-error-summary role="alert" aria-live="polite"></div>
+            <div class="form-field">
+              <label>Name *</label>
+              <input data-bind="name" />
+              <span data-field-error="name" class="field-error"></span>
+            </div>
+            <div class="form-field">
+              <label>Email *</label>
+              <input data-bind="email" />
+              <span data-field-error="email" class="field-error"></span>
+            </div>
+            <div>
+              <button data-action="save">Save</button>
+              <button data-action="cancel">Cancel</button>
+            </div>
+          </div>
+        </template>
+      </ck-editable-array>
+
+      <div id="code-validation" class="code-viewer hidden" data-component="validationDemo" data-include-data="true" data-include-schema="true">
+        <div class="code-viewer-header">Markup, Data & Schema</div>
+        <div class="code-viewer-content"><pre><code>Click View Source</code></pre></div>
+      </div>
+    </div>
+
+    <!-- Nested property binding demo -->
+    <div class="demo-section">
+      <div class="section-header">
+        <div>
+          <h2>Nested Property Binding</h2>
+          <div class="hint">Use dot-notation (person.name) to bind to nested object properties.</div>
+        </div>
+        <div class="section-controls">
+          <button onclick="toggleCodeViewer('code-nested')">📄 View Source</button>
+          <button onclick="copyCode('code-nested')">📋 Copy Code</button>
+        </div>
+      </div>
+
+      <ck-editable-array id="nestedDemo" name="employee">
+        <template slot="display">
+          <div class="row-display">
+            <div class="content"><strong><span data-bind="person.name"></span></strong> — <span data-bind="person.title"></span></div>
+            <div class="actions"><button data-action="toggle">Edit</button></div>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <label>Name</label>
+            <input data-bind="person.name" />
+            <label>Title</label>
+            <input data-bind="person.title" />
+            <div style="margin-top:8px;"><button data-action="save">Save</button> <button data-action="cancel">Cancel</button></div>
+          </div>
+        </template>
+      </ck-editable-array>
+
+      <div id="code-nested" class="code-viewer hidden" data-component="nestedDemo" data-include-data="true">
+        <div class="code-viewer-header">Markup & Data</div>
+        <div class="code-viewer-content"><pre><code>Click View Source</code></pre></div>
+      </div>
+    </div>
+
+    <!-- Modal edit demo -->
+    <div class="demo-section">
+      <div class="section-header">
+        <div>
+          <h2>Modal Edit Mode</h2>
+          <div class="hint">Use the attribute <code>modal-edit</code> or property <code>modalEdit</code> to enable modal edit overlays.</div>
+        </div>
+        <div class="section-controls">
+          <button onclick="toggleCodeViewer('code-modal')">📄 View Source</button>
+          <button onclick="copyCode('code-modal')">📋 Copy Code</button>
+        </div>
+      </div>
+
+      <ck-editable-array id="modalDemo" name="modal" modal-edit>
+        <template slot="display">
+          <div class="row-display">
+            <div class="content"><strong><span data-bind="title"></span></strong><br><small><span data-bind="description"></span></small></div>
+            <div class="actions"><button data-action="toggle">Edit</button></div>
+          </div>
+        </template>
+        <style slot="styles">
+          :host([modal-edit]) .modal-overlay { background: rgba(9, 30, 66, 0.55); backdrop-filter: blur(4px); }
+          :host([modal-edit]) .modal-surface { background: #ffffff; color: #0b1220; border-radius: 12px; padding: 20px; max-width: 720px; box-shadow: 0 22px 64px rgba(2,6,23,0.16); }
+          .row-edit button { padding: 8px 12px; border-radius: 8px; }
+          button[data-action="save"] { background: #38a169; color: white; }
+          button[data-action="cancel"] { background: #94a3b8; color: white; }
+        </style>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <label>Title</label>
+            <input data-bind="title" />
+            <label>Description</label>
+            <input data-bind="description" />
+            <div style="margin-top:8px;"><button data-action="save">Save</button> <button data-action="cancel">Cancel</button></div>
+          </div>
+        </template>
+      </ck-editable-array>
+
+      <div id="code-modal" class="code-viewer hidden" data-component="modalDemo" data-include-data="true">
+        <div class="code-viewer-header">Markup & Data</div>
+        <div class="code-viewer-content"><pre><code>Click View Source</code></pre></div>
+      </div>
+    </div>
+
+    <!-- Custom action slots demo -->
+    <div class="demo-section">
+      <div class="section-header">
+        <div>
+          <h2>Custom Action Buttons (button-* slot)</h2>
+          <div class="hint">Use `slot="button-edit"`, `slot="button-save"`, `slot="button-cancel"`, `slot="button-delete"`, `slot="button-restore"` to inject custom buttons that will be cloned into each row.</div>
+        </div>
+        <div class="section-controls">
+          <button onclick="toggleCodeViewer('code-custom')">📄 View Source</button>
+          <button onclick="copyCode('code-custom')">📋 Copy Code</button>
+        </div>
+      </div>
+
+      <ck-editable-array id="customButtonsDemo" name="customButtons">
+        <template slot="display">
+          <div class="row-display">
+            <div class="content"><span data-bind="label"></span></div>
+            <div class="actions"></div>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <label>Label</label>
+            <input data-bind="label" />
+            <div style="margin-top:8px;"><button data-action="save">Save</button> <button data-action="cancel">Cancel</button></div>
+          </div>
+        </template>
+
+        <!-- Provide custom slots for action buttons that get cloned into each row -->
+        <button slot="button-edit" style="background:#f0ad4e; color:#fff;">✏️ Edit</button>
+        <button slot="button-delete" style="background:#e53e3e; color:#fff;">🗑️ Remove</button>
+        <button slot="button-restore" style="background:#48bb78; color:#fff;">♻️ Restore</button>
+      </ck-editable-array>
+
+      <div id="code-custom" class="code-viewer hidden" data-component="customButtonsDemo" data-include-data="true">
+        <div class="code-viewer-header">Markup & Data</div>
+        <div class="code-viewer-content"><pre><code>Click View Source</code></pre></div>
+      </div>
+    </div>
+
+    <!-- newItemFactory demo -->
+    <div class="demo-section">
+      <div class="section-header">
+        <div><h2>Custom newItemFactory</h2>
+          <div class="hint">Demonstrates creating typed defaults for new rows using <code>newItemFactory</code>.</div>
+        </div>
+        <div class="section-controls"><button onclick="toggleCodeViewer('code-newitem')">📄 View Source</button><button onclick="copyCode('code-newitem')">📋 Copy Code</button></div>
+      </div>
+
+      <ck-editable-array id="factoryDemo" name="factoryDemo">
+        <template slot="display"><div class="row-display"><div class="content"><strong><span data-bind="title"></span></strong></div><div class="actions"><button data-action="toggle">Edit</button></div></div></template>
+        <template slot="edit"><div class="row-edit"><label>Title</label><input data-bind="title" /><div style="margin-top:8px"><button data-action="save">Save</button> <button data-action="cancel">Cancel</button></div></div></template>
+      </ck-editable-array>
+
+      <div id="code-newitem" class="code-viewer hidden" data-component="factoryDemo" data-include-data="true">
+        <div class="code-viewer-header">Markup & Data</div>
+        <div class="code-viewer-content"><pre><code>Click View Source</code></pre></div>
+      </div>
+    </div>
+
+    <!-- All-in-one demo -->
+    <div class="demo-section">
+      <div class="section-header"><div><h2>All-In-One Example</h2><div class="hint">A real-world combination: modal-edit, validation schema, advanced inputs, custom action buttons & theming.</div></div>
+      <div class="section-controls"><button onclick="toggleCodeViewer('code-all')">📄 View Source</button><button onclick="copyCode('code-all')">📋 Copy Code</button></div></div>
+
+      <ck-editable-array id="allDemo" name="allDemo" modal-edit>
+        <template slot="display"><div class="row-display"><div class="content"><strong><span data-bind="person.name"></span></strong> — <span data-bind="person.title"></span><div><small>Tags: <span data-bind="tags"></span></small></div></div><div class="actions"><button data-action="toggle">Edit</button><button data-action="delete">Delete</button></div></div></template>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <div class="error-summary" data-error-summary role="alert" aria-live="polite"></div>
+            <label>Name</label><input data-bind="person.name" />
+            <label>Title</label><input data-bind="person.title" />
+            <label>Tags</label>
+            <div><label><input type="checkbox" data-bind="tags" value="frontend"> frontend</label> <label><input type="checkbox" data-bind="tags" value="backend"> backend</label> <label><input type="checkbox" data-bind="tags" value="ux"> ux</label></div>
+            <div style="margin-top:8px"><button data-action="save">Save</button> <button data-action="cancel">Cancel</button></div>
+          </div>
+        </template>
+
+        <!-- New item factory so added rows have nested shape and tags array populated -->
+        <button slot="button-edit">✏️ Edit</button>
+        <button slot="button-delete">🗑️ Delete</button>
+        <button slot="button-restore">♻️ Restore</button>
+
+        <style slot="styles">
+          :host { --btn-primary: #2b6cb0; --btn-success: #38a169; }
+          .row-display { padding: 12px; border-radius: 8px; background: #fff; }
+          .row-edit { padding: 18px; }
+          /* Slightly larger buttons for the all-in-one example */
+          button { padding: 10px 14px; border-radius: 8px; }
+          button[data-action="save"] { background: var(--btn-success); color: #fff; border: none; }
+          button[data-action="toggle"] { background: var(--btn-primary); color: #fff; border: none; }
+          /* Make the modal surface clearly distinct */
+          :host([modal-edit]) .modal-surface { box-shadow: 0 22px 64px rgba(2,6,23,0.18); }
+        </style>
+
+      </ck-editable-array>
+
+      <div id="code-all" class="code-viewer hidden" data-component="allDemo" data-include-data="true" data-include-schema="true"><div class="code-viewer-header">Print All</div><div class="code-viewer-content"><pre><code>Click View Source</code></pre></div></div>
+    </div>
+
+    <!-- Card-layout styling demo -->
+    <div class="demo-section">
+      <div class="section-header">
+        <div>
+          <h2>Card Layout &amp; Deleted Styling</h2>
+          <div class="hint">Uses <code>style[slot="styles"]</code> to create card-like rows and highlight deleted items.</div>
+        </div>
+        <div class="section-controls">
+          <button onclick="toggleCodeViewer('code-card-styling')">View Source</button>
+          <button onclick="copyCode('code-card-styling')">Copy Code</button>
+        </div>
+      </div>
+
+      <ck-editable-array id="cardStylingDemo" name="cardItem">
+        <template slot="display">
+          <div class="row-display card-row">
+            <div class="content">
+              <div class="card-title"><span data-bind="title"></span></div>
+              <div class="card-subtitle"><span data-bind="subtitle"></span></div>
+            </div>
+            <div class="actions">
+              <button data-action="toggle">Edit</button>
+              <button data-action="delete">Delete</button>
+              <button data-action="restore">Restore</button>
+            </div>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <div class="row-edit card-row card-row--edit">
+            <label>Title</label>
+            <input data-bind="title" />
+            <label>Subtitle</label>
+            <input data-bind="subtitle" />
+            <div style="margin-top:8px">
+              <button data-action="save">Save</button>
+              <button data-action="cancel">Cancel</button>
+            </div>
+          </div>
+        </template>
+
+        <style slot="styles">
+          :host {
+            --card-bg: #0b1120;
+            --card-border: #1f2937;
+            --card-accent: #38bdf8;
+          }
+
+          .display-content .card-row,
+          .edit-content .card-row {
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: #e5e7eb;
+          }
+
+          .display-content.deleted .card-row {
+            opacity: 0.45;
+            text-decoration: line-through;
+          }
+
+          .edit-content .card-row--edit {
+            border-width: 2px;
+            border-color: var(--card-accent);
+          }
+
+          .card-title {
+            font-weight: 600;
+            margin-bottom: 2px;
+          }
+
+          .card-subtitle {
+            font-size: 0.85rem;
+            color: #9ca3af;
+          }
+
+          .actions button {
+            border-radius: 999px;
+            padding: 6px 10px;
+            border: 1px solid rgba(15, 23, 42, 0.5);
+            background: #020617;
+            color: #e5e7eb;
+          }
+
+          .actions button[data-action="toggle"] {
+            border-color: var(--card-accent);
+          }
+
+          .actions button[data-action="delete"] {
+            border-color: #f97373;
+            color: #fecaca;
+          }
+        </style>
+      </ck-editable-array>
+
+      <div id="code-card-styling" class="code-viewer hidden" data-component="cardStylingDemo" data-include-data="true">
+        <div class="code-viewer-header">Card Layout Markup &amp; Data</div>
+        <div class="code-viewer-content"><pre><code>Click View Source</code></pre></div>
+      </div>
+    </div>
+
+    <!-- Table-style layout demo -->
+    <div class="demo-section">
+      <div class="section-header">
+        <div>
+          <h2>Table-Style Layout</h2>
+          <div class="hint">Uses grid layout and internal parts to make rows look like a simple table.</div>
+        </div>
+        <div class="section-controls">
+          <button onclick="toggleCodeViewer('code-table-styling')">View Source</button>
+          <button onclick="copyCode('code-table-styling')">Copy Code</button>
+        </div>
+      </div>
+
+      <div class="hint" style="margin-bottom:8px">
+        <strong>Columns:</strong> Item, Quantity, Price, Actions.
+      </div>
+
+      <ck-editable-array id="tableStylingDemo" name="lineItem">
+        <template slot="display">
+          <div class="row-display table-row">
+            <div class="cell cell-item" data-bind="item"></div>
+            <div class="cell cell-qty" data-bind="quantity"></div>
+            <div class="cell cell-price" data-bind="price"></div>
+            <div class="cell cell-actions">
+              <button data-action="toggle">Edit</button>
+            </div>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <div class="row-edit table-row">
+            <div class="cell cell-item">
+              <input data-bind="item" />
+            </div>
+            <div class="cell cell-qty">
+              <input data-bind="quantity" type="number" min="1" />
+            </div>
+            <div class="cell cell-price">
+              <input data-bind="price" type="number" step="0.01" />
+            </div>
+            <div class="cell cell-actions">
+              <button data-action="save">Save</button>
+              <button data-action="cancel">Cancel</button>
+            </div>
+          </div>
+        </template>
+
+        <style slot="styles">
+          [part="rows"] {
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+          }
+
+          .display-content .table-row,
+          .edit-content .table-row {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) 80px 90px auto;
+            column-gap: 8px;
+            padding: 8px 10px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 0.9rem;
+          }
+
+          .cell-qty,
+          .cell-price {
+            text-align: right;
+          }
+
+          .edit-content .table-row input[data-bind] {
+            width: 100%;
+            padding: 4px 6px;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+          }
+        </style>
+      </ck-editable-array>
+
+      <div id="code-table-styling" class="code-viewer hidden" data-component="tableStylingDemo" data-include-data="true">
+        <div class="code-viewer-header">Table Layout Markup &amp; Data</div>
+        <div class="code-viewer-content"><pre><code>Click View Source</code></pre></div>
+      </div>
+    </div>
+
+    <!-- Global event log -->
+    <div class="demo-section">
+      <h2>Event Log (Global)</h2>
+      <div class="hint">All event logs for a few key demos are printed here.</div>
+      <div id="event-log-global" class="event-log">Waiting for events...</div>
+    </div>
+
+    <script>
+      // Utilities copied from demo-comprehensive for code viewers and clipboard
+      function formatHtml(html) {
+        // Rough pretty-print: indent two spaces for nested tags
+        const lines = html.split(/\n|>\s*</g).filter(Boolean).map(s => s.trim());
+        return lines.join('\n');
+      }
+
+      function formatJson(v) { try { return JSON.stringify(v, null, 2); } catch { return 'null'; } }
+
+      function populateCodeViewer(viewerOrId) {
+        const viewer = typeof viewerOrId === 'string' ? document.getElementById(viewerOrId) : viewerOrId;
+        if (!viewer || viewer.dataset.loaded === 'true') return;
+        const id = viewer.getAttribute('data-component');
+        const includeData = viewer.getAttribute('data-include-data') === 'true';
+        const includeSchema = viewer.getAttribute('data-include-schema') === 'true';
+        const component = id ? document.getElementById(id) : null;
+        const code = viewer.querySelector('code');
+        if (!code) return;
+        const htmlSection = component ? component.outerHTML : '<!-- no component found -->';
+        let scriptSection = '';
+        if (component && (includeData || includeSchema)) {
+          const lines = ['<script>'];
+          lines.push(`  const component = document.getElementById('${id}');`);
+          if (includeSchema) { lines.push('  component.schema = ' + formatJson(component.schema)); }
+          if (includeData) { lines.push('  component.data = ' + formatJson(component.data)); }
+          lines.push('</scr' + 'ipt>');
+          scriptSection = lines.join('\n');
+        }
+        code.textContent = scriptSection ? htmlSection + '\n\n' + scriptSection : htmlSection;
+        viewer.dataset.loaded = 'true';
+      }
+
+      window.toggleCodeViewer = function(viewerId) {
+        const viewer = document.getElementById(viewerId);
+        if (!viewer) return;
+        populateCodeViewer(viewer);
+        viewer.classList.toggle('hidden');
+      };
+
+      window.copyCode = async function(viewerId) {
+        const viewer = document.getElementById(viewerId);
+        if (!viewer) return;
+        populateCodeViewer(viewer);
+        const code = viewer.querySelector('code');
+        if (!code) return;
+        try { await navigator.clipboard.writeText(code.textContent); alert('Copied to clipboard'); } catch (e) { alert('Copy failed: ' + e); }
+      };
+
+      // Event logging helper
+      function logEvent(container, eventName, detail) {
+        if (!container) return;
+        const entry = document.createElement('div');
+        entry.innerHTML = `<div style="font-weight:600">${eventName}</div><pre>${JSON.stringify(detail, null, 2)}</pre>`;
+        if (container.innerText.includes('Waiting for events')) container.innerHTML = '';
+        container.insertBefore(entry, container.firstChild);
+        while (container.children.length > 10) container.removeChild(container.lastChild);
+      }
+
+      // Setup dynamic import + fallback script similar to other demos
+      async function ensureModuleAndSetData() {
+        const path = '../dist/ck-editable-array/ck-editable-array.esm.js';
+        try { await import(path); } catch (err) { console.warn('Dynamic import failed', err); }
+        if (!customElements.get('ck-editable-array')) {
+          await new Promise((resolve, reject) => {
+            const s = document.createElement('script'); s.type = 'module'; s.src = path; s.onload = () => resolve(); s.onerror = (e) => reject(e); document.head.appendChild(s);
+          }).catch((e) => { console.warn('fallback import fail', e); });
+        }
+        // Initialize when component is registered
+        if (customElements.get('ck-editable-array')) {
+          initBasic();
+          initAdvanced();
+          initValidation();
+          initNested();
+          initModal();
+          initCustomButtons();
+          initFactory();
+          initAll();
+          initCardStyling();
+          initTableStyling();
+        } else {
+          console.warn('component not registered');
+        }
+      }
+
+      function initBasic() {
+        const demo = document.getElementById('basicDemo');
+        if (!demo) return;
+        demo.data = [{ name: 'Alice Smith', email: 'alice@example.com' }, { name: 'Bob Jones', email: 'bob@example.com' }];
+        demo.addEventListener('datachanged', (e) => logEvent(document.getElementById('event-log-basic'), 'datachanged', { length: e.detail.data.length }));
+        ['beforetogglemode', 'aftertogglemode'].forEach(evt => demo.addEventListener(evt, e => logEvent(document.getElementById('event-log-basic'), evt, e.detail)));
+
+        // Wire to global event log too
+        demo.addEventListener('datachanged', (e) => logEvent(document.getElementById('event-log-global'), 'basic:datachanged', { length: e.detail.data.length }));
+      }
+
+      function initAdvanced() {
+        const demo = document.getElementById('advancedDemo'); if (!demo) return;
+        demo.data = [{ label: 'Onboarding', choice: 'A', tags: ['urgent'], category: 'general', notes: 'Kick-off meeting' }];
+      }
+
+      function initValidation() {
+        const demo = document.getElementById('validationDemo'); if (!demo) return;
+        demo.schema = { type: 'object', required: ['name', 'email'], properties: { name: { minLength: 1 }, email: { minLength: 3 } } };
+        demo.data = [{ name: 'Alice', email: 'alice@example.com' }, { name: '', email: '' }];
+      }
+
+      function initNested() {
+        const demo = document.getElementById('nestedDemo'); if (!demo) return;
+        demo.data = [{ person: { name: 'Alice Smith', title: 'Engineer' } }, { person: { name: 'Bob Jones', title: 'Designer' } }];
+      }
+
+      function initModal() {
+        const demo = document.getElementById('modalDemo'); if (!demo) return;
+        demo.data = [{ title: 'Plan sprint', description: 'Plan sprint backlog' }, { title: 'Retro', description: 'Retrospective items' }];
+      }
+
+      function initCustomButtons() {
+        const demo = document.getElementById('customButtonsDemo'); if (!demo) return;
+        demo.data = [{ label: 'Foo' }, { label: 'Bar' }];
+        const eventLog = document.getElementById('event-log-global');
+        ['datachanged','beforetogglemode','aftertogglemode'].forEach(evt => demo.addEventListener(evt, (e) => logEvent(eventLog, 'customButtons:' + evt, e.detail)));
+      }
+
+      function initFactory() {
+        const demo = document.getElementById('factoryDemo'); if (!demo) return;
+        demo.data = [{ title: 'Existing' }];
+        // Provide a default new row via factory
+        demo.newItemFactory = function() { return { title: 'New from Factory', createdAt: new Date().toISOString() }; };
+      }
+
+      function initAll() {
+        const demo = document.getElementById('allDemo'); if (!demo) return;
+        demo.schema = { type: 'object', required: ['person'], properties: { person: { type: 'object' } } };
+        demo.data = [ { person: { name: 'Kelly', title: 'PM' }, tags: ['frontend'] } ];
+        // Hook global logging
+        const evt = document.getElementById('event-log-global');
+        ['datachanged','beforetogglemode','aftertogglemode'].forEach(e => demo.addEventListener(e, (ev) => logEvent(evt, 'all:' + e, ev.detail)));
+      }
+
+      function initCardStyling() {
+        const demo = document.getElementById('cardStylingDemo'); if (!demo) return;
+        demo.data = [
+          { title: 'Design spec', subtitle: 'Finalize v2 spec' },
+          { title: 'User interviews', subtitle: 'Schedule next round' }
+        ];
+      }
+
+      function initTableStyling() {
+        const demo = document.getElementById('tableStylingDemo'); if (!demo) return;
+        demo.data = [
+          { item: 'Hosting', quantity: 1, price: 19.99 },
+          { item: 'Support', quantity: 2, price: 49.0 }
+        ];
+      }
+
+      // Start up
+      ensureModuleAndSetData();
+    </script>
+  </body>
+</html>

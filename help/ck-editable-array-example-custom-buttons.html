@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ck-editable-array – Custom Buttons Example</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 24px; }
+    h1 { margin-bottom: 18px; }
+    .controls { margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <h1>ck-editable-array – Custom Buttons Example</h1>
+  <p>This example shows how to add custom action buttons via light DOM slots and how custom button content can wire to native <code>data-action</code> triggers.</p>
+
+  <div class="controls">
+    <label><input id="readonly-toggle" type="checkbox"> Readonly</label>
+  </div>
+
+  <ck-editable-array id="btn-array" name="tasks">
+    <template slot="display">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #e5e7eb;">
+        <span data-bind="title" style="flex:1"></span>
+        <!-- Use a slotted custom button set (buttons still use data-action) -->
+        <div>
+          <button data-action="toggle" title="Edit"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
+          <button data-action="delete" title="Delete"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-4.5l-1-1z"/></svg></button>
+        </div>
+      </div>
+    </template>
+
+    <template slot="edit">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #e5e7eb;">
+        <input data-bind="title" style="flex:1;padding:8px;border:1px solid #d1d5db;border-radius:4px;" />
+        <div>
+          <button data-action="save" title="Save" style="background:#10b981;color:white;border:none;padding:8px 12px;border-radius:4px;">Save</button>
+          <button data-action="cancel" title="Cancel" style="margin-left:6px;padding:8px 12px;border-radius:4px;border:1px solid #d1d5db;">Cancel</button>
+        </div>
+      </div>
+    </template>
+
+    <!-- Add button slot: we add some extra text and a custom icon -->
+    <button slot="add-button" data-action="add" style="background:#6366f1;color:white;padding:10px 14px;border-radius:6px;border:none;">+ Add Task</button>
+  </ck-editable-array>
+
+  <script type="module" src="../dist/ck-editable-array/ck-editable-array.esm.js"></script>
+  <script>
+    const el = document.getElementById('btn-array');
+
+    el.newItemFactory = () => ({ title: '' });
+    el.data = [
+      { title: 'Write documentation' },
+      { title: 'Review pull requests' }
+    ];
+
+    // Toggle readonly mode by setting the attribute
+    document.getElementById('readonly-toggle').addEventListener('change', (e) => {
+      if (e.target.checked) el.setAttribute('readonly', '');
+      else el.removeAttribute('readonly');
+    });
+
+    // Listen to datachanged events
+    el.addEventListener('datachanged', (e) => console.log('Data:', e.detail.data));
+  </script>
+</body>
+</html>

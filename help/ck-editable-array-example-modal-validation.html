@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ck-editable-array – Modal with Validation Example</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f9fafb;
+      color: #111827;
+    }
+    h1 { margin-bottom: 12px; }
+    .description { max-width: 720px; line-height: 1.6; margin-bottom: 20px; }
+    .demo-container { max-width: 640px; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <h1>ck-editable-array – Modal Edit with Validation</h1>
+  <p class="description">
+    This example demonstrates <strong>validation in modal edit mode</strong>. The modal form shows:
+  </p>
+  <ul class="description">
+    <li><strong>Required field validation</strong> – Name and email must be provided</li>
+    <li><strong>Field-level errors</strong> – Error messages appear under each field using <code>[data-field-error]</code></li>
+    <li><strong>Row summary</strong> – <code>[data-error-summary]</code> displays a count of validation errors</li>
+    <li><strong>Automatic Save disable</strong> – Save button is disabled until all validation rules pass</li>
+    <li><strong>Visual feedback</strong> – Invalid inputs get <code>aria-invalid="true"</code> and red styling</li>
+  </ul>
+
+  <div class="demo-container">
+    <ck-editable-array id="contacts" modal-edit name="contacts">
+      <style slot="styles">
+        .row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          margin-bottom: 8px;
+          background: #ffffff;
+        }
+        .row strong { min-width: 120px; }
+        .row-edit {
+          display: grid;
+          gap: 14px;
+          padding: 16px;
+        }
+        [data-error-summary] {
+          padding: 10px;
+          background: #fee2e2;
+          border: 1px solid #fecaca;
+          border-radius: 6px;
+          color: #dc2626;
+          font-size: 13px;
+          font-weight: 600;
+          margin-bottom: 8px;
+        }
+        [data-error-summary]:empty {
+          display: none;
+        }
+        .row-edit label {
+          display: grid;
+          gap: 6px;
+          font-size: 14px;
+          font-weight: 600;
+          color: #374151;
+        }
+        .row-edit input {
+          padding: 10px;
+          border: 2px solid #d1d5db;
+          border-radius: 6px;
+          font-size: 14px;
+          transition: all 0.2s;
+        }
+        .row-edit input:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .row-edit input[aria-invalid="true"] {
+          border-color: #dc2626;
+          box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+        }
+        .row-edit [data-field-error] {
+          color: #dc2626;
+          font-size: 12px;
+          min-height: 18px;
+        }
+        .row-edit .actions {
+          display: flex;
+          gap: 10px;
+          justify-content: flex-end;
+          margin-top: 8px;
+        }
+        button {
+          padding: 8px 16px;
+          border-radius: 6px;
+          border: none;
+          cursor: pointer;
+          font-weight: 600;
+        }
+        button[data-action="toggle"] { background: #3b82f6; color: white; }
+        button[data-action="toggle"]:hover { background: #2563eb; }
+        button[data-action="save"] { background: #10b981; color: white; }
+        button[data-action="save"]:hover { background: #059669; }
+        button[data-action="save"]:disabled {
+          background: #d1d5db;
+          color: #9ca3af;
+          cursor: not-allowed;
+        }
+        button[data-action="cancel"] { background: #e5e7eb; color: #374151; }
+        button[data-action="cancel"]:hover { background: #d1d5db; }
+      </style>
+
+      <template slot="display">
+        <div class="row">
+          <strong data-bind="name"></strong>
+          <span data-bind="email"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      </template>
+
+      <template slot="edit">
+        <div class="row-edit">
+          <div data-error-summary role="alert" aria-live="polite"></div>
+          <label>
+            Full Name *
+            <input data-bind="name" type="text" placeholder="Enter your full name" required />
+            <span data-field-error="name"></span>
+          </label>
+          <label>
+            Email Address *
+            <input data-bind="email" type="email" placeholder="user@example.com" required />
+            <span data-field-error="email"></span>
+          </label>
+          <div class="actions">
+            <button data-action="cancel">Cancel</button>
+            <button data-action="save">Save Changes</button>
+          </div>
+        </div>
+      </template>
+    </ck-editable-array>
+  </div>
+
+  <script type="module" src="../dist/ck-editable-array/ck-editable-array.esm.js"></script>
+  <script>
+    const contactsEl = document.getElementById('contacts');
+
+    // Sample data
+    contactsEl.data = [
+      { name: 'Alice Johnson', email: 'alice@example.com' },
+      { name: 'Bob Smith', email: 'bob@example.com' },
+      { name: 'Carol Martinez', email: 'carol@example.com' }
+    ];
+
+    // Schema validation configuration
+    // - Both fields are required
+    // - Name must be at least 2 characters
+    // - Email must be at least 5 characters
+    contactsEl.schema = {
+      required: ['name', 'email'],
+      properties: {
+        name: { minLength: 2 },
+        email: { minLength: 5 }
+      }
+    };
+
+    // Factory for new rows (used when Add button clicked)
+    contactsEl.newItemFactory = () => ({ name: '', email: '' });
+
+    // Listen to changes
+    contactsEl.addEventListener('datachanged', (e) => {
+      console.log('Updated contacts:', e.detail.data);
+    });
+  </script>
+
+  <style>
+    /* Host-level styling */
+    ck-editable-array {
+      display: block;
+    }
+
+    ck-editable-array::part(root) {
+      padding: 20px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    /* Modal styling */
+    ck-editable-array::part(modal) {
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+    }
+
+    ck-editable-array::part(modal-surface) {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 540px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+  </style>
+</body>
+</html>

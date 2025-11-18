@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ck-editable-array – Advanced Example</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    h1 { margin: 0 0 0.3rem; }
+    p { margin: 0.25rem 0 0.8rem; max-width: 840px; font-size: 0.95rem; }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+      gap: 18px;
+      align-items: flex-start;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: minmax(0, 1fr); }
+    }
+    ck-editable-array {
+      display: block;
+      max-width: 720px;
+      border-radius: 10px;
+      border: 1px solid #1f2937;
+      background: #020617;
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.6);
+      margin-top: 1rem;
+    }
+    ck-editable-array::part(root) {
+      padding: 16px 16px 18px;
+    }
+    ck-editable-array::part(add-button) {
+      margin-top: 12px;
+      text-align: right;
+    }
+    .row-display {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.1fr) auto;
+      gap: 8px 12px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      border-radius: 8px;
+      background: #020617;
+      border: 1px solid #1f2937;
+      font-size: 0.9rem;
+    }
+    .row-display[data-deleted="true"] {
+      opacity: 0.45;
+      text-decoration: line-through;
+    }
+    .row-edit {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.1fr);
+      gap: 8px 12px;
+      padding: 12px 14px;
+      margin-bottom: 6px;
+      border-radius: 8px;
+      background: #020617;
+      border: 2px solid #3b82f6;
+      font-size: 0.9rem;
+    }
+    .row-edit[data-row-invalid] {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.4);
+    }
+    .field-group { display: flex; flex-direction: column; gap: 2px; }
+    .field-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+    }
+    .field-display {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    input[data-bind] {
+      padding: 6px 8px;
+      border-radius: 5px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 0.9rem;
+    }
+    input[data-invalid] {
+      border-color: #ef4444;
+      background: #111827;
+    }
+    .field-error {
+      font-size: 0.75rem;
+      color: #fecaca;
+    }
+    .row-edit-footer {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 2px;
+    }
+    .error-summary { font-size: 0.8rem; color: #fecaca; }
+    .error-count { font-size: 0.8rem; color: #9ca3af; }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+    button {
+      font-size: 0.78rem;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    button[data-action="toggle"]  { background: #1d4ed8; border-color: #1e40af; color: #e5e7eb; }
+    button[data-action="delete"]  { background: #b91c1c; border-color: #7f1d1d; color: #fee2e2; }
+    button[data-action="restore"] { background: #15803d; border-color: #166534; color: #dcfce7; }
+    button[data-action="save"]    { background: #10b981; border-color: #059669; color: #ecfdf5; }
+    button[data-action="cancel"]  { background: #4b5563; border-color: #374151; color: #e5e7eb; }
+    button[data-action="add"]     { background: #0ea5e9; border-color: #0284c7; color: #ecfeff; }
+    .sidebar {
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: #020617;
+      border: 1px solid #1f2937;
+      font-size: 0.85rem;
+    }
+    .sidebar h2 { margin: 0 0 0.4rem; font-size: 1rem; }
+    .sidebar pre {
+      background: #020617;
+      color: #e5e7eb;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 0.78rem;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>ck-editable-array – Advanced Example</h1>
+  <p>
+    This example manages an array of schedule entries (objects) with validation and modal edit mode enabled.
+    Required fields show inline errors and a row-level summary, and all changes are reflected in the live JSON
+    snapshot on the right.
+  </p>
+
+  <div class="layout">
+    <div>
+      <ck-editable-array id="schedule" name="schedule" modal-edit>
+        <template slot="display">
+          <div class="row-display">
+            <div class="field-group">
+              <div class="field-label">Title</div>
+              <div class="field-display" data-bind="title"></div>
+            </div>
+            <div class="field-group">
+              <div class="field-label">Date</div>
+              <div class="field-display" data-bind="date"></div>
+            </div>
+            <div class="actions">
+              <button type="button" data-action="toggle">Edit</button>
+              <button type="button" data-action="delete">Delete</button>
+              <button type="button" data-action="restore">Restore</button>
+            </div>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <div class="field-group">
+              <label class="field-label" for="title-input">Title</label>
+              <input id="title-input" data-bind="title" placeholder="Meeting title">
+              <span class="field-error" data-field-error="title"></span>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="date-input">Date</label>
+              <input id="date-input" data-bind="date" type="date">
+              <span class="field-error" data-field-error="date"></span>
+            </div>
+            <div class="row-edit-footer">
+              <div>
+                <div class="error-summary" data-error-summary role="alert" aria-live="polite"></div>
+                <div class="error-count" data-error-count></div>
+              </div>
+              <div class="actions">
+                <button type="button" data-action="save">Save</button>
+                <button type="button" data-action="cancel">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <template slot="add-button">
+          <button type="button" data-action="add">+ Add entry</button>
+        </template>
+
+        <style slot="styles">
+          .display-content.deleted {
+            opacity: 0.4;
+            text-decoration: line-through;
+          }
+        </style>
+      </ck-editable-array>
+    </div>
+
+    <aside class="sidebar">
+      <h2>Live data (datachanged)</h2>
+      <p>Every change emits a <code>datachanged</code> event with the full array.</p>
+      <pre id="snapshot-log">Waiting for datachanged events...</pre>
+    </aside>
+  </div>
+
+  <script type="module">
+    import '../dist/ck-editable-array/ck-editable-array.esm.js';
+
+    const schedule = document.getElementById('schedule');
+    const log = document.getElementById('snapshot-log');
+
+    schedule.data = [
+      { title: 'Kick-off meeting', date: '2025-11-20' },
+      { title: 'Design review', date: '2025-11-23' }
+    ];
+
+    schedule.newItemFactory = () => ({ title: '', date: '' });
+
+    schedule.schema = {
+      required: ['title', 'date'],
+      properties: {
+        title: { minLength: 3 }
+      }
+    };
+
+    schedule.addEventListener('datachanged', (event) => {
+      log.textContent = JSON.stringify(event.detail.data, null, 2);
+    });
+  </script>
+</body>
+</html>
+

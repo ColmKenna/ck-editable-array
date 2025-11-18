@@ -152,6 +152,18 @@ webcomponent-library/
 └── README.md
 ```
 
+## 📚 Examples
+
+This repository includes several demo HTML pages that showcase different features. Open the `examples/` directory in your browser (or start the local server) and try the following:
+
+- `examples/demo-comprehensive.html` — A large, guided tour across many features (also used as a reference for other examples).
+- `examples/demo-advanced-inputs.html` — Showcases advanced inputs: select, radio, checkbox, datalist.
+- `examples/demo-validation.html` — Validation examples with schema, field-level errors, and ARIA support.
+- `examples/demo-modal-edit.html` — Demonstrates modal overlay edit mode.
+- `examples/demo-simple-strings.html` — Primitive array usage and `newItemFactory` patterns.
+- `examples/demo-all-options.html` — New: a single page that consolidates all public API options (CRUD, validation, single/multi inputs, modal edit, custom buttons, theming, newItemFactory) for quick testing and demonstration.
+
+
 ## 📖 Creating New Components
 
 1. Create a new component file in `src/components/`:
