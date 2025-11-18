@@ -749,6 +749,7 @@
           <li>Provide a custom add button via <code>slot="add-button"</code> to control the label and styling for creating new rows.</li>
           <li>Initialize data in JavaScript (<code>element.data = [...]</code>) and listen for <code>datachanged</code>, <code>beforetogglemode</code>, and <code>aftertogglemode</code> events to sync with your app or analytics.</li>
           <li>Reuse the shared page CSS classes (<code>.row-display</code>, <code>.row-edit</code>) or scope per-instance overrides inside <code>&lt;style slot="styles"&gt;</code> so the styling stays contained to this component.</li>
+          <li>CSS used in this sample (scoped via <code>slot="styles"</code>): <code>.display-content.deleted</code> (dashed orange border, badge, strikethrough), toggles for <code>[data-action="restore"]</code>/<code>[data-action="delete"]</code>, and button theme variables (<code>--btn-*</code>) applied to all <code>button</code> plus per-action colors.</li>
         </ul>
       </div>
       
@@ -968,6 +969,7 @@
           <li>Place an element with <code>data-error-summary</code> for form-level messages and <code>data-field-error="&lt;field&gt;"</code> spans next to inputs so validation text has a home.</li>
           <li>Bind inputs with <code>data-bind</code> so failed fields are flagged and the Save button stays disabled until the schema passes.</li>
           <li>Customize validation visuals inside a scoped <code>&lt;style slot="styles"&gt;</code> block using selectors like <code>.row-edit[data-row-invalid]</code>, <code>.error-summary</code>, and <code>.field-error</code> to match your brand.</li>
+          <li>CSS used in this sample: buttons are themed per action; <code>.row-edit[data-row-invalid]</code> adds red border/background; <code>.error-summary</code> and <code>.field-error</code> define the alert banner and inline errors.</li>
         </ul>
       </div>
       
@@ -1070,6 +1072,7 @@
           <li>Seed the component with nested objects via <code>element.data = [{ person: {...}, address: {...} }]</code> to keep the shape consistent.</li>
           <li>If users can add rows, set <code>element.newItemFactory</code> to return the same nested skeleton so new rows render with the correct keys.</li>
           <li>Scope layout and button styling for this nested form inside the <code>&lt;style slot="styles"&gt;</code> block; the sample targets buttons locally so other demos remain unaffected.</li>
+          <li>CSS used in this sample: only button styling (base plus <code>[data-action]</code> variants) lives in the scoped <code>style</code> slot, leaving layout to the shared page styles.</li>
         </ul>
       </div>
       
@@ -1180,6 +1183,7 @@
           <li>Listen for <code>beforetogglemode</code> and <code>aftertogglemode</code> to track when locks engage or release (e.g., to log activity or block navigation).</li>
           <li>Style locked states in a scoped <code>&lt;style slot="styles"&gt;</code> block using selectors like <code>.display-content[data-locked]</code> to dim and disable pointer events.</li>
           <li>Keep your templates lightweight: a single <code>data-action="toggle"</code> button is enough to demonstrate locking; the component handles the focus trapping.</li>
+          <li>CSS used in this sample: <code>.display-content[data-locked]</code> applies opacity/grayscale and disables pointer events; button styles (base and per action) are scoped to this instance.</li>
         </ul>
       </div>
       
@@ -1272,6 +1276,7 @@
           <li>Target your own template classes such as <code>.row-display</code>, <code>.row-edit</code>, and <code>.row-display button</code> to control backgrounds, borders, and hover states.</li>
           <li>Use the exposed parts for outer chrome tweaks when needed: <code>::part(root)</code>, <code>::part(rows)</code>, and <code>::part(add-button)</code> (e.g., <code>ck-editable-array#demo5::part(root) { border: none; }</code>).</li>
           <li>Keep base button styles minimal and override per state to layer gradients with readable inputs, as shown with the purple/pink themes in this demo.</li>
+          <li>CSS used in this sample: gradient backgrounds for <code>.row-display</code> (purple) and <code>.row-edit</code> (pink), translucent buttons on display rows, light inputs on gradients, and per-action button overrides inside the scoped <code>style</code> slot.</li>
         </ul>
       </div>
       
@@ -1399,6 +1404,7 @@
           <li>Keep your usual display/edit templates; the component automatically sets inputs to <code>readonly</code> and disables Add/Save controls.</li>
           <li>Style the read-only state with a scoped <code>&lt;style slot="styles"&gt;</code>, targeting selectors like <code>button[disabled]</code> or <code>[readonly]</code> inputs to tone down the UI.</li>
           <li>Flip back to editable mode programmatically by setting <code>readonly = false</code> if you want to reuse the same markup for admin users.</li>
+          <li>CSS used in this sample: scoped button styling plus per-action colors; inputs inherit read-only styling from the component (no custom form CSS beyond buttons).</li>
         </ul>
       </div>
       
@@ -1485,6 +1491,7 @@
           <li>Reuse the same display/edit templates you use for inline mode—no markup changes are needed beyond enabling modal behavior.</li>
           <li>Customize the overlay and surface inside <code>&lt;style slot="styles"&gt;</code> with selectors like <code>.modal-overlay</code> and <code>.modal-surface</code>, or via parts (<code>::part(modal)</code>, <code>::part(modal-surface)</code>) for padding, blur, and borders.</li>
           <li>Listen for <code>beforetogglemode</code> / <code>aftertogglemode</code> to react to modal open/close (e.g., pausing background interactions or logging edits).</li>
+          <li>CSS used in this sample: scoped button theme, delete/restore visibility toggles, deleted-row badge styling, modal overlay blur/tint, modal surface shadow/border, and grid-based edit form spacing.</li>
         </ul>
       </div>
       
