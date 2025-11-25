@@ -29,6 +29,7 @@ interface ValidationResult {
  * JSON Schema-like structure for validation
  */
 interface ValidationSchema {
+  type?: string;
   required?: string[];
   properties?: Record<string, PropertySchema>;
 }
@@ -37,8 +38,9 @@ interface ValidationSchema {
  * Property-level schema definition
  */
 interface PropertySchema {
+  type?: string;
   minLength?: number;
-  // Future: maxLength, pattern, type, etc.
+  // Future: maxLength, pattern, etc.
 }
 
 /**
@@ -85,7 +87,7 @@ export class CkEditableArray extends HTMLElement {
   // ============================================================================
 
   private _data: EditableRow[] = [];
-  private _schema: unknown = null;
+  private _schema: ValidationSchema | null = null;
   private _newItemFactory: () => EditableRow = () => ({});
   private _styleObserver: MutationObserver | null = null;
 
@@ -184,11 +186,11 @@ export class CkEditableArray extends HTMLElement {
     }
   }
 
-  get schema(): unknown {
-    return this._schema;
+  get schema(): ValidationSchema | null {
+    return this._schema as ValidationSchema | null;
   }
 
-  set schema(v: unknown) {
+  set schema(v: ValidationSchema | null | undefined) {
     // Normalize undefined to null for consistency
     this._schema = v === undefined ? null : v;
   }
