@@ -144,4 +144,103 @@ describe('ck-editable-array (modal edit mode)', () => {
     ) as HTMLElement;
     expect(displayName.textContent).toBe('Charlie');
   });
+
+  test('validation failure in modal shows errors in the modal and keeps it open on Save attempt', async () => {
+    const el = document.createElement('ck-editable-array') as CkEditableArray;
+    el.setAttribute('modal-edit', '');
+
+    el.innerHTML = `
+      <template slot="display">
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <span data-bind="email"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      </template>
+      <template slot="edit">
+        <div class="row-edit">
+          <div class="error-summary" data-error-summary></div>
+          <input data-bind="name" aria-label="Name" />
+          <span data-field-error="name"></span>
+          <input data-bind="email" aria-label="Email" />
+          <span data-field-error="email"></span>
+          <button data-action="save">Save</button>
+          <button data-action="cancel">Cancel</button>
+        </div>
+      </template>
+    `;
+
+    el.data = [{ name: 'Alice', email: 'alice@example.com' }];
+    document.body.appendChild(el);
+    await waitForRender();
+
+    const toggleBtn = el.shadowRoot!.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
+    await clickAndWait(toggleBtn);
+
+    // At this point the row is in edit mode inside the modal,
+    // but no validation schema has been applied yet.
+    const modal = el.shadowRoot!.querySelector('[part="modal"]') as HTMLElement;
+    expect(modal.classList.contains('hidden')).toBe(false);
+
+    const modalEdit = modal.querySelector(
+      '.edit-content[data-row="0"]'
+    ) as HTMLElement;
+    expect(modalEdit).not.toBeNull();
+
+    const saveBtn = modalEdit.querySelector(
+      '[data-action="save"]'
+    ) as HTMLButtonElement;
+    expect(saveBtn.disabled).toBe(false);
+
+    // Now apply a schema that makes the current data invalid.
+    el.schema = {
+      required: ['name', 'email'],
+      properties: {
+        name: { minLength: 20 },
+        email: { minLength: 20 },
+      },
+    };
+
+    await waitForRender();
+
+    // Save is still enabled at this point because validation hasn't run
+    // against the new schema yet.
+    expect(saveBtn.disabled).toBe(false);
+
+    // Attempt to save; validation should run, keep the modal open,
+    // and surface errors inside the modal edit content.
+    await clickAndWait(saveBtn);
+
+    const modalAfter = el.shadowRoot!.querySelector(
+      '[part="modal"]'
+    ) as HTMLElement;
+    expect(modalAfter.classList.contains('hidden')).toBe(false);
+
+    const modalEditAfter = modalAfter.querySelector(
+      '.edit-content[data-row="0"]'
+    ) as HTMLElement;
+
+    const nameError = modalEditAfter.querySelector(
+      '[data-field-error="name"]'
+    ) as HTMLElement;
+    const emailError = modalEditAfter.querySelector(
+      '[data-field-error="email"]'
+    ) as HTMLElement;
+    const summary = modalEditAfter.querySelector(
+      '[data-error-summary]'
+    ) as HTMLElement;
+
+    expect(nameError.textContent).not.toBe('');
+    expect(emailError.textContent).not.toBe('');
+    expect(summary.textContent).not.toBe('');
+    expect(saveBtn.disabled).toBe(true);
+
+    // Data should remain unchanged since save did not succeed.
+    expect(el.data[0]).toMatchObject({
+      name: 'Alice',
+      email: 'alice@example.com',
+    });
+  });
 });

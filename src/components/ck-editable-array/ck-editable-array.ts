@@ -1332,6 +1332,8 @@ export class CkEditableArray extends HTMLElement {
 
     // Don't save if row is invalid
     if (!this.validateRow(rowIndex)) {
+      // Ensure validation UI is updated for this row (including modal edit)
+      this.updateSaveButtonState(rowIndex);
       return;
     }
 
