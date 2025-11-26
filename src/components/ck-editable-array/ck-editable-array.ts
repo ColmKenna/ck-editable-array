@@ -67,10 +67,29 @@ export class CkEditableArray extends HTMLElement {
     }
     // Ensure a container exists for rendered rows
     if (this.shadowRoot && this.shadowRoot.children.length === 0) {
-      // Add base styles for hidden class
+      // Add base styles for hidden class and CSS custom properties
       const style = document.createElement('style');
       style.textContent = `
+:host {
+  --ck-row-padding: 12px;
+  --ck-error-color: #dc3545;
+  --ck-border-radius: 4px;
+  --ck-border-color: #ddd;
+  --ck-focus-color: #0066cc;
+  --ck-disabled-opacity: 0.5;
+}
 .${CkEditableArray.CLASS_HIDDEN} { display: none !important; }
+[aria-invalid="true"] {
+  border-color: var(--ck-error-color) !important;
+  outline-color: var(--ck-error-color);
+}
+[data-field-error] {
+  color: var(--ck-error-color);
+}
+[disabled], :disabled {
+  opacity: var(--ck-disabled-opacity);
+  cursor: not-allowed;
+}
 .${CkEditableArray.CLASS_MODAL_OVERLAY} {
   position: fixed;
   inset: 0;
@@ -389,7 +408,16 @@ export class CkEditableArray extends HTMLElement {
     }
     if (row && typeof row === 'object' && !Array.isArray(row)) {
       // Deep clone using JSON parse/stringify for immutability
-      return JSON.parse(JSON.stringify(row)) as Record<string, unknown>;
+      // Fall back to shallow copy if circular reference is detected
+      try {
+        return JSON.parse(JSON.stringify(row)) as Record<string, unknown>;
+      } catch (e) {
+        console.warn(
+          'ck-editable-array: Failed to deep clone row (circular reference?), using shallow copy',
+          e
+        );
+        return { ...(row as Record<string, unknown>) };
+      }
     }
     return '';
   }
