@@ -377,7 +377,10 @@ describe('CkEditableArray - Step 2: Public API', () => {
         const el = new CkEditableArray() as CkEditableArray & {
           schema: unknown;
         };
-        const testSchema = { type: 'object' };
+        const testSchema = {
+          required: ['name'],
+          properties: { name: { minLength: 1 } },
+        };
 
         // Act
         el.schema = testSchema;
@@ -394,7 +397,7 @@ describe('CkEditableArray - Step 2: Public API', () => {
         const el = new CkEditableArray() as CkEditableArray & {
           schema: unknown;
         };
-        el.schema = { type: 'object' };
+        el.schema = { required: ['name'] };
 
         // Act
         el.schema = null;
@@ -409,7 +412,7 @@ describe('CkEditableArray - Step 2: Public API', () => {
         const el = new CkEditableArray() as CkEditableArray & {
           schema: unknown;
         };
-        el.schema = { type: 'object' };
+        el.schema = { required: ['name'] };
 
         // Act
         el.schema = undefined;
@@ -435,11 +438,11 @@ describe('CkEditableArray - Step 2: Public API', () => {
         expect(el.schema).toBeNull();
 
         // Act
-        el.schema = { fields: ['name'] };
+        el.schema = { required: ['name'] };
 
         // Assert
         // Schema should be set
-        expect(el.schema).toEqual({ fields: ['name'] });
+        expect(el.schema).toEqual({ required: ['name'] });
 
         // Data should remain unchanged
         expect(el.data).toEqual([{ name: 'Alice' }]);

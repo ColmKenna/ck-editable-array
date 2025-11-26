@@ -58,6 +58,8 @@ export default [
       '@typescript-eslint/no-unused-vars': 'error',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
+      // Allow 'any' in tests for accessing private methods/properties (white-box testing)
+      // This is an accepted trade-off for comprehensive unit testing as noted in code review F4
       '@typescript-eslint/no-explicit-any': 'warn',
       'jest/expect-expect': 'error',
       'jest/no-disabled-tests': 'warn',
@@ -108,7 +110,7 @@ export default [
       '@typescript-eslint/no-unused-vars': 'error',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
     },
   },
   {

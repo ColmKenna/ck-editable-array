@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import { CkEditableArray } from '../../src/components/ck-editable-array/ck-editable-array';
 import {
   captureEvent,

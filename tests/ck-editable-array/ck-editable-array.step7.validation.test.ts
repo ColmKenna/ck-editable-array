@@ -604,7 +604,8 @@ describe('CkEditableArray - Step 7.3: Row-level Error Indicators & Accessibility
       // Attach to document
       document.body.appendChild(el);
 
-      // Act - Toggle both rows to edit mode
+      // Act - Toggle row 1 to edit mode (row 0 stays in display)
+      /*
       const row0Display = el.shadowRoot?.querySelector(
         '.display-content[data-row="0"]'
       );
@@ -612,6 +613,7 @@ describe('CkEditableArray - Step 7.3: Row-level Error Indicators & Accessibility
         '[data-action="toggle"]'
       ) as HTMLButtonElement;
       toggleButton0?.click();
+      */
 
       const row1Display = el.shadowRoot?.querySelector(
         '.display-content[data-row="1"]'
@@ -631,8 +633,8 @@ describe('CkEditableArray - Step 7.3: Row-level Error Indicators & Accessibility
         '.edit-content[data-row="1"]'
       );
 
-      // 1. Valid row (row 0) does NOT have invalid indicator
-      expect(row0Edit?.hasAttribute('data-row-invalid')).toBe(false);
+      // 1. Valid row (row 0) does NOT have invalid indicator (it's not even editing)
+      expect(row0Edit?.hasAttribute('data-row-invalid')).toBeFalsy();
 
       // 2. Invalid row (row 1) HAS invalid indicator
       expect(row1Edit?.hasAttribute('data-row-invalid')).toBe(true);

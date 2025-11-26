@@ -92,6 +92,28 @@ Each template can use `[data-bind="fieldName"]` markers which are populated from
 
 The component keeps the shadow DOM display rows and edit rows in sync. After each edit it re-renders the view and emits a fresh snapshot in the event detail.
 
+## 🌐 Browser Support
+
+### Supported Browsers (No Polyfills Required)
+
+| Browser | Minimum Version |
+|---------|----------------|
+| Chrome | 90+ |
+| Edge | 90+ |
+| Firefox | 90+ |
+| Safari | 15+ |
+
+### Older Browser Support (Requires Polyfills)
+
+For IE11 and older browsers, include these polyfills:
+
+```html
+<script src="https://unpkg.com/@webcomponents/webcomponentsjs@2.8.0/webcomponents-loader.js"></script>
+<script src="https://unpkg.com/wicg-inert@3.1.2/dist/inert.min.js"></script>
+```
+
+See [Migration Guide](./docs/migration-guide.md#polyfills) for details.
+
 ## 🛠️ Development
 
 ### Prerequisites

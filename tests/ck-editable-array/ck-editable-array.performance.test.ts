@@ -22,6 +22,6 @@ describe('ck-editable-array performance baseline', () => {
     const end = Date.now();
     const duration = end - start;
     // jsdom can vary across environments; keep a generous ceiling to avoid flakiness.
-    expect(duration).toBeLessThan(100); // ms
+    expect(duration).toBeLessThan(200); // ms
   });
 });

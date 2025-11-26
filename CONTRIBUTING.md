@@ -112,10 +112,14 @@ git checkout -b feature/my-new-component
 ```
 
 2. Make your changes
-3. Build and test:
+
+3. Run quality checks:
 ```bash
-npm run build
-npm run serve
+npm run type-check        # TypeScript type checking (source)
+npm run type-check:tests  # TypeScript type checking (tests)
+npm run lint              # ESLint
+npm test                  # Run test suite
+npm run build             # Build for production
 ```
 
 4. Commit your changes:
@@ -133,6 +137,8 @@ git commit -m "feat: add my new component"
 - Include JSDoc comments for public APIs
 - Use Shadow DOM for style encapsulation
 - Test components in the demo page
+- **No `any` types in source code** (enforced by ESLint)
+- Run `npm run type-check` before committing
 
 ## 🔖 Versioning
 

@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ck-editable-array — Theming & i18n Demo</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      font-family: system-ui, -apple-system, sans-serif; 
+      padding: 24px; 
+      max-width: 900px; 
+      margin: 0 auto; 
+      background: #f7fafc; 
+    }
+    h1 { margin: 0 0 8px; color: #1a202c; }
+    .subtitle { color: #4a5568; margin: 0 0 24px; }
+    
+    .demo-section { 
+      background: white; 
+      padding: 24px; 
+      border-radius: 12px; 
+      margin-bottom: 24px; 
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .demo-section h2 { margin: 0 0 8px; color: #2d3748; }
+    .demo-section .hint { 
+      background: #f1f5f9; 
+      padding: 12px; 
+      border-radius: 6px; 
+      color: #475569; 
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }
+    .demo-section .hint code { 
+      background: #e2e8f0; 
+      padding: 2px 6px; 
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    
+    /* Theme selector */
+    .theme-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .theme-selector button {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 2px solid #e2e8f0;
+      background: white;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .theme-selector button.active {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    
+    /* Language selector */
+    .lang-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .lang-selector button {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 2px solid #e2e8f0;
+      background: white;
+      cursor: pointer;
+    }
+    .lang-selector button.active {
+      border-color: #10b981;
+      background: #ecfdf5;
+    }
+    
+    /* Default theme styles for the component */
+    .row-display { 
+      display: flex; 
+      gap: 12px; 
+      align-items: center; 
+      padding: 12px; 
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .row-display .content { flex: 1; }
+    .row-display strong { color: #1f2937; }
+    .row-display small { color: #6b7280; }
+    
+    .row-edit { 
+      padding: 16px; 
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .row-edit .form-field { margin-bottom: 12px; }
+    .row-edit label { display: block; font-weight: 500; margin-bottom: 4px; color: #374151; }
+    .row-edit input { 
+      width: 100%; 
+      padding: 8px 12px; 
+      border: 1px solid #d1d5db; 
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .row-edit input:focus {
+      outline: none;
+      border-color: var(--ck-focus-color, #0066cc);
+      box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+    }
+    .row-edit input[data-invalid] {
+      border-color: var(--ck-error-color, #dc3545);
+    }
+    
+    .actions { display: flex; gap: 8px; }
+    .actions button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .actions button[data-action="toggle"] { background: #3b82f6; color: white; }
+    .actions button[data-action="save"] { background: #10b981; color: white; }
+    .actions button[data-action="save"]:disabled { background: #9ca3af; cursor: not-allowed; }
+    .actions button[data-action="cancel"] { background: #6b7280; color: white; }
+    
+    .field-error {
+      display: block;
+      color: var(--ck-error-color, #dc3545);
+      font-size: 13px;
+      margin-top: 4px;
+      min-height: 18px;
+    }
+    .field-error:empty { display: none; }
+    
+    .error-summary {
+      padding: 12px;
+      background: var(--ck-error-color, #dc3545);
+      color: white;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+    .error-summary:empty { display: none; }
+    
+    pre { 
+      background: #0f172a; 
+      color: #e2e8f0; 
+      padding: 16px; 
+      border-radius: 8px; 
+      font-size: 0.85rem;
+      overflow-x: auto;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Theming & Internationalization Demo</h1>
+  <p class="subtitle">Demonstrates CSS custom properties for theming and i18n for validation messages.</p>
+
+  <!-- CSS Theming Demo -->
+  <div class="demo-section">
+    <h2>🎨 CSS Custom Properties Theming</h2>
+    <div class="hint">
+      The component exposes CSS custom properties for easy theming:<br>
+      <code>--ck-error-color</code>, <code>--ck-border-radius</code>, <code>--ck-focus-color</code>, <code>--ck-disabled-opacity</code>
+    </div>
+    
+    <div class="theme-selector">
+      <button class="active" onclick="applyTheme('default')">Default</button>
+      <button onclick="applyTheme('blue')">Blue Theme</button>
+      <button onclick="applyTheme('green')">Green Theme</button>
+      <button onclick="applyTheme('dark')">Dark Theme</button>
+    </div>
+    
+    <ck-editable-array id="themingDemo">
+      <template slot="display">
+        <div class="row-display">
+          <div class="content">
+            <strong data-bind="name"></strong><br>
+            <small data-bind="email"></small>
+          </div>
+          <div class="actions">
+            <button data-action="toggle">Edit</button>
+          </div>
+        </div>
+      </template>
+      
+      <template slot="edit">
+        <div class="row-edit">
+          <div class="error-summary" data-error-summary role="alert" aria-live="polite"></div>
+          
+          <div class="form-field">
+            <label>Name *</label>
+            <input data-bind="name" placeholder="Enter name" />
+            <span class="field-error" data-field-error="name"></span>
+          </div>
+          
+          <div class="form-field">
+            <label>Email *</label>
+            <input data-bind="email" type="email" placeholder="Enter email" />
+            <span class="field-error" data-field-error="email"></span>
+          </div>
+          
+          <div class="actions">
+            <button data-action="save">Save</button>
+            <button data-action="cancel">Cancel</button>
+          </div>
+        </div>
+      </template>
+    </ck-editable-array>
+    
+    <pre id="theme-code">/* Default theme (no overrides) */
+ck-editable-array {
+  --ck-error-color: #dc3545;
+  --ck-border-radius: 4px;
+  --ck-focus-color: #0066cc;
+  --ck-disabled-opacity: 0.5;
+}</pre>
+  </div>
+
+  <!-- i18n Demo -->
+  <div class="demo-section">
+    <h2>🌐 Internationalization (i18n)</h2>
+    <div class="hint">
+      Use the <code>i18n</code> property to customize validation error messages. Click "Edit" and clear fields to see localized error messages.
+    </div>
+    
+    <div class="lang-selector">
+      <button class="active" onclick="applyLanguage('en')">🇬🇧 English</button>
+      <button onclick="applyLanguage('es')">🇪🇸 Español</button>
+      <button onclick="applyLanguage('fr')">🇫🇷 Français</button>
+      <button onclick="applyLanguage('de')">🇩🇪 Deutsch</button>
+    </div>
+    
+    <ck-editable-array id="i18nDemo">
+      <template slot="display">
+        <div class="row-display">
+          <div class="content">
+            <strong data-bind="product"></strong><br>
+            <small data-bind="description"></small>
+          </div>
+          <div class="actions">
+            <button data-action="toggle">Edit</button>
+          </div>
+        </div>
+      </template>
+      
+      <template slot="edit">
+        <div class="row-edit">
+          <div class="error-summary" data-error-summary role="alert" aria-live="polite"></div>
+          
+          <div class="form-field">
+            <label>Product Name *</label>
+            <input data-bind="product" />
+            <span class="field-error" data-field-error="product"></span>
+          </div>
+          
+          <div class="form-field">
+            <label>Description * (min 10 chars)</label>
+            <input data-bind="description" />
+            <span class="field-error" data-field-error="description"></span>
+          </div>
+          
+          <div class="actions">
+            <button data-action="save">Save</button>
+            <button data-action="cancel">Cancel</button>
+          </div>
+        </div>
+      </template>
+    </ck-editable-array>
+    
+    <pre id="i18n-code">// English (default)
+el.i18n = {
+  required: (field) => `${field} is required`,
+  minLength: (field, min) => `${field} must be at least ${min} characters`
+};</pre>
+  </div>
+
+  <script type="module">
+    import '../dist/ck-editable-array/ck-editable-array.esm.js';
+
+    // ========================================
+    // Theming Demo Setup
+    // ========================================
+    const themingDemo = document.getElementById('themingDemo');
+    themingDemo.data = [
+      { name: 'Alice Johnson', email: 'alice@example.com' },
+      { name: 'Bob Smith', email: 'bob@example.com' },
+    ];
+    themingDemo.schema = {
+      type: 'object',
+      required: ['name', 'email'],
+      properties: {
+        name: { minLength: 2 },
+        email: { minLength: 5 }
+      }
+    };
+
+    // Theme configurations
+    const themes = {
+      default: {
+        css: `/* Default theme (no overrides) */
+ck-editable-array {
+  --ck-error-color: #dc3545;
+  --ck-border-radius: 4px;
+  --ck-focus-color: #0066cc;
+  --ck-disabled-opacity: 0.5;
+}`,
+        styles: {
+          '--ck-error-color': '#dc3545',
+          '--ck-border-radius': '4px',
+          '--ck-focus-color': '#0066cc',
+          '--ck-disabled-opacity': '0.5'
+        }
+      },
+      blue: {
+        css: `/* Blue theme */
+ck-editable-array {
+  --ck-error-color: #3b82f6;
+  --ck-border-radius: 8px;
+  --ck-focus-color: #1d4ed8;
+  --ck-disabled-opacity: 0.4;
+}`,
+        styles: {
+          '--ck-error-color': '#3b82f6',
+          '--ck-border-radius': '8px',
+          '--ck-focus-color': '#1d4ed8',
+          '--ck-disabled-opacity': '0.4'
+        }
+      },
+      green: {
+        css: `/* Green theme */
+ck-editable-array {
+  --ck-error-color: #059669;
+  --ck-border-radius: 12px;
+  --ck-focus-color: #047857;
+  --ck-disabled-opacity: 0.3;
+}`,
+        styles: {
+          '--ck-error-color': '#059669',
+          '--ck-border-radius': '12px',
+          '--ck-focus-color': '#047857',
+          '--ck-disabled-opacity': '0.3'
+        }
+      },
+      dark: {
+        css: `/* Dark theme */
+ck-editable-array {
+  --ck-error-color: #f87171;
+  --ck-border-radius: 6px;
+  --ck-focus-color: #60a5fa;
+  --ck-disabled-opacity: 0.35;
+}`,
+        styles: {
+          '--ck-error-color': '#f87171',
+          '--ck-border-radius': '6px',
+          '--ck-focus-color': '#60a5fa',
+          '--ck-disabled-opacity': '0.35'
+        }
+      }
+    };
+
+    window.applyTheme = function(themeName) {
+      const theme = themes[themeName];
+      const el = themingDemo;
+      
+      // Apply CSS custom properties
+      Object.entries(theme.styles).forEach(([prop, value]) => {
+        el.style.setProperty(prop, value);
+      });
+      
+      // Update code display
+      document.getElementById('theme-code').textContent = theme.css;
+      
+      // Update active button
+      document.querySelectorAll('.theme-selector button').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.textContent.toLowerCase().includes(themeName)) {
+          btn.classList.add('active');
+        }
+      });
+    };
+
+    // ========================================
+    // i18n Demo Setup
+    // ========================================
+    const i18nDemo = document.getElementById('i18nDemo');
+    i18nDemo.data = [
+      { product: 'Widget Pro', description: 'A premium widget for professionals' },
+      { product: 'Gadget Mini', description: 'Compact and portable gadget' },
+    ];
+    i18nDemo.schema = {
+      type: 'object',
+      required: ['product', 'description'],
+      properties: {
+        product: { minLength: 3 },
+        description: { minLength: 10 }
+      }
+    };
+
+    // Language configurations
+    const languages = {
+      en: {
+        code: `// English (default)
+el.i18n = {
+  required: (field) => \`\${field} is required\`,
+  minLength: (field, min) => \`\${field} must be at least \${min} characters\`
+};`,
+        messages: {
+          required: (field) => `${field} is required`,
+          minLength: (field, min) => `${field} must be at least ${min} characters`
+        }
+      },
+      es: {
+        code: `// Español
+el.i18n = {
+  required: (field) => \`\${field} es obligatorio\`,
+  minLength: (field, min) => \`\${field} debe tener al menos \${min} caracteres\`
+};`,
+        messages: {
+          required: (field) => `${field} es obligatorio`,
+          minLength: (field, min) => `${field} debe tener al menos ${min} caracteres`
+        }
+      },
+      fr: {
+        code: `// Français
+el.i18n = {
+  required: (field) => \`\${field} est requis\`,
+  minLength: (field, min) => \`\${field} doit contenir au moins \${min} caractères\`
+};`,
+        messages: {
+          required: (field) => `${field} est requis`,
+          minLength: (field, min) => `${field} doit contenir au moins ${min} caractères`
+        }
+      },
+      de: {
+        code: `// Deutsch
+el.i18n = {
+  required: (field) => \`\${field} ist erforderlich\`,
+  minLength: (field, min) => \`\${field} muss mindestens \${min} Zeichen enthalten\`
+};`,
+        messages: {
+          required: (field) => `${field} ist erforderlich`,
+          minLength: (field, min) => `${field} muss mindestens ${min} Zeichen enthalten`
+        }
+      }
+    };
+
+    window.applyLanguage = function(langCode) {
+      const lang = languages[langCode];
+      
+      // Apply i18n messages
+      i18nDemo.i18n = lang.messages;
+      
+      // Update code display
+      document.getElementById('i18n-code').textContent = lang.code;
+      
+      // Update active button
+      document.querySelectorAll('.lang-selector button').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.onclick.toString().includes(`'${langCode}'`)) {
+          btn.classList.add('active');
+        }
+      });
+      
+      // Force re-render to show updated messages (if currently editing)
+      // This is a workaround - normally you'd set i18n before entering edit mode
+      const editingRow = i18nDemo.shadowRoot?.querySelector('.edit-content:not(.hidden)');
+      if (editingRow) {
+        const rowIndex = parseInt(editingRow.getAttribute('data-row') || '0');
+        // Trigger validation refresh by simulating an input event
+        const input = editingRow.querySelector('input');
+        if (input) {
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+    };
+
+    // Initialize with default language
+    applyLanguage('en');
+  </script>
+</body>
+</html>

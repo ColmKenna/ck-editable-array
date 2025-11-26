@@ -580,6 +580,7 @@ describe('ck-editable-array (advanced inputs demo)', () => {
             <label><input type="checkbox" value="frontend" data-bind="tagsCheckbox" /> Frontend</label>
             <label><input type="checkbox" value="backend" data-bind="tagsCheckbox" /> Backend</label>
             <label><input type="checkbox" value="ux" data-bind="tagsCheckbox" /> UX</label>
+            <label><input type="checkbox" value="ops" data-bind="tagsCheckbox" /> Ops</label>
             <button data-action="save">Save</button>
             <button data-action="cancel">Cancel</button>
           </div>

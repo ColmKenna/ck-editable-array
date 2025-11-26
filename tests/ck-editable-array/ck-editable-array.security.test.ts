@@ -336,10 +336,14 @@ describe('CkEditableArray - Security Tests', () => {
       const circularData: Record<string, unknown> = { name: 'Alice' };
       circularData.self = circularData;
 
-      // Should not throw or hang
+      // Should not throw or hang - component now gracefully handles circular refs
+      // by falling back to shallow copy with a console warning
       expect(() => {
         el.data = [circularData];
-      }).toThrow(); // JSON.stringify throws on circular refs
+      }).not.toThrow();
+
+      // Data should still be accessible
+      expect((el.data[0] as Record<string, unknown>).name).toBe('Alice');
     });
   });
 });
