@@ -3,6 +3,7 @@ import {
   EditableRow,
   ValidationResult,
   ValidationSchema,
+  I18nMessages,
   CONSTANTS,
 } from './types';
 import { ValidationManager } from './validation-manager';
@@ -45,6 +46,7 @@ export class CkEditableArray extends HTMLElement {
   private _rowKeys: string[] = [];
   private _nextId = 0;
   private _schema: ValidationSchema | null = null;
+  private _i18n: I18nMessages | undefined;
   private _newItemFactory: () => EditableRow = () => ({});
   private _styleObserver: MutationObserver | null = null;
   private _domRenderer: DomRenderer;
@@ -147,12 +149,19 @@ export class CkEditableArray extends HTMLElement {
   }
 
   get schema(): ValidationSchema | null {
-    return this._schema as ValidationSchema | null;
+    return this._schema;
   }
 
   set schema(v: ValidationSchema | null | undefined) {
-    // Normalize undefined to null for consistency
     this._schema = v === undefined ? null : v;
+  }
+
+  get i18n(): I18nMessages | undefined {
+    return this._i18n;
+  }
+
+  set i18n(v: I18nMessages | undefined) {
+    this._i18n = v;
   }
 
   get newItemFactory(): () => EditableRow {
@@ -720,6 +729,16 @@ export class CkEditableArray extends HTMLElement {
     if (this.isConnected) {
       this.render();
       this.dispatchDataChanged();
+      // Focus management: Restore focus to toggle button
+      window.requestAnimationFrame(() => {
+        const displayWrapper = this.shadowRoot?.querySelector(
+          `.display-content[data-row="${rowIndex}"]`
+        );
+        const toggleBtn = displayWrapper?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLElement;
+        toggleBtn?.focus();
+      });
     }
   }
 
@@ -787,6 +806,16 @@ export class CkEditableArray extends HTMLElement {
       // If entering edit mode, validate
       if (toMode === 'edit') {
         this.updateSaveButtonState(rowIndex);
+        // Focus management: Auto-focus first input
+        window.requestAnimationFrame(() => {
+          const editWrapper = this.shadowRoot?.querySelector(
+            `.edit-content[data-row="${rowIndex}"]`
+          );
+          const firstInput = editWrapper?.querySelector(
+            'input, textarea, select'
+          ) as HTMLElement;
+          firstInput?.focus();
+        });
       }
     }
 
@@ -859,6 +888,18 @@ export class CkEditableArray extends HTMLElement {
     // Re-render (but don't dispatch datachanged - cancel doesn't change data)
     if (this.isConnected) {
       this.render();
+      // Focus management: Restore focus to toggle button
+      if (!isNewRow) {
+        window.requestAnimationFrame(() => {
+          const displayWrapper = this.shadowRoot?.querySelector(
+            `.display-content[data-row="${rowIndex}"]`
+          );
+          const toggleBtn = displayWrapper?.querySelector(
+            '[data-action="toggle"]'
+          ) as HTMLElement;
+          toggleBtn?.focus();
+        });
+      }
     }
 
     // Dispatch aftertogglemode event
@@ -898,7 +939,7 @@ export class CkEditableArray extends HTMLElement {
       return { isValid: true, errors: {} }; // Primitive values are always valid
     }
 
-    return ValidationManager.validateRow(row, this._schema);
+    return ValidationManager.validateRow(row, this._schema, this._i18n);
   }
 
   /**

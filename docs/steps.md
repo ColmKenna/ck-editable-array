@@ -973,7 +973,7 @@ Files touched:
 
 Test status: All 151 tests pass (9 suites, 0 failures). Step 8.4 now has 4/4 tests passing.
 
-**Step 8 Complete**: All data cloning, immutability, and event dispatch features fully implemented and tested (12 tests total: 4 for immutability, 2 for nested objects, 2 for deleted flag consistency, 4 for event dispatch behavior).
+**Step 8 Complete**: All data cloning, immutability, event dispatch, and event payload features fully implemented and tested (12 tests total: 4 for immutability, 2 for nested objects, 2 for deleted flag consistency, 4 for event dispatch behavior).
 
 **Event Configuration Summary**:
 - `datachanged`: `{ bubbles: true, composed: true }` - dispatched on all data changes

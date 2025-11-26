@@ -82,6 +82,14 @@ export interface EditableArrayContext {
   appendChild(node: Node): Node;
 }
 
+/**
+ * Interface for internationalization messages
+ */
+export interface I18nMessages {
+  required?: (field: string) => string;
+  minLength?: (field: string, min: number) => string;
+}
+
 export const CONSTANTS = {
   PART_ROWS: 'rows',
   PART_ADD_BUTTON: 'add-button',

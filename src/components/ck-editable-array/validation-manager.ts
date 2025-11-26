@@ -1,4 +1,9 @@
-import { InternalRowData, ValidationSchema, ValidationResult } from './types';
+import {
+  InternalRowData,
+  ValidationSchema,
+  ValidationResult,
+  I18nMessages,
+} from './types';
 
 export class ValidationManager {
   /**
@@ -6,7 +11,8 @@ export class ValidationManager {
    */
   static validateRow(
     row: InternalRowData,
-    schema: ValidationSchema | null
+    schema: ValidationSchema | null,
+    i18n?: I18nMessages
   ): ValidationResult {
     const errors: Record<string, string[]> = {};
 
@@ -16,14 +22,15 @@ export class ValidationManager {
     }
 
     // Validate required fields
-    const requiredErrors = this.validateRequiredFields(row, schema);
+    const requiredErrors = this.validateRequiredFields(row, schema, i18n);
     Object.assign(errors, requiredErrors);
 
     // Validate property constraints (skip fields with required errors)
     const propertyErrors = this.validatePropertyConstraints(
       row,
       schema,
-      requiredErrors
+      requiredErrors,
+      i18n
     );
     Object.assign(errors, propertyErrors);
 
@@ -47,7 +54,8 @@ export class ValidationManager {
    */
   private static validateRequiredFields(
     row: InternalRowData,
-    schema: ValidationSchema
+    schema: ValidationSchema,
+    i18n?: I18nMessages
   ): Record<string, string[]> {
     const errors: Record<string, string[]> = {};
 
@@ -59,7 +67,7 @@ export class ValidationManager {
             errors[field] = [];
           }
           errors[field].push(
-            this.formatValidationError(field, 'required', value)
+            this.formatValidationError(field, 'required', value, i18n)
           );
         }
       }
@@ -74,7 +82,8 @@ export class ValidationManager {
   private static validatePropertyConstraints(
     row: InternalRowData,
     schema: ValidationSchema,
-    requiredErrors: Record<string, string[]>
+    requiredErrors: Record<string, string[]>,
+    i18n?: I18nMessages
   ): Record<string, string[]> {
     const errors: Record<string, string[]> = {};
 
@@ -101,7 +110,8 @@ export class ValidationManager {
                 this.formatValidationError(
                   key,
                   'minLength',
-                  propSchema.minLength
+                  propSchema.minLength,
+                  i18n
                 )
               );
             }
@@ -119,12 +129,19 @@ export class ValidationManager {
   private static formatValidationError(
     field: string,
     constraint: string,
-    value: unknown
+    value: unknown,
+    i18n?: I18nMessages
   ): string {
     if (constraint === 'required') {
+      if (i18n?.required) {
+        return i18n.required(field);
+      }
       return `${field} is required`;
     }
     if (constraint === 'minLength') {
+      if (i18n?.minLength && typeof value === 'number') {
+        return i18n.minLength(field, value);
+      }
       return `${field} must be at least ${value} characters`;
     }
     return `${field} validation failed`;
