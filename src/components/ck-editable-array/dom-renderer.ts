@@ -59,33 +59,86 @@ export class DomRenderer {
     }
   }
 
+  private _rowControllers = new Map<string, AbortController>();
+
   private renderRows(
     container: HTMLElement,
     errors: Map<number, Record<string, string>>
   ): void {
-    container.innerHTML = '';
+    const activeKeys = new Set<string>();
+
     this.context.internalData.forEach((item, index) => {
-      // Render Display Row
-      const displayRow = this.createRowElement(item, index, 'display', errors);
-      if (displayRow) {
-        if (
-          !this.isModalEditEnabled() &&
-          this.context.editingRowIndex === index
-        ) {
-          displayRow.classList.add(CONSTANTS.CLASS_HIDDEN);
-        }
-        container.appendChild(displayRow);
+      const key = this.context.getRowKey(index);
+      const displayKey = `${key}-display`;
+      const editKey = `${key}-edit`;
+
+      activeKeys.add(displayKey);
+      if (!this.isModalEditEnabled()) {
+        activeKeys.add(editKey);
       }
 
-      // Render Edit Row (only if not modal edit)
-      if (!this.isModalEditEnabled()) {
-        const editRow = this.createRowElement(item, index, 'edit', errors);
-        if (editRow) {
-          if (this.context.editingRowIndex !== index) {
-            editRow.classList.add(CONSTANTS.CLASS_HIDDEN);
-          }
-          container.appendChild(editRow);
+      // --- Display Row ---
+      let displayRow = container.querySelector(
+        `[data-key="${displayKey}"]`
+      ) as HTMLElement;
+      if (!displayRow) {
+        displayRow = this.createRowElement(item, index, 'display', errors)!;
+        if (displayRow) {
+          displayRow.setAttribute('data-key', displayKey);
+          container.appendChild(displayRow);
         }
+      } else {
+        this.updateRowElement(displayRow, item, index, 'display', errors);
+      }
+
+      // --- Edit Row ---
+      if (!this.isModalEditEnabled()) {
+        let editRow = container.querySelector(
+          `[data-key="${editKey}"]`
+        ) as HTMLElement;
+        if (!editRow) {
+          editRow = this.createRowElement(item, index, 'edit', errors)!;
+          if (editRow) {
+            editRow.setAttribute('data-key', editKey);
+            container.appendChild(editRow);
+          }
+        } else {
+          this.updateRowElement(editRow, item, index, 'edit', errors);
+        }
+      }
+    });
+
+    // Remove obsolete rows
+    Array.from(container.children).forEach(child => {
+      const key = child.getAttribute('data-key');
+      if (key && !activeKeys.has(key)) {
+        // Clean up controller if exists
+        // We need to map element key back to row key?
+        // Or just rely on the fact that we abort when re-creating?
+        // If we remove the row, we should abort its controller to be safe/clean.
+        // The key is "row-X-display". The row key is "row-X".
+        // We share controller per row? Or per element?
+        // Let's use per-element key for controller to be safe.
+        if (this._rowControllers.has(key)) {
+          this._rowControllers.get(key)!.abort();
+          this._rowControllers.delete(key);
+        }
+        container.removeChild(child);
+      }
+    });
+
+    // Reorder to match data index
+    this.context.internalData.forEach((item, index) => {
+      const key = this.context.getRowKey(index);
+      const displayKey = `${key}-display`;
+      const editKey = `${key}-edit`;
+
+      const displayRow = container.querySelector(`[data-key="${displayKey}"]`);
+      if (displayRow) container.appendChild(displayRow);
+
+      if (!this.isModalEditEnabled()) {
+        const editRow = container.querySelector(`[data-key="${editKey}"]`);
+        if (editRow) container.appendChild(editRow);
       }
     });
   }
@@ -143,9 +196,6 @@ export class DomRenderer {
     mode: 'display' | 'edit',
     errors?: Map<number, Record<string, string>>
   ): HTMLElement | null {
-    const isRecord = this.isRecord(item);
-    const isDeleted = isRecord && item.deleted === true;
-
     const template =
       mode === 'edit' ? this.getEditTemplate() : this.getDisplayTemplate();
 
@@ -155,34 +205,10 @@ export class DomRenderer {
     const wrapper = document.createElement('div');
     wrapper.appendChild(clone);
 
-    wrapper.setAttribute(CONSTANTS.ATTR_DATA_ROW, String(index));
-    wrapper.setAttribute(CONSTANTS.ATTR_DATA_MODE, mode);
-
     if (mode === 'display') {
       wrapper.classList.add(CONSTANTS.CLASS_DISPLAY_CONTENT);
     } else {
       wrapper.classList.add(CONSTANTS.CLASS_EDIT_CONTENT);
-    }
-
-    if (isDeleted) {
-      wrapper.classList.add(CONSTANTS.CLASS_DELETED);
-      wrapper.setAttribute('data-deleted', 'true');
-    }
-
-    // Apply validation error state to row
-    if (errors && errors.has(index)) {
-      const rowErrors = errors.get(index);
-      if (rowErrors && Object.keys(rowErrors).length > 0) {
-        wrapper.setAttribute('data-row-invalid', 'true');
-      }
-    }
-
-    const isLocked =
-      this.isEditLocked() && this.context.editingRowIndex !== index;
-    if (isLocked && mode === 'display') {
-      wrapper.setAttribute('data-locked', 'true');
-      wrapper.setAttribute('aria-disabled', 'true');
-      wrapper.setAttribute('inert', '');
     }
 
     // Handle datalists
@@ -191,16 +217,102 @@ export class DomRenderer {
     // Inject custom action buttons if available
     this.injectActionButtons(wrapper, mode);
 
-    // Explicitly disable buttons if locked (inert doesn't set disabled property)
-    if (isLocked && mode === 'display') {
-      const buttons = wrapper.querySelectorAll('button');
-      buttons.forEach(btn => (btn.disabled = true));
-    }
-
-    this.bindDataToNode(wrapper, item, index, mode === 'edit');
-    this.setupEventListeners(wrapper, index, mode === 'edit', isDeleted);
+    this.updateRowElement(wrapper, item, index, mode, errors);
 
     return wrapper;
+  }
+
+  private updateRowElement(
+    wrapper: HTMLElement,
+    item: EditableRow,
+    index: number,
+    mode: 'display' | 'edit',
+    errors?: Map<number, Record<string, string>>
+  ): void {
+    const isRecord = this.isRecord(item);
+    const isDeleted = isRecord && item.deleted === true;
+
+    wrapper.setAttribute(CONSTANTS.ATTR_DATA_ROW, String(index));
+    wrapper.setAttribute(CONSTANTS.ATTR_DATA_MODE, mode);
+
+    // Update visibility
+    if (mode === 'display') {
+      if (
+        !this.isModalEditEnabled() &&
+        this.context.editingRowIndex === index
+      ) {
+        wrapper.classList.add(CONSTANTS.CLASS_HIDDEN);
+      } else {
+        wrapper.classList.remove(CONSTANTS.CLASS_HIDDEN);
+      }
+    } else {
+      if (this.context.editingRowIndex !== index) {
+        wrapper.classList.add(CONSTANTS.CLASS_HIDDEN);
+      } else {
+        wrapper.classList.remove(CONSTANTS.CLASS_HIDDEN);
+      }
+    }
+
+    if (isDeleted) {
+      wrapper.classList.add(CONSTANTS.CLASS_DELETED);
+      wrapper.setAttribute('data-deleted', 'true');
+    } else {
+      wrapper.classList.remove(CONSTANTS.CLASS_DELETED);
+      wrapper.removeAttribute('data-deleted');
+    }
+
+    // Apply validation error state to row
+    if (errors && errors.has(index)) {
+      const rowErrors = errors.get(index);
+      if (rowErrors && Object.keys(rowErrors).length > 0) {
+        wrapper.setAttribute('data-row-invalid', 'true');
+      } else {
+        wrapper.removeAttribute('data-row-invalid');
+      }
+    } else {
+      wrapper.removeAttribute('data-row-invalid');
+    }
+
+    const isLocked =
+      this.isEditLocked() && this.context.editingRowIndex !== index;
+    if (isLocked && mode === 'display') {
+      wrapper.setAttribute('data-locked', 'true');
+      wrapper.setAttribute('aria-disabled', 'true');
+      wrapper.setAttribute('inert', '');
+      const buttons = wrapper.querySelectorAll('button');
+      buttons.forEach(btn => (btn.disabled = true));
+    } else {
+      wrapper.removeAttribute('data-locked');
+      wrapper.removeAttribute('aria-disabled');
+      wrapper.removeAttribute('inert');
+      const buttons = wrapper.querySelectorAll('button');
+      buttons.forEach(btn => (btn.disabled = false));
+    }
+
+    // Controller management
+    const key = this.context.getRowKey(index);
+    const elementKey = `${key}-${mode}`;
+
+    if (this._rowControllers.has(elementKey)) {
+      this._rowControllers.get(elementKey)!.abort();
+    }
+    const controller = new AbortController();
+    this._rowControllers.set(elementKey, controller);
+
+    this.bindDataToNode(
+      wrapper,
+      item,
+      index,
+      mode === 'edit',
+      controller.signal
+    );
+    this.setupEventListeners(
+      wrapper,
+      index,
+      mode === 'edit',
+      isDeleted,
+      controller.signal
+    );
   }
 
   private processDatalists(wrapper: HTMLElement, rowIndex: number): void {
@@ -294,7 +406,8 @@ export class DomRenderer {
     node: HTMLElement,
     data: EditableRow,
     rowIndex: number,
-    isEditing: boolean
+    isEditing: boolean,
+    signal?: AbortSignal
   ): void {
     const isComponentReadonly = this.context.hasAttribute('readonly');
     const effectiveIsEditing = isEditing && !isComponentReadonly;
@@ -327,12 +440,17 @@ export class DomRenderer {
           elem.checked = shouldCheck;
           elem.setAttribute('aria-checked', shouldCheck ? 'true' : 'false');
           if (effectiveIsEditing) {
-            elem.addEventListener('change', e => {
-              const target = e.target as HTMLInputElement;
-              if (target.checked) {
-                this.context.commitRowValue(rowIndex, key, target.value);
-              }
-            });
+            elem.disabled = false;
+            elem.addEventListener(
+              'change',
+              e => {
+                const target = e.target as HTMLInputElement;
+                if (target.checked) {
+                  this.context.commitRowValue(rowIndex, key, target.value);
+                }
+              },
+              { signal }
+            );
           } else {
             elem.disabled = true;
           }
@@ -350,31 +468,36 @@ export class DomRenderer {
           elem.setAttribute('aria-checked', isChecked ? 'true' : 'false');
 
           if (effectiveIsEditing) {
-            elem.addEventListener('change', e => {
-              const target = e.target as HTMLInputElement;
-              // Fetch fresh raw value to avoid stale closure state
-              const freshData = this.context.getRowData(rowIndex);
-              const freshRawValue = this.context.resolveBindingRawValue(
-                freshData,
-                key
-              );
+            elem.disabled = false;
+            elem.addEventListener(
+              'change',
+              e => {
+                const target = e.target as HTMLInputElement;
+                // Fetch fresh raw value to avoid stale closure state
+                const freshData = this.context.getRowData(rowIndex);
+                const freshRawValue = this.context.resolveBindingRawValue(
+                  freshData,
+                  key
+                );
 
-              let nextVal: string | string[] | boolean;
-              if (typeof freshRawValue === 'boolean') {
-                nextVal = target.checked;
-              } else if (Array.isArray(freshRawValue)) {
-                const currentArr = (freshRawValue as string[]) || [];
-                if (target.checked) {
-                  nextVal = [...currentArr, cbVal];
+                let nextVal: string | string[] | boolean;
+                if (typeof freshRawValue === 'boolean') {
+                  nextVal = target.checked;
+                } else if (Array.isArray(freshRawValue)) {
+                  const currentArr = (freshRawValue as string[]) || [];
+                  if (target.checked) {
+                    nextVal = [...currentArr, cbVal];
+                  } else {
+                    nextVal = currentArr.filter(v => v !== cbVal);
+                  }
                 } else {
-                  nextVal = currentArr.filter(v => v !== cbVal);
+                  // Single value checkbox (true/false or value/empty)
+                  nextVal = target.checked ? cbVal : '';
                 }
-              } else {
-                // Single value checkbox (true/false or value/empty)
-                nextVal = target.checked ? cbVal : '';
-              }
-              this.context.commitRowValue(rowIndex, key, nextVal);
-            });
+                this.context.commitRowValue(rowIndex, key, nextVal);
+              },
+              { signal }
+            );
           } else {
             elem.disabled = true;
           }
@@ -382,10 +505,15 @@ export class DomRenderer {
           // Text, number, etc.
           elem.value = value;
           if (effectiveIsEditing) {
-            elem.addEventListener('input', e => {
-              const target = e.target as HTMLInputElement;
-              this.context.commitRowValue(rowIndex, key, target.value);
-            });
+            elem.readOnly = false;
+            elem.addEventListener(
+              'input',
+              e => {
+                const target = e.target as HTMLInputElement;
+                this.context.commitRowValue(rowIndex, key, target.value);
+              },
+              { signal }
+            );
           } else {
             elem.readOnly = true;
           }
@@ -393,10 +521,15 @@ export class DomRenderer {
       } else if (elem instanceof HTMLTextAreaElement) {
         elem.value = value;
         if (effectiveIsEditing) {
-          elem.addEventListener('input', e => {
-            const target = e.target as HTMLTextAreaElement;
-            this.context.commitRowValue(rowIndex, key, target.value);
-          });
+          elem.readOnly = false;
+          elem.addEventListener(
+            'input',
+            e => {
+              const target = e.target as HTMLTextAreaElement;
+              this.context.commitRowValue(rowIndex, key, target.value);
+            },
+            { signal }
+          );
         } else {
           elem.readOnly = true;
         }
@@ -408,22 +541,32 @@ export class DomRenderer {
             opt.selected = valuesArr.includes(opt.value);
           });
           if (effectiveIsEditing) {
-            elem.addEventListener('change', () => {
-              const selected = Array.from(elem.selectedOptions).map(
-                opt => opt.value
-              );
-              this.context.commitRowValue(rowIndex, key, selected);
-            });
+            elem.disabled = false;
+            elem.addEventListener(
+              'change',
+              () => {
+                const selected = Array.from(elem.selectedOptions).map(
+                  opt => opt.value
+                );
+                this.context.commitRowValue(rowIndex, key, selected);
+              },
+              { signal }
+            );
           } else {
             elem.disabled = true;
           }
         } else {
           elem.value = value;
           if (effectiveIsEditing) {
-            elem.addEventListener('change', e => {
-              const target = e.target as HTMLSelectElement;
-              this.context.commitRowValue(rowIndex, key, target.value);
-            });
+            elem.disabled = false;
+            elem.addEventListener(
+              'change',
+              e => {
+                const target = e.target as HTMLSelectElement;
+                this.context.commitRowValue(rowIndex, key, target.value);
+              },
+              { signal }
+            );
           } else {
             elem.disabled = true;
           }
@@ -459,32 +602,37 @@ export class DomRenderer {
     wrapper: HTMLElement,
     index: number,
     isEditing: boolean,
-    isDeleted: boolean
+    isDeleted: boolean,
+    signal?: AbortSignal
   ): void {
     const actions = wrapper.querySelectorAll(`[${CONSTANTS.ATTR_DATA_ACTION}]`);
     actions.forEach(actionElem => {
       const action = actionElem.getAttribute(CONSTANTS.ATTR_DATA_ACTION);
-      actionElem.addEventListener('click', e => {
-        e.stopPropagation();
-        switch (action) {
-          case 'edit':
-          case 'toggle':
-            this.context.handleToggleClick(index);
-            break;
-          case 'delete':
-            this.context.handleDeleteClick(index);
-            break;
-          case 'save':
-            this.context.handleSaveClick(index);
-            break;
-          case 'cancel':
-            this.context.handleCancelClick(index);
-            break;
-          case 'restore':
-            this.context.handleRestoreClick(index);
-            break;
-        }
-      });
+      actionElem.addEventListener(
+        'click',
+        e => {
+          e.stopPropagation();
+          switch (action) {
+            case 'edit':
+            case 'toggle':
+              this.context.handleToggleClick(index);
+              break;
+            case 'delete':
+              this.context.handleDeleteClick(index);
+              break;
+            case 'save':
+              this.context.handleSaveClick(index);
+              break;
+            case 'cancel':
+              this.context.handleCancelClick(index);
+              break;
+            case 'restore':
+              this.context.handleRestoreClick(index);
+              break;
+          }
+        },
+        { signal }
+      );
 
       // Visibility logic based on state
       if (action === 'edit' || action === 'toggle') {

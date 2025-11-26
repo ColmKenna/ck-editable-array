@@ -42,6 +42,8 @@ export class CkEditableArray extends HTMLElement {
   // ============================================================================
 
   private _data: EditableRow[] = [];
+  private _rowKeys: string[] = [];
+  private _nextId = 0;
   private _schema: ValidationSchema | null = null;
   private _newItemFactory: () => EditableRow = () => ({});
   private _styleObserver: MutationObserver | null = null;
@@ -137,6 +139,7 @@ export class CkEditableArray extends HTMLElement {
     this._data = Array.isArray(v)
       ? (v as unknown[]).map(item => this.cloneRow(item))
       : [];
+    this._rowKeys = this._data.map(() => this.generateKey());
     if (this.isConnected) {
       this.render();
       this.dispatchDataChanged();
@@ -678,6 +681,7 @@ export class CkEditableArray extends HTMLElement {
 
     // Add the new item to the data array
     this._data = [...this._data, newItemWithEditing];
+    this._rowKeys.push(this.generateKey());
 
     // Re-render and dispatch datachanged event
     if (this.isConnected) {
@@ -1077,6 +1081,15 @@ export class CkEditableArray extends HTMLElement {
   /** @internal */
   public getRowData(rowIndex: number): EditableRow {
     return this._data[rowIndex];
+  }
+
+  /** @internal */
+  public getRowKey(rowIndex: number): string {
+    return this._rowKeys[rowIndex] || `fallback-${rowIndex}`;
+  }
+
+  private generateKey(): string {
+    return `row-${this._nextId++}`;
   }
 }
 

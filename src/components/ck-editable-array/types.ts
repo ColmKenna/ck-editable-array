@@ -2,6 +2,7 @@
  * Represents internal row data with editing state markers
  */
 export interface InternalRowData extends Record<string, unknown> {
+  __key?: string;
   editing?: boolean;
   deleted?: boolean;
   __originalSnapshot?: Record<string, unknown>;
@@ -63,6 +64,7 @@ export interface EditableArrayContext {
   configureReadonlyState(node: HTMLElement, isReadonly: boolean): void;
   isReadonlyBlocked(): boolean;
   getRowData(rowIndex: number): EditableRow;
+  getRowKey(rowIndex: number): string;
 
   // Properties
   data: unknown[]; // Public API returns unknown[]
