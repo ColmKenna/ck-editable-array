@@ -26,9 +26,10 @@ export interface ValidationResult {
  * Property-level schema definition
  */
 export interface PropertySchema {
-  type?: string;
+  type?: 'string' | 'number' | 'boolean' | 'integer';
   minLength?: number;
-  // Future: maxLength, pattern, etc.
+  maxLength?: number;
+  pattern?: string;
 }
 
 /**
@@ -88,6 +89,9 @@ export interface EditableArrayContext {
 export interface I18nMessages {
   required?: (field: string) => string;
   minLength?: (field: string, min: number) => string;
+  maxLength?: (field: string, max: number) => string;
+  pattern?: (field: string) => string;
+  type?: (field: string, expectedType: string) => string;
 }
 
 export const CONSTANTS = {
