@@ -1081,3 +1081,34 @@ Test status: All 195 tests pass (16 suites). No regressions.
 - Docs & Demo: Updated `docs/README.md`, `docs/spec.md`, and `docs/readme.technical.md` to document modal edit behavior; added `examples/demo-modal-edit.html` showcasing the feature.
 - Test status: All 208 tests pass (17 suites) via `npm test` (jest completed successfully before the harness timeout warning).
 
+
+## 2025-11-29 - Modal Validation Behavior (Step 9.1-9.3)
+
+- Goal: Ensure modal edit mode properly integrates with validation - users should not be able to save invalid data, and cancel should always revert to original state or discard new items.
+- RED: Added 4 new tests in `tests/ck-editable-array/ck-editable-array.modal-edit.test.ts`:
+  - "validation runs immediately when modal opens and disables Save if invalid" - tests that Save is disabled from the start when opening modal with invalid data
+  - "cancel in modal with validation errors reverts to original data" - tests that cancel works even when data has validation errors
+  - "adding new item in modal with validation, cancel discards the new item" - tests that canceling a new item in modal removes it entirely
+  - "fixing validation error in modal enables Save button" - tests that correcting validation errors re-enables Save
+- GREEN: All tests passed immediately - the existing implementation already handles modal validation correctly:
+  - `updateSaveButtonState()` is called when modal opens and after each input change
+  - Save button is properly disabled when validation fails in modal context
+  - Cancel uses the existing snapshot mechanism to restore data regardless of validation state
+  - New items marked with `__isNew` are properly removed on cancel via existing logic
+- REFACTOR: No code changes required - tests document and verify existing behavior.
+
+Files touched:
+- `tests/ck-editable-array/ck-editable-array.modal-edit.test.ts` — added 4 tests for modal validation behavior.
+- `docs/README.md` — added "Modal Validation Behavior" section documenting the feature.
+- `docs/spec.md` — added Step 9.1, 9.2, 9.3 to compliance matrix for modal validation.
+- `docs/steps.md` — this entry.
+
+Test status: All 241 tests pass (17 suites). No regressions.
+
+**Key Validation Behaviors in Modal Mode**:
+- Validation runs immediately when modal opens - Save is disabled if data is initially invalid
+- Real-time validation feedback as user edits fields
+- Cancel is never disabled by validation - always available to revert/discard
+- New items added via Add button are discarded entirely if Cancel is clicked
+- Fixing validation errors re-enables the Save button
+

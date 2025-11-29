@@ -54,6 +54,9 @@ The component provides an editable array interface with:
 | Step 8.1 | Data Immutability | Data Cloning & Immutability | ✅ Implemented | `step8.cloning.test.ts` |
 | Step 8.2 | Data Immutability | Deep vs Shallow Clone Behaviour | ✅ Implemented | `step8.cloning.test.ts` |
 | Step 9 | Edit Operations | Modal edit mode renders edit template inside modal overlay when `modal-edit` is set | ✅ Implemented | `modal-edit.test.ts` |
+| Step 9.1 | Modal Validation | Modal validation blocks Save when data is invalid | ✅ Implemented | `modal-edit.test.ts` |
+| Step 9.2 | Modal Validation | Cancel in modal reverts data even with validation errors | ✅ Implemented | `modal-edit.test.ts` |
+| Step 9.3 | Modal Validation | Adding new item via modal, cancel discards new item | ✅ Implemented | `modal-edit.test.ts` |
 | Week 4.1 | Enhancement | Internationalization (i18n) for validation messages | ✅ Implemented | `week4.i18n.test.ts` |
 | Week 4.2 | Enhancement | Focus management (auto-focus on edit, restore on save/cancel) | ✅ Implemented | `week4.focus.test.ts` |
 | Week 5.1 | Enhancement | CSS Custom Properties for theming | ✅ Implemented | `week5.css-vars.test.ts` |

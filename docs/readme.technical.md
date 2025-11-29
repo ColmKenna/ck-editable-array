@@ -415,6 +415,25 @@ When modal edit is enabled:
 </div>
 ```
 
+### Modal Validation Integration
+
+Validation in modal mode follows the same rules as inline editing:
+
+1. **Immediate validation**: When modal opens, `updateSaveButtonState()` runs immediately, disabling Save if data is invalid
+2. **Real-time updates**: Each input change triggers validation and updates Save button state
+3. **Cancel always available**: Cancel button is never disabled by validation—users can always exit without saving
+4. **New item handling**: Items created via Add are marked with `__isNew`. If Cancel is clicked before Save, the new item is removed entirely from the data array
+
+```typescript
+// Validation flow in modal
+render() {
+  // ... modal opens ...
+  const editRow = this.createRowElement(item, index, 'edit', errors);
+  surface.appendChild(editRow);
+  // updateSaveButtonState() called via rendering pipeline
+}
+```
+
 ---
 
 ## Focus Management

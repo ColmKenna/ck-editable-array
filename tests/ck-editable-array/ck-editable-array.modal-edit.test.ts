@@ -242,4 +242,257 @@ describe('ck-editable-array (modal edit mode)', () => {
       email: 'alice@example.com',
     });
   });
+
+  test('validation runs immediately when modal opens and disables Save if invalid', async () => {
+    const el = document.createElement('ck-editable-array') as CkEditableArray;
+    el.setAttribute('modal-edit', '');
+
+    el.innerHTML = `
+      <template slot="display">
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      </template>
+      <template slot="edit">
+        <div class="row-edit">
+          <input data-bind="name" aria-label="Name" />
+          <span data-field-error="name"></span>
+          <button data-action="save">Save</button>
+          <button data-action="cancel">Cancel</button>
+        </div>
+      </template>
+    `;
+
+    // Set schema BEFORE opening modal
+    el.schema = {
+      required: ['name'],
+      properties: {
+        name: { minLength: 5 },
+      },
+    };
+
+    // Data is initially invalid (name too short)
+    el.data = [{ name: 'Al' }];
+    document.body.appendChild(el);
+    await waitForRender();
+
+    const toggleBtn = el.shadowRoot!.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
+    await clickAndWait(toggleBtn);
+
+    const modal = el.shadowRoot!.querySelector('[part="modal"]') as HTMLElement;
+    expect(modal.classList.contains('hidden')).toBe(false);
+
+    // Save should be disabled immediately when modal opens with invalid data
+    const saveBtn = modal.querySelector(
+      '[data-action="save"]'
+    ) as HTMLButtonElement;
+    expect(saveBtn.disabled).toBe(true);
+
+    // Error should be visible
+    const nameError = modal.querySelector(
+      '[data-field-error="name"]'
+    ) as HTMLElement;
+    expect(nameError.textContent).not.toBe('');
+  });
+
+  test('cancel in modal with validation errors reverts to original data', async () => {
+    const el = document.createElement('ck-editable-array') as CkEditableArray;
+    el.setAttribute('modal-edit', '');
+
+    el.innerHTML = `
+      <template slot="display">
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      </template>
+      <template slot="edit">
+        <div class="row-edit">
+          <input data-bind="name" aria-label="Name" />
+          <span data-field-error="name"></span>
+          <button data-action="save">Save</button>
+          <button data-action="cancel">Cancel</button>
+        </div>
+      </template>
+    `;
+
+    el.schema = {
+      required: ['name'],
+      properties: {
+        name: { minLength: 5 },
+      },
+    };
+
+    el.data = [{ name: 'ValidName' }];
+    document.body.appendChild(el);
+    await waitForRender();
+
+    const toggleBtn = el.shadowRoot!.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
+    await clickAndWait(toggleBtn);
+
+    const modal = el.shadowRoot!.querySelector('[part="modal"]') as HTMLElement;
+    const modalInput = modal.querySelector(
+      'input[data-bind="name"]'
+    ) as HTMLInputElement;
+
+    // Change to invalid value
+    simulateInput(modalInput, 'X');
+    await waitForRender();
+
+    // Save should be disabled due to validation failure
+    const saveBtn = modal.querySelector(
+      '[data-action="save"]'
+    ) as HTMLButtonElement;
+    expect(saveBtn.disabled).toBe(true);
+
+    // Cancel should close modal and revert to original data
+    const cancelBtn = modal.querySelector(
+      '[data-action="cancel"]'
+    ) as HTMLButtonElement;
+    await clickAndWait(cancelBtn);
+
+    expect(modal.classList.contains('hidden')).toBe(true);
+    expect(el.data[0]).toMatchObject({ name: 'ValidName' });
+
+    // Display should show original value
+    const displayName = el.shadowRoot!.querySelector(
+      '.display-content [data-bind="name"]'
+    ) as HTMLElement;
+    expect(displayName.textContent).toBe('ValidName');
+  });
+
+  test('adding new item in modal with validation, cancel discards the new item', async () => {
+    const el = document.createElement('ck-editable-array') as CkEditableArray;
+    el.setAttribute('modal-edit', '');
+
+    el.innerHTML = `
+      <template slot="display">
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      </template>
+      <template slot="edit">
+        <div class="row-edit">
+          <input data-bind="name" aria-label="Name" />
+          <span data-field-error="name"></span>
+          <button data-action="save">Save</button>
+          <button data-action="cancel">Cancel</button>
+        </div>
+      </template>
+    `;
+
+    el.schema = {
+      required: ['name'],
+      properties: {
+        name: { minLength: 5 },
+      },
+    };
+
+    el.newItemFactory = () => ({ name: '' });
+    el.data = [{ name: 'ExistingItem' }];
+    document.body.appendChild(el);
+    await waitForRender();
+
+    // Initially 1 row
+    expect(el.data.length).toBe(1);
+
+    // Click Add button
+    const addBtn = el.shadowRoot!.querySelector(
+      '[data-action="add"]'
+    ) as HTMLButtonElement;
+    await clickAndWait(addBtn);
+
+    const modal = el.shadowRoot!.querySelector('[part="modal"]') as HTMLElement;
+    expect(modal.classList.contains('hidden')).toBe(false);
+
+    // New item should be in data array temporarily
+    expect(el.data.length).toBe(2);
+
+    // Save should be disabled (new item has empty name, fails required validation)
+    const saveBtn = modal.querySelector(
+      '[data-action="save"]'
+    ) as HTMLButtonElement;
+    expect(saveBtn.disabled).toBe(true);
+
+    // Cancel should close modal and remove the new item entirely
+    const cancelBtn = modal.querySelector(
+      '[data-action="cancel"]'
+    ) as HTMLButtonElement;
+    await clickAndWait(cancelBtn);
+
+    expect(modal.classList.contains('hidden')).toBe(true);
+    expect(el.data.length).toBe(1);
+    expect(el.data[0]).toMatchObject({ name: 'ExistingItem' });
+  });
+
+  test('fixing validation error in modal enables Save button', async () => {
+    const el = document.createElement('ck-editable-array') as CkEditableArray;
+    el.setAttribute('modal-edit', '');
+
+    el.innerHTML = `
+      <template slot="display">
+        <div class="row-display">
+          <span data-bind="name"></span>
+          <button data-action="toggle">Edit</button>
+        </div>
+      </template>
+      <template slot="edit">
+        <div class="row-edit">
+          <input data-bind="name" aria-label="Name" />
+          <span data-field-error="name"></span>
+          <button data-action="save">Save</button>
+          <button data-action="cancel">Cancel</button>
+        </div>
+      </template>
+    `;
+
+    el.schema = {
+      required: ['name'],
+      properties: {
+        name: { minLength: 5 },
+      },
+    };
+
+    // Start with invalid data
+    el.data = [{ name: 'Al' }];
+    document.body.appendChild(el);
+    await waitForRender();
+
+    const toggleBtn = el.shadowRoot!.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
+    await clickAndWait(toggleBtn);
+
+    const modal = el.shadowRoot!.querySelector('[part="modal"]') as HTMLElement;
+    const saveBtn = modal.querySelector(
+      '[data-action="save"]'
+    ) as HTMLButtonElement;
+
+    // Initially disabled
+    expect(saveBtn.disabled).toBe(true);
+
+    // Fix the validation error
+    const modalInput = modal.querySelector(
+      'input[data-bind="name"]'
+    ) as HTMLInputElement;
+    simulateInput(modalInput, 'ValidName');
+    await waitForRender();
+
+    // Save should now be enabled
+    expect(saveBtn.disabled).toBe(false);
+
+    // Save should work
+    const dataChanged = captureEvent<CustomEvent>(el, 'datachanged');
+    await clickAndWait(saveBtn);
+
+    const event = await dataChanged;
+    expect(event.detail.data[0].name).toBe('ValidName');
+    expect(modal.classList.contains('hidden')).toBe(true);
+  });
 });

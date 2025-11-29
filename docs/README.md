@@ -282,6 +282,36 @@ Enable modal editing with the `modal-edit` attribute:
 
 The edit template renders in a built-in modal overlay with `role="dialog"` and `aria-modal="true"`.
 
+### Modal Validation Behavior
+
+When using modal edit mode with validation, the component enforces data integrity:
+
+- **Immediate validation**: When the modal opens, validation runs immediately. If data is invalid, the Save button is disabled.
+- **Real-time feedback**: As the user edits, validation updates in real-time, enabling Save only when all constraints are satisfied.
+- **Cancel always available**: Cancel is never disabled by validation. Clicking Cancel closes the modal and reverts to the original data.
+- **New items**: When adding a new item via Add button, the modal opens for editing. If the user cancels, the new item is discarded entirely (not kept in the data array).
+
+```html
+<ck-editable-array modal-edit>
+  <template slot="edit">
+    <div class="row-edit">
+      <input data-bind="name" />
+      <span data-field-error="name"></span>
+      <button data-action="save">Save</button>
+      <button data-action="cancel">Cancel</button>
+    </div>
+  </template>
+  <!-- ... -->
+</ck-editable-array>
+
+<script>
+  el.schema = {
+    required: ['name'],
+    properties: { name: { minLength: 3 } }
+  };
+</script>
+```
+
 ---
 
 ## Nested Properties
