@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ck-editable-array – CSS Custom Properties (Theming)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f7fafc;
+      color: #1a202c;
+    }
+    h1 { margin: 0 0 0.25rem; }
+    h2 { margin: 2rem 0 0.5rem; color: #374151; }
+    p { margin: 0.25rem 0 0.75rem; max-width: 800px; font-size: 0.95rem; line-height: 1.6; }
+    
+    .theme-selector {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .theme-selector button {
+      padding: 12px 20px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .theme-selector button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .theme-selector button.active {
+      border-width: 3px;
+    }
+    .theme-selector button[data-theme="default"].active {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    .theme-selector button[data-theme="ocean"].active {
+      border-color: #0ea5e9;
+      background: #f0f9ff;
+    }
+    .theme-selector button[data-theme="forest"].active {
+      border-color: #22c55e;
+      background: #f0fdf4;
+    }
+    .theme-selector button[data-theme="sunset"].active {
+      border-color: #f97316;
+      background: #fff7ed;
+    }
+    .theme-selector button[data-theme="dark"].active {
+      border-color: #6366f1;
+      background: #1e1b4b;
+      color: #fff;
+    }
+
+    .demo-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 1200px;
+    }
+    @media (max-width: 900px) {
+      .demo-container { grid-template-columns: 1fr; }
+    }
+
+    .demo-panel {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Theme containers for CSS custom property overrides */
+    .theme-default {
+      --ck-error-color: #dc3545;
+      --ck-focus-color: #0066cc;
+      --ck-border-color: #ddd;
+      --ck-border-radius: 4px;
+      --ck-disabled-opacity: 0.5;
+    }
+
+    .theme-ocean {
+      --ck-error-color: #0369a1;
+      --ck-focus-color: #0ea5e9;
+      --ck-border-color: #06b6d4;
+      --ck-border-radius: 8px;
+      --ck-disabled-opacity: 0.5;
+      background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+    }
+
+    .theme-forest {
+      --ck-error-color: #b91c1c;
+      --ck-focus-color: #22c55e;
+      --ck-border-color: #16a34a;
+      --ck-border-radius: 12px;
+      --ck-disabled-opacity: 0.5;
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    }
+
+    .theme-sunset {
+      --ck-error-color: #c2410c;
+      --ck-focus-color: #f97316;
+      --ck-border-color: #fb923c;
+      --ck-border-radius: 16px;
+      --ck-disabled-opacity: 0.5;
+      background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+    }
+
+    .theme-dark {
+      --ck-error-color: #f87171;
+      --ck-focus-color: #818cf8;
+      --ck-border-color: #6366f1;
+      --ck-border-radius: 8px;
+      --ck-disabled-opacity: 0.4;
+      background: linear-gradient(135deg, #1e1b4b 0%, #2e2a5f 100%);
+    }
+
+    /* Code display */
+    pre.code-display {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      margin: 16px 0 0;
+    }
+
+    /* Component styling common across themes */
+    ck-editable-array {
+      display: block;
+      margin: 1rem 0;
+    }
+
+    ck-editable-array::part(root) {
+      padding: 16px;
+      border-radius: var(--ck-border-radius, 8px);
+    }
+
+    /* Theme-specific panel backgrounds */
+    .theme-ocean .demo-panel {
+      background: #e0f2fe;
+      border-color: #06b6d4;
+    }
+
+    .theme-forest .demo-panel {
+      background: #f0fdf4;
+      border-color: #16a34a;
+    }
+
+    .theme-sunset .demo-panel {
+      background: #fff7ed;
+      border-color: #fb923c;
+    }
+
+    .theme-dark ck-editable-array::part(root) {
+      background: #1e1b4b;
+      color: #ffffff;
+    }
+
+    .theme-dark .demo-panel {
+      background: #0f0d24;
+      border-color: #6366f1;
+      color: #ffffff;
+    }
+
+    .theme-dark {
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <h1>ck-editable-array – CSS Custom Properties (Theming)</h1>
+  <p>
+    This example demonstrates how to use CSS custom properties to theme the component. The component exposes
+    several <code>--ck-*</code> variables that can be overridden on the component element or any ancestor.
+  </p>
+
+  <h2>Select a Theme</h2>
+  <div class="theme-selector">
+    <button data-theme="default" class="active">🔵 Default</button>
+    <button data-theme="ocean">🌊 Ocean</button>
+    <button data-theme="forest">🌲 Forest</button>
+    <button data-theme="sunset">🌅 Sunset</button>
+    <button data-theme="dark">🌙 Dark</button>
+  </div>
+
+  <div class="demo-container">
+    <div class="demo-panel" id="demo-panel">
+      <h3>Live Demo</h3>
+      <p>Try entering invalid data (empty or too short) to see themed validation styles.</p>
+      
+      <div id="theme-container" class="theme-default">
+        <ck-editable-array id="themed-array" name="contacts">
+          <style slot="styles">
+            .row-display {
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              padding: 12px;
+              margin-bottom: 8px;
+              border-radius: var(--ck-border-radius, 4px);
+              border: 1px solid var(--ck-border-color, #ddd);
+              background: rgba(255,255,255,0.05);
+            }
+            .row-display .field { flex: 1; }
+            .row-display .name { font-weight: 600; }
+            .row-display .email { opacity: 0.8; font-size: 0.9rem; }
+            
+            .row-edit {
+              display: grid;
+              gap: 14px;
+              padding: 16px;
+              border-radius: var(--ck-border-radius, 4px);
+              border: 2px solid var(--ck-focus-color, #0066cc);
+              background: rgba(255,255,255,0.05);
+              margin-bottom: 8px;
+            }
+            .row-edit[data-row-invalid] {
+              border-color: var(--ck-error-color, #dc3545);
+            }
+            .row-edit label {
+              display: grid;
+              gap: 6px;
+              font-size: 0.9rem;
+              font-weight: 600;
+            }
+            .row-edit input {
+              padding: 10px 12px;
+              border: 2px solid var(--ck-border-color, #ddd);
+              border-radius: var(--ck-border-radius, 4px);
+              font-size: 0.9rem;
+              background: transparent;
+              color: inherit;
+            }
+            .row-edit input:focus {
+              outline: none;
+              border-color: var(--ck-focus-color, #0066cc);
+              box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+            }
+            .row-edit input[aria-invalid="true"] {
+              border-color: var(--ck-error-color, #dc3545);
+            }
+            .field-error {
+              color: var(--ck-error-color, #dc3545);
+              font-size: 0.8rem;
+              min-height: 20px;
+            }
+            
+            .actions {
+              display: flex;
+              gap: 10px;
+              justify-content: flex-end;
+              margin-top: 8px;
+            }
+            button {
+              padding: 8px 16px;
+              border-radius: var(--ck-border-radius, 4px);
+              border: none;
+              cursor: pointer;
+              font-size: 0.85rem;
+              font-weight: 600;
+            }
+            button[data-action="toggle"] {
+              background: var(--ck-focus-color, #0066cc);
+              color: #fff;
+            }
+            button[data-action="save"] {
+              background: #10b981;
+              color: #fff;
+            }
+            button[data-action="save"]:disabled {
+              opacity: var(--ck-disabled-opacity, 0.5);
+              cursor: not-allowed;
+            }
+            button[data-action="cancel"] {
+              background: rgba(128,128,128,0.2);
+              color: inherit;
+            }
+            button[data-action="add"] {
+              background: var(--ck-focus-color, #0066cc);
+              color: #fff;
+              padding: 10px 20px;
+            }
+          </style>
+
+          <template slot="display">
+            <div class="row-display">
+              <div class="field">
+                <div class="name" data-bind="name"></div>
+                <div class="email" data-bind="email"></div>
+              </div>
+              <button type="button" data-action="toggle">Edit</button>
+            </div>
+          </template>
+
+          <template slot="edit">
+            <div class="row-edit">
+              <label>
+                Name
+                <input data-bind="name" type="text" />
+                <span class="field-error" data-field-error="name"></span>
+              </label>
+              <label>
+                Email
+                <input data-bind="email" type="email" />
+                <span class="field-error" data-field-error="email"></span>
+              </label>
+              <div class="actions">
+                <button type="button" data-action="cancel">Cancel</button>
+                <button type="button" data-action="save">Save</button>
+              </div>
+            </div>
+          </template>
+
+          <template slot="add-button">
+            <button type="button" data-action="add">+ Add Contact</button>
+          </template>
+        </ck-editable-array>
+      </div>
+    </div>
+
+    <div class="demo-panel">
+      <h3>CSS Custom Properties</h3>
+      <p>The following CSS variables are available for theming:</p>
+      
+      <table style="width:100%; font-size:0.85rem; border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:2px solid #e5e7eb;">
+            <th style="text-align:left; padding:8px 0;">Property</th>
+            <th style="text-align:left; padding:8px 0;">Default</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #e5e7eb;">
+            <td style="padding:8px 0;"><code>--ck-row-padding</code></td>
+            <td style="padding:8px 0;">12px</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e5e7eb;">
+            <td style="padding:8px 0;"><code>--ck-error-color</code></td>
+            <td style="padding:8px 0;">#dc3545</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e5e7eb;">
+            <td style="padding:8px 0;"><code>--ck-border-radius</code></td>
+            <td style="padding:8px 0;">4px</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e5e7eb;">
+            <td style="padding:8px 0;"><code>--ck-border-color</code></td>
+            <td style="padding:8px 0;">#ddd</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e5e7eb;">
+            <td style="padding:8px 0;"><code>--ck-focus-color</code></td>
+            <td style="padding:8px 0;">#0066cc</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;"><code>--ck-disabled-opacity</code></td>
+            <td style="padding:8px 0;">0.5</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4 style="margin-top:20px;">Current Theme CSS</h4>
+      <pre class="code-display" id="css-display">/* Default theme - uses component defaults */</pre>
+    </div>
+  </div>
+
+  <script type="module">
+    import '../dist/ck-editable-array/ck-editable-array.esm.js';
+
+    const el = document.getElementById('themed-array');
+    const themeContainer = document.getElementById('theme-container');
+    const demoPanel = document.getElementById('demo-panel');
+    const cssDisplay = document.getElementById('css-display');
+
+    // Sample data with one invalid row
+    el.data = [
+      { name: 'Alice Johnson', email: 'alice@example.com' },
+      { name: '', email: '' }
+    ];
+
+    el.newItemFactory = () => ({ name: '', email: '' });
+
+    // Validation schema
+    el.schema = {
+      required: ['name', 'email'],
+      properties: {
+        name: { minLength: 2 },
+        email: { minLength: 5 }
+      }
+    };
+
+    // Theme CSS definitions
+    const themeCss = {
+      default: `.theme-default {
+  --ck-error-color: #dc3545;
+  --ck-focus-color: #0066cc;
+  --ck-border-color: #ddd;
+  --ck-border-radius: 4px;
+  --ck-disabled-opacity: 0.5;
+}`,
+      ocean: `.theme-ocean {
+  --ck-error-color: #0369a1;
+  --ck-focus-color: #0ea5e9;
+  --ck-border-color: #06b6d4;
+  --ck-border-radius: 8px;
+  --ck-disabled-opacity: 0.5;
+}`,
+      forest: `.theme-forest {
+  --ck-error-color: #b91c1c;
+  --ck-focus-color: #22c55e;
+  --ck-border-color: #16a34a;
+  --ck-border-radius: 12px;
+  --ck-disabled-opacity: 0.5;
+}`,
+      sunset: `.theme-sunset {
+  --ck-error-color: #c2410c;
+  --ck-focus-color: #f97316;
+  --ck-border-color: #fb923c;
+  --ck-border-radius: 16px;
+  --ck-disabled-opacity: 0.5;
+}`,
+      dark: `.theme-dark {
+  --ck-error-color: #f87171;
+  --ck-focus-color: #818cf8;
+  --ck-border-color: #6366f1;
+  --ck-border-radius: 8px;
+  --ck-disabled-opacity: 0.4;
+}`
+    };
+
+    // Theme button handlers
+    document.querySelectorAll('.theme-selector button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const theme = btn.dataset.theme;
+        
+        // Update active button
+        document.querySelectorAll('.theme-selector button').forEach(b => {
+          b.classList.toggle('active', b === btn);
+        });
+
+        // Update theme class on container
+        themeContainer.className = `theme-${theme}`;
+        demoPanel.className = `demo-panel theme-${theme}`;
+
+        // Update CSS display
+        cssDisplay.textContent = themeCss[theme];
+      });
+    });
+
+    el.addEventListener('datachanged', (event) => {
+      console.log('Data changed:', event.detail.data);
+    });
+  </script>
+</body>
+</html>

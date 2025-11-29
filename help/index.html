@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ck-editable-array – Documentation Index</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 900px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+      color: #fff;
+      padding: 32px 40px;
+    }
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 2rem;
+    }
+    header p {
+      margin: 0;
+      opacity: 0.9;
+      font-size: 1.1rem;
+    }
+    .content {
+      padding: 32px 40px;
+    }
+    .section {
+      margin-bottom: 32px;
+    }
+    .section:last-child {
+      margin-bottom: 0;
+    }
+    .section h2 {
+      margin: 0 0 16px;
+      font-size: 1.25rem;
+      color: #1e3a5f;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 8px;
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      display: block;
+      padding: 20px;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.2s ease;
+      background: #fafafa;
+    }
+    .card:hover {
+      border-color: #667eea;
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+      transform: translateY(-2px);
+    }
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      color: #1e3a5f;
+    }
+    .card p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+    .card.primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: #fff;
+    }
+    .card.primary h3,
+    .card.primary p {
+      color: #fff;
+    }
+    .card.primary p {
+      opacity: 0.9;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      color: #374151;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .card.primary .badge {
+      background: rgba(255,255,255,0.25);
+      color: #fff;
+    }
+    footer {
+      background: #f9fafb;
+      border-top: 1px solid #e5e7eb;
+      padding: 20px 40px;
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+    footer a {
+      color: #667eea;
+      text-decoration: none;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.9em;
+      background: #e5e7eb;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .card.primary code {
+      background: rgba(255,255,255,0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>&lt;ck-editable-array&gt;</h1>
+      <p>Template-driven web component for editable array fields with validation, accessibility, and modal editing support.</p>
+    </header>
+
+    <div class="content">
+      <div class="section">
+        <h2>📖 Documentation</h2>
+        <div class="card-grid">
+          <a href="ck-editable-array-help.html" class="card primary">
+            <h3>Main Documentation<span class="badge">Start Here</span></h3>
+            <p>Complete API reference, attributes, events, templates, CSS styling, and framework integration guides.</p>
+          </a>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>🚀 Getting Started Examples</h2>
+        <div class="card-grid">
+          <a href="ck-editable-array-example-basic.html" class="card">
+            <h3>Basic Example</h3>
+            <p>Minimal setup with string arrays. Edit, delete, restore, and add letters.</p>
+          </a>
+          <a href="ck-editable-array-example-advanced.html" class="card">
+            <h3>Advanced Example</h3>
+            <p>Object arrays with validation, modal editing, and live data preview.</p>
+          </a>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>🎨 Styling &amp; Customization</h2>
+        <div class="card-grid">
+          <a href="ck-editable-array-example-custom-css.html" class="card">
+            <h3>Custom CSS Styling</h3>
+            <p>Use <code>::part()</code> selectors and <code>slot="styles"</code> for row-level styling.</p>
+          </a>
+          <a href="ck-editable-array-example-custom-buttons.html" class="card">
+            <h3>Custom Buttons</h3>
+            <p>Override default buttons with custom icons, SVGs, and styling using <code>data-action</code>.</p>
+          </a>
+          <a href="ck-editable-array-example-theming.html" class="card">
+            <h3>CSS Custom Properties<span class="badge">Theming</span></h3>
+            <p>Use CSS variables like <code>--ck-error-color</code> for consistent theming.</p>
+          </a>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>📝 Modal Editing</h2>
+        <div class="card-grid">
+          <a href="ck-editable-array-example-modal-edit.html" class="card">
+            <h3>Modal Edit Mode</h3>
+            <p>Enable <code>modal-edit</code> attribute to edit rows in an overlay dialog.</p>
+          </a>
+          <a href="ck-editable-array-example-modal-styled.html" class="card">
+            <h3>Styled Modal</h3>
+            <p>Advanced modal styling with backdrop blur, gradients, and animations.</p>
+          </a>
+          <a href="ck-editable-array-example-modal-validation.html" class="card">
+            <h3>Modal with Validation</h3>
+            <p>Required fields, field-level errors, and Save button state management.</p>
+          </a>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>📋 Form Inputs</h2>
+        <div class="card-grid">
+          <a href="ck-editable-array-example-inputs.html" class="card">
+            <h3>All Input Types</h3>
+            <p>Text, textarea, select, multi-select, radio buttons, and checkbox groups.</p>
+          </a>
+          <a href="ck-editable-array-example-i18n.html" class="card">
+            <h3>Internationalization (i18n)</h3>
+            <p>Custom validation messages in different languages using the <code>i18n</code> property.</p>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>
+        <strong>Component:</strong> <code>&lt;ck-editable-array&gt;</code> · 
+        <strong>Category:</strong> Form / Collection Editor · 
+        <a href="../docs/README.md">View README</a> · 
+        <a href="../docs/spec.md">View Specification</a>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>

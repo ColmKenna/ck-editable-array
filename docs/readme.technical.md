@@ -1,53 +1,63 @@
-﻿# Technical notes: ck-editable-array
+﻿# Technical Documentation: ck-editable-array
+
+**Last Updated**: November 29, 2025  
+**Version**: 1.0.0
+
+---
 
 ## Architecture Overview
 
 The `ck-editable-array` component follows a Shadow DOM-based architecture with template-driven rendering and reactive data binding.
 
-```mermaid
-graph TB
-    subgraph "Light DOM"
-        A[Templates] --> B[Display Template]
-        A --> C[Edit Template]
-        D[Style Slot] --> E[Custom Styles]
-        F[Button Slots] --> G[Custom Buttons]
-    end
-    
-    subgraph "Component"
-        H[CkEditableArray] --> I[Data Store]
-        H --> J[Schema Store]
-        H --> K[Validation Engine]
-        H --> L[Style Observer]
-    end
-    
-    subgraph "Shadow DOM"
-        M[Root Container] --> N[Rows Container]
-        M --> O[Add Button Container]
-        N --> P[Display Rows]
-        N --> Q[Edit Rows]
-        R[Mirrored Styles]
-    end
-    
-    B --> H
-    C --> H
-    E --> L
-    L --> R
-    H --> M
-    I --> N
-    K --> N
-    
-    subgraph "Events"
-        S[datachanged]
-        T[beforetogglemode]
-        U[aftertogglemode]
-    end
-    
-    H --> S
-    H --> T
-    H --> U
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Light DOM                                │
+│  ┌─────────────┐  ┌─────────────┐  ┌──────────────────────────┐ │
+│  │  Display    │  │    Edit     │  │   Style Slot / Buttons   │ │
+│  │  Template   │  │   Template  │  │      (Custom)            │ │
+│  └──────┬──────┘  └──────┬──────┘  └────────────┬─────────────┘ │
+└─────────┼────────────────┼──────────────────────┼───────────────┘
+          │                │                      │
+          ▼                ▼                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      CkEditableArray                             │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌───────────┐  │
+│  │ Data Store │  │  Schema    │  │ Validation │  │   Style   │  │
+│  │  (_data)   │  │  Store     │  │  Manager   │  │  Observer │  │
+│  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘  └─────┬─────┘  │
+│        │               │               │               │        │
+│        └───────────────┴───────┬───────┴───────────────┘        │
+│                                │                                 │
+│                         DomRenderer                              │
+└────────────────────────────────┼────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        Shadow DOM                                │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                    Root Container [part="root"]              ││
+│  │  ┌─────────────────────────────────────────────────────────┐││
+│  │  │              Rows Container [part="rows"]                │││
+│  │  │  ┌─────────────────┐  ┌─────────────────┐               │││
+│  │  │  │ Display Content │  │  Edit Content   │               │││
+│  │  │  │  (per row)      │  │   (per row)     │               │││
+│  │  │  └─────────────────┘  └─────────────────┘               │││
+│  │  └─────────────────────────────────────────────────────────┘││
+│  │  ┌─────────────────────────────────────────────────────────┐││
+│  │  │           Add Button Container [part="add-button"]       │││
+│  │  └─────────────────────────────────────────────────────────┘││
+│  └─────────────────────────────────────────────────────────────┘│
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │         Modal Overlay [part="modal"] (when enabled)         ││
+│  │    ┌─────────────────────────────────────────────────────┐  ││
+│  │    │     Modal Surface [part="modal-surface"]            │  ││
+│  │    │        (edit template rendered here)                │  ││
+│  │    └─────────────────────────────────────────────────────┘  ││
+│  └─────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-**Key Architectural Principles:**
+### Key Architectural Principles
 
 1. **Shadow DOM Encapsulation**: Component internals are isolated from the page, preventing style leakage
 2. **Template-Driven Rendering**: User-provided templates define row structure, component handles data binding
@@ -55,731 +65,499 @@ graph TB
 4. **Event-Driven Communication**: Component communicates state changes via custom events
 5. **Progressive Enhancement**: Works with or without validation schema, custom buttons, or styling
 
-## State Management
+---
 
-### Internal State Properties
+## File Structure
 
-The component maintains several internal state properties:
-
-- **`_data: EditableRow[]`**: The primary data store containing all row data with internal markers
-- **`_schema: unknown`**: Validation schema (JSON Schema-like format)
-- **`_newItemFactory: () => EditableRow`**: Factory function for creating new rows
-- **`_styleObserver: MutationObserver | null`**: Observer for tracking style changes in light DOM
-
-### Data Flow and State Transitions
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Component
-    participant DataStore
-    participant DOM
-    participant Consumer
-    
-    User->>Component: Set data property
-    Component->>DataStore: Clone and store data
-    Component->>DOM: render()
-    Component->>Consumer: dispatch datachanged
-    
-    User->>DOM: Click Edit button
-    DOM->>Component: handleToggleClick()
-    Component->>Consumer: dispatch beforetogglemode
-    Consumer-->>Component: Allow/Cancel
-    Component->>DataStore: Set editing=true, create snapshot
-    Component->>DOM: render()
-    Component->>Consumer: dispatch aftertogglemode
-    
-    User->>DOM: Type in input field
-    DOM->>Component: input event
-    Component->>DataStore: commitRowValue()
-    Component->>DOM: updateBoundNodes()
-    Component->>Component: updateSaveButtonState()
-    
-    User->>DOM: Click Save button
-    DOM->>Component: handleSaveClick()
-    Component->>Component: validateRow()
-    Component->>DataStore: Remove editing flag
-    Component->>DOM: render()
-    Component->>Consumer: dispatch datachanged
+```
+src/components/ck-editable-array/
+├── ck-editable-array.ts    # Main component class (entry point)
+├── dom-renderer.ts         # DOM rendering and event binding
+├── validation-manager.ts   # Schema validation logic
+└── types.ts               # TypeScript interfaces and constants
 ```
 
-### State Transitions
+### Module Responsibilities
 
-**Row Mode States:**
-- **Display Mode**: Default state, shows read-only view of data
-- **Edit Mode**: Editable state with input fields and Save/Cancel buttons
-- **Locked Mode**: Display mode when another row is being edited (exclusive locking)
-- **Deleted Mode**: Soft-deleted state with visual indicators and Restore option
+| Module | Responsibility |
+|--------|---------------|
+| `ck-editable-array.ts` | Component lifecycle, public API, data management |
+| `dom-renderer.ts` | Template cloning, data binding, event listeners |
+| `validation-manager.ts` | Schema validation, error message generation |
+| `types.ts` | TypeScript types, interfaces, constants |
 
-**Edit Mode Lifecycle:**
-
-```mermaid
-stateDiagram-v2
-    [*] --> Display: Initial render
-    Display --> EditPending: Click Edit/Toggle
-    EditPending --> Display: beforetogglemode canceled
-    EditPending --> Edit: beforetogglemode allowed
-    Edit --> Display: Click Save (valid)
-    Edit --> Edit: Click Save (invalid)
-    Edit --> Display: Click Cancel
-    Edit --> Display: Click Toggle
-    Display --> [*]: Component destroyed
-    
-    note right of Edit
-        Snapshot created on entry
-        Changes tracked in real-time
-        Validation runs on input
-    end note
-    
-    note right of Display
-        Snapshot discarded
-        Changes committed or reverted
-    end note
-```
-
-### Internal Data Markers
-
-The component uses internal properties to track state:
-
-- **`editing: boolean`**: Indicates row is in edit mode
-- **`deleted: boolean`**: Indicates row is soft-deleted
-- **`__originalSnapshot: Record<string, unknown>`**: Snapshot of data before editing (for Cancel/rollback)
-- **`__isNew: boolean`**: Marks newly added rows (removed on Cancel instead of restored)
-
-These markers are filtered out when data is exposed via the public `data` getter.
-
-### Modal edit rendering
-
-- Opt in with the `modal-edit` attribute or `modalEdit` property. Inline rendering remains the default.
-- Shadow DOM now includes a modal overlay (`part="modal"`, class `modal-overlay`) and a dialog surface (`part="modal-surface"`, class `modal-surface`) with `role="dialog"` and `aria-modal="true"`.
-- When modal editing is enabled, the rows container renders only display templates; the active row's edit template is injected into the modal surface and marked with the same `data-row`/`data-mode` attributes so existing binding and validation utilities keep working.
-- `render()` clears modal content on every run, reusing `openModal`/`closeModal` helpers to toggle the shared hidden class and `aria-hidden` flag.
-- Exclusive locking and event contracts are unchanged: only one row edits at a time, `datachanged` still fires on Save, and Cancel closes the modal without emitting `datachanged`.
-
-## Architecture Overview
-
-The `ck-editable-array` component follows a Shadow DOM-based architecture with template-driven rendering and reactive data binding.
-
-```mermaid
-graph TB
-    subgraph "Light DOM"
-        A[Templates] --> B[Display Template]
-        A --> C[Edit Template]
-        D[Style Slot] --> E[Custom Styles]
-        F[Button Slots] --> G[Custom Buttons]
-    end
-    
-    subgraph "Component"
-        H[CkEditableArray] --> I[Data Store]
-        H --> J[Schema Store]
-        H --> K[Validation Engine]
-        H --> L[Style Observer]
-    end
-    
-    subgraph "Shadow DOM"
-        M[Root Container] --> N[Rows Container]
-        M --> O[Add Button Container]
-        N --> P[Display Rows]
-        N --> Q[Edit Rows]
-        R[Mirrored Styles]
-    end
-    
-    B --> H
-    C --> H
-    E --> L
-    L --> R
-    H --> M
-    I --> N
-    K --> N
-    
-    subgraph "Events"
-        S[datachanged]
-        T[beforetogglemode]
-        U[aftertogglemode]
-    end
-    
-    H --> S
-    H --> T
-    H --> U
-```
-
-**Key Architectural Principles:**
-
-1. **Shadow DOM Encapsulation**: Component internals are isolated from the page, preventing style leakage
-2. **Template-Driven Rendering**: User-provided templates define row structure, component handles data binding
-3. **Immutable Data Flow**: All data operations create new copies, preventing external mutations
-4. **Event-Driven Communication**: Component communicates state changes via custom events
-5. **Progressive Enhancement**: Works with or without validation schema, custom buttons, or styling
+---
 
 ## State Management
 
 ### Internal State Properties
 
-The component maintains several internal state properties:
+| Property | Type | Description |
+|----------|------|-------------|
+| `_data` | `EditableRow[]` | Primary data store with internal markers |
+| `_rowKeys` | `string[]` | Stable keys for keyed rendering |
+| `_nextId` | `number` | Counter for generating unique row keys |
+| `_schema` | `ValidationSchema \| null` | Validation rules |
+| `_i18n` | `I18nMessages \| undefined` | Custom error messages |
+| `_newItemFactory` | `() => EditableRow` | Factory for new rows |
+| `_styleObserver` | `MutationObserver \| null` | Watches style slot changes |
+| `_domRenderer` | `DomRenderer` | Handles DOM operations |
 
-- **`_data: EditableRow[]`**: The primary data store containing all row data with internal markers
-- **`_schema: unknown`**: Validation schema (JSON Schema-like format)
-- **`_newItemFactory: () => EditableRow`**: Factory function for creating new rows
-- **`_styleObserver: MutationObserver | null`**: Observer for tracking style changes in light DOM
+### Internal Row Markers
 
-### Data Flow and State Transitions
+| Marker | Type | Description |
+|--------|------|-------------|
+| `editing` | `boolean` | Row is in edit mode |
+| `deleted` | `boolean` | Row is soft-deleted |
+| `__originalSnapshot` | `Record<string, unknown>` | Snapshot for cancel/rollback |
+| `__isNew` | `boolean` | Row was just added (removed on cancel) |
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Component
-    participant DataStore
-    participant DOM
-    participant Consumer
-    
-    User->>Component: Set data property
-    Component->>DataStore: Clone and store data
-    Component->>DOM: render()
-    Component->>Consumer: dispatch datachanged
-    
-    User->>DOM: Click Edit button
-    DOM->>Component: handleToggleClick()
-    Component->>Consumer: dispatch beforetogglemode
-    Consumer-->>Component: Allow/Cancel
-    Component->>DataStore: Set editing=true, create snapshot
-    Component->>DOM: render()
-    Component->>Consumer: dispatch aftertogglemode
-    
-    User->>DOM: Type in input field
-    DOM->>Component: input event
-    Component->>DataStore: commitRowValue()
-    Component->>DOM: updateBoundNodes()
-    Component->>Component: updateSaveButtonState()
-    
-    User->>DOM: Click Save button
-    DOM->>Component: handleSaveClick()
-    Component->>Component: validateRow()
-    Component->>DataStore: Remove editing flag
-    Component->>DOM: render()
-    Component->>Consumer: dispatch datachanged
+**Note**: `__originalSnapshot` and `__isNew` are filtered from public `data` getter.
+
+---
+
+## Data Flow
+
+### Setting Data
+
+```
+el.data = [...] 
+    │
+    ▼
+┌─────────────────────────────────┐
+│ Data Setter                      │
+│ 1. Clone each row (deep clone)   │
+│ 2. Generate row keys             │
+│ 3. Store in _data                │
+│ 4. Call render() if connected    │
+│ 5. Dispatch datachanged          │
+└─────────────────────────────────┘
 ```
 
-### State Transitions
+### Edit Flow
 
-**Row Mode States:**
-- **Display Mode**: Default state, shows read-only view of data
-- **Edit Mode**: Editable state with input fields and Save/Cancel buttons
-- **Locked Mode**: Display mode when another row is being edited (exclusive locking)
-- **Deleted Mode**: Soft-deleted state with visual indicators and Restore option
-
-**Edit Mode Lifecycle:**
-
-```mermaid
-stateDiagram-v2
-    [*] --> Display: Initial render
-    Display --> EditPending: Click Edit/Toggle
-    EditPending --> Display: beforetogglemode canceled
-    EditPending --> Edit: beforetogglemode allowed
-    Edit --> Display: Click Save (valid)
-    Edit --> Edit: Click Save (invalid)
-    Edit --> Display: Click Cancel
-    Edit --> Display: Click Toggle
-    Display --> [*]: Component destroyed
-    
-    note right of Edit
-        Snapshot created on entry
-        Changes tracked in real-time
-        Validation runs on input
-    end note
-    
-    note right of Display
-        Snapshot discarded
-        Changes committed or reverted
-    end note
+```
+Click Toggle → beforetogglemode → Create Snapshot → Set editing=true 
+    │
+    ▼ (render)
+Edit Mode Visible → User Types → commitRowValue() → updateBoundNodes()
+    │                                                       │
+    ▼                                                       ▼
+Click Save → validateRow() ──┬─▶ VALID: Remove markers → render() → datachanged
+                             │
+                             └─▶ INVALID: Update error UI, Save disabled
+    │
+    ▼
+Click Cancel → Restore from snapshot → Remove row if __isNew → render()
 ```
 
-### Internal Data Markers
+---
 
-The component uses internal properties to track state:
+## Rendering Pipeline
 
-- **`editing: boolean`**: Indicates row is in edit mode
-- **`deleted: boolean`**: Indicates row is soft-deleted
-- **`__originalSnapshot: Record<string, unknown>`**: Snapshot of data before editing (for Cancel/rollback)
-- **`__isNew: boolean`**: Marks newly added rows (removed on Cancel instead of restored)
+### DomRenderer Class
 
-These markers are filtered out when data is exposed via the public `data` getter.
-
-## Data normalization
-- `data` setter clones incoming arrays.
-- Object rows become shallow copies so edits do not mutate the original reference.
-- Primitive rows (string/number/boolean) are stored as strings; falsy values default to an empty string.
-
-## Rendering pipeline
-- A shadow `div[part="root"]` is cleared and repopulated on every `render()`.
-- Templates in the light DOM are cloned per row with `data-row`/`data-mode` markers.
-- `[data-bind]` nodes receive either `textContent` (display) or `value` (inputs/textarea) populated via `resolveBindingValue`.
-
-### Radio Group Binding Internals
-
-Radio inputs pose a special case because multiple `input[type="radio"]` elements represent a single logical field. The binding logic handles them explicitly:
-
-1. During `bindDataToNode`, if a bound node is a radio input the component compares `node.value` (the option value) to the resolved field value. It sets `node.checked = (node.value === fieldValue)` and an `aria-checked` attribute for assistive tech.
-2. Radio inputs are not assigned new `value` strings (avoids overwriting option semantics).
-3. Event wiring uses `change` instead of `input` to ensure reliable updates in all browsers and JSDOM. Only a checked radio commits its value.
-4. Name attribute grouping: If the component has a `name` attribute, each radio in a row receives `name="{componentName}[rowIndex].{field}"` assuring exclusivity per row. Without a name attribute radios still function independently; setting the name is recommended for form submissions.
-5. Saving a row after radio selection triggers the standard validation + `datachanged` flow (radio selections are treated like any other field edits).
-
-Edge Cases Considered:
-- Absence of name attribute: radios act independently but still reflect checked state correctly.
-- Switching value while still in edit mode: change events update internal `_data` but do not dispatch `datachanged` until Save, preserving pre-save semantics.
-- Programmatic data changes to `data[row].field` while in edit mode (future enhancement): current implementation would require manual re-render; optimization hooks could be added later.
-
-
-### Edit Mode Lifecycle
-
-The component implements a sophisticated edit mode lifecycle with snapshot-based rollback:
-
-```mermaid
-stateDiagram-v2
-    [*] --> DisplayMode: Component initialized
-    
-    state DisplayMode {
-        [*] --> Idle
-        Idle --> CheckLock: Edit button clicked
-        CheckLock --> Idle: Another row editing (locked)
-        CheckLock --> DispatchBefore: No lock
-    }
-    
-    state EditMode {
-        [*] --> CreateSnapshot: Enter edit mode
-        CreateSnapshot --> Active: Snapshot stored
-        Active --> ValidateOnInput: User types
-        ValidateOnInput --> Active: Update UI
-        Active --> ValidateOnSave: Save clicked
-        ValidateOnSave --> Active: Validation failed
-        ValidateOnSave --> CommitChanges: Validation passed
-        Active --> RestoreSnapshot: Cancel clicked
-    }
-    
-    DispatchBefore --> DisplayMode: Event canceled
-    DispatchBefore --> EditMode: Event allowed
-    
-    EditMode --> DisplayMode: CommitChanges/RestoreSnapshot
-    DisplayMode --> DispatchAfter: Mode changed
-    DispatchAfter --> [*]
-    
-    note right of CreateSnapshot
-        __originalSnapshot created
-        editing flag set to true
-        Full re-render triggered
-    end note
-    
-    note right of CommitChanges
-        editing flag removed
-        __originalSnapshot discarded
-        datachanged event dispatched
-    end note
-    
-    note right of RestoreSnapshot
-        Data restored from snapshot
-        editing flag removed
-        No datachanged event
-    end note
-```
-
-**Key Behaviors:**
-
-1. **Exclusive Locking**: Only one row can be in edit mode at a time
-2. **Snapshot Creation**: Original data is cloned when entering edit mode
-3. **Real-time Validation**: Validation runs on every input change
-4. **Cancelable Transitions**: `beforetogglemode` event allows external control
-5. **Rollback Support**: Cancel restores data from snapshot without data change event
-
-## Input wiring
-- Only elements inside the `slot="edit"` clone get listeners.
-- Inputs and textareas subscribe to `input` events and call `commitRowValue(rowIndex, key, value)` which snapshots `_data`, applies the change, re-renders, and emits `datachanged` once per logical edit.
-
-## Style Mirroring
-
-The component implements a sophisticated style mirroring system to allow custom styling within the Shadow DOM while maintaining encapsulation.
-
-### MutationObserver Implementation
-
-**Purpose**: Automatically sync styles from light DOM to shadow DOM when they change.
-
-**How it works:**
-
-1. **Initial Mirror** (`mirrorStyles()`):
-   - Finds all `<style slot="styles">` elements in light DOM
-   - Combines their content into a single string
-   - Creates a `<style data-mirrored="true">` element in shadow DOM
-   - Inserts at the beginning of shadow root for proper cascade order
-
-2. **Change Detection** (`observeStyleChanges()`):
-   - Creates a `MutationObserver` watching the component's light DOM
-   - Monitors three types of mutations:
-     - **childList**: Detects added/removed `<style>` elements
-     - **characterData**: Detects text content changes within `<style>` elements
-     - **subtree**: Watches all descendants for nested changes
-
-3. **Selective Re-mirroring**:
-   - Observer callback checks if mutation involves style elements via `isStyleMutation()`
-   - Only re-mirrors when style-related changes detected (performance optimization)
-   - Removes old mirrored styles before creating new ones
-
-**Mutation Detection Logic:**
+The `DomRenderer` class handles all DOM operations:
 
 ```typescript
-// Check if mutation target is a style element
-if (mutation.type === 'childList' && this.isStyleNode(mutation.target)) {
-  return true;
-}
-
-// Check if any added/removed nodes are style elements
-if (mutation.type === 'childList') {
-  const hasStyleChanges =
-    Array.from(mutation.addedNodes).some(node => this.isStyleNode(node)) ||
-    Array.from(mutation.removedNodes).some(node => this.isStyleNode(node));
-  if (hasStyleChanges) return true;
-}
-
-// Check if text content of a style element changed
-if (mutation.type === 'characterData' &&
-    mutation.target.parentElement &&
-    this.isStyleNode(mutation.target.parentElement)) {
-  return true;
+class DomRenderer {
+  // Main entry point
+  render(): void
+  
+  // Row management
+  private renderRows(container, errors): void
+  private createRowElement(item, index, mode, errors): HTMLElement
+  private updateRowElement(wrapper, item, index, mode, errors): void
+  
+  // Data binding
+  private bindDataToNode(node, data, rowIndex, isEditing, signal): void
+  private setupEventListeners(wrapper, index, isEditing, isDeleted, signal): void
+  
+  // Modal support
+  private renderModalEdit(item, index, errors): void
+  private openModal(): void
+  closeModal(): void
+  
+  // Updates
+  updateBoundNodes(rowIndex, key?): void
 }
 ```
 
-**Lifecycle Management:**
+### Keyed Rendering Strategy
 
-- Observer created in `connectedCallback()`
-- Observer disconnected in `disconnectedCallback()` to prevent memory leaks
-- Observer recreated if component is reconnected to DOM
+The component uses **keyed partial re-rendering** for performance:
 
-**Performance Considerations:**
-
-- Single combined `<style>` element reduces DOM nodes
-- Selective re-mirroring avoids unnecessary work
-- Empty or whitespace-only styles are skipped
-- Observer only triggers on actual style changes, not all DOM mutations
-
-## Events
-
-### Event Configuration
-
-All events are dispatched with `bubbles: true` and `composed: true` to ensure proper propagation through shadow DOM boundaries.
-
-#### datachanged Event
-```typescript
-new CustomEvent('datachanged', {
-  bubbles: true,
-  composed: true,
-  detail: { data: this.data }  // Fresh clone from getter
-});
-```
-
-**Dispatched when**:
-- Data setter is called
-- User edits a field (via `commitRowValue`)
-- Save button is clicked
-- Add button is clicked
-- Delete button is clicked
-- Restore button is clicked
-- Toggle mode changes data (adds/removes `editing` flag)
-
-**Behavior**:
-- Bubbles up the DOM tree to ancestor elements
-- Crosses shadow DOM boundaries (composed)
-- `detail.data` contains a fresh clone from the getter
-- Consumers cannot mutate internal state via event data
-
-#### beforetogglemode Event
-```typescript
-new CustomEvent('beforetogglemode', {
-  bubbles: true,
-  composed: true,
-  cancelable: true,
-  detail: {
-    index: number,
-    from: 'display' | 'edit',
-    to: 'display' | 'edit'
-  }
-});
-```
-
-**Dispatched when**:
-- Toggle button is clicked (before mode change)
-- Cancel button is clicked (before reverting to display)
-
-**Behavior**:
-- Cancelable - calling `event.preventDefault()` prevents the mode toggle
-- Bubbles to ancestor elements
-- Crosses shadow DOM boundaries
-- Allows external control over edit mode transitions
-
-#### aftertogglemode Event
-```typescript
-new CustomEvent('aftertogglemode', {
-  bubbles: true,
-  composed: true,
-  detail: {
-    index: number,
-    mode: 'display' | 'edit'
-  }
-});
-```
-
-**Dispatched when**:
-- Mode toggle completes successfully
-- After Cancel button reverts to display mode
-
-**Behavior**:
-- Not cancelable (mode change already completed)
-- Bubbles to ancestor elements
-- Crosses shadow DOM boundaries
-- Notifies of completed mode transitions
-
-### Event Propagation
-
-**Shadow DOM Boundaries**:
-- All events use `composed: true` to cross shadow boundaries
-- Events can be caught on ancestor elements (e.g., `document.body`)
-- Events can be caught at document level
-- `event.target` is always the `<ck-editable-array>` element
-
-**Event Delegation**:
-```javascript
-// Listen on parent element
-document.body.addEventListener('datachanged', (event) => {
-  console.log('Data changed:', event.detail.data);
-});
-
-// Cancel mode toggle for specific rows
-el.addEventListener('beforetogglemode', (event) => {
-  if (event.detail.index === 0) {
-    event.preventDefault(); // Prevent row 0 from toggling
-  }
-});
-
-// React to completed mode changes
-el.addEventListener('aftertogglemode', (event) => {
-  console.log(`Row ${event.detail.index} is now in ${event.detail.mode} mode`);
-});
-```
-
-### Event Payload Consistency & Immutability
-
-**datachanged Event Payload**:
-- `detail.data` always contains the **complete current array**
-- The array is a fresh clone from the `data` getter (deep clone via JSON)
-- Mutating `event.detail.data` does NOT affect the component's internal state
-- Consumers receive the full state, not just changed items
-- This simplifies state synchronization with external stores
-
-**beforetogglemode Event Payload**:
-- `detail.index`: The row index being toggled
-- `detail.from`: Current mode before transition (`'display'` or `'edit'`)
-- `detail.to`: Target mode after transition (`'display'` or `'edit'`)
-- Provides complete transition context for conditional prevention
-- Useful for validation, authorization, or state checks
-
-**aftertogglemode Event Payload**:
-- `detail.index`: The row index that toggled
-- `detail.mode`: Final mode after transition (`'display'` or `'edit'`)
-- Does NOT include `from`/`to` since transition is complete
-- Useful for post-transition side effects (focus, analytics, etc.)
-
-**Immutability Guarantees**:
-```javascript
-// Example: datachanged payload is immutable
-el.addEventListener('datachanged', (event) => {
-  const data = event.detail.data;
-  
-  // Safe to mutate - won't affect component
-  data[0].name = 'Modified';
-  
-  // Reading el.data again returns original value
-  console.log(el.data[0].name); // Still original value
-  
-  // To update component, must reassign
-  el.data = data; // Now component updates
-});
-```
-
-**No Initial Spam**:
-- No events dispatched during initial render
-- Events only describe user interactions and programmatic data changes
-- Setting `data` property dispatches one `datachanged` event
-
-
-## Validation System
-
-### Schema Storage and Validation
-- `schema` property stores validation rules (JSON Schema-like format)
-- `validateRow(rowIndex)` returns boolean validity
-- `validateRowDetailed(rowIndex)` returns `{ isValid: boolean, errors: Record<string, string[]> }`
-- Validation runs on:
-  - Row toggle to edit mode
-  - Input field changes (via `input` event)
-  - Save button click
-
-### Validation Rules
-Currently supports:
-- **Required fields**: `schema.required` array lists mandatory fields
-- **String minLength**: `schema.properties[field].minLength` enforces minimum length
-- Empty string, null, undefined, and whitespace-only values fail required validation
-
-### Validation UI Updates
-`updateSaveButtonState(rowIndex)` orchestrates all validation UI:
-
-1. **Save Button State**
-   - Disabled when `isValid === false`
-   - `aria-disabled="true"` added for accessibility
-
-2. **Row-level Indicators**
-   - `data-row-invalid` attribute on edit wrapper when invalid
-   - Removed when all fields pass validation
-
-3. **Field-level Indicators**
-   - `data-invalid` attribute on invalid inputs
-   - `aria-invalid="true"` for screen reader support
-   - Removed when field becomes valid
-
-4. **Error Messages**
-   - Elements with `data-field-error="fieldName"` receive error text
-   - Cleared when field becomes valid
-   - Unique IDs generated: `error-{rowIndex}-{fieldName}`
-   - Linked to inputs via `aria-describedby`
-
-5. **Error Count**
-   - Elements with `data-error-count` show "N error(s)"
-   - Cleared when valid
-
-6. **Error Summary**
-   - Elements with `data-error-summary` receive concatenated error messages
-   - Format: "field1 is required. field2 must be at least N characters."
-   - Cleared when valid
-   - Should include `role="alert"` and `aria-live="polite"` in template
-
-### Accessibility Implementation
-
-**ARIA Attributes**:
-- `aria-invalid="true"` marks invalid fields
-- `aria-describedby` links inputs to error messages
-- `role="alert"` on error summary for immediate announcement
-- `aria-live="polite"` on error summary for dynamic updates
-
-**ID Generation**:
-- Error message IDs: `error-{rowIndex}-{fieldName}`
-- Ensures uniqueness across multiple rows
-- Stable IDs for ARIA relationships
-
-**Screen Reader Flow**:
-1. User focuses invalid input
-2. Screen reader announces field label
-3. Screen reader announces `aria-invalid` state
-4. Screen reader reads error message via `aria-describedby`
-5. Error summary announces changes via `aria-live`
-
-### Validation Data Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Input
-    participant Component
-    participant Validator
-    participant DOM
-    participant ScreenReader
-    
-    User->>Input: Types value
-    Input->>Component: input event
-    Component->>Component: commitRowValue()
-    Component->>Component: updateBoundNodes()
-    Component->>Component: updateSaveButtonState()
-    Component->>Validator: validateRowDetailed()
-    
-    alt Has Schema
-        Validator->>Validator: Check required fields
-        Validator->>Validator: Check minLength
-        Validator-->>Component: ValidationResult
-    else No Schema
-        Validator-->>Component: { isValid: true }
-    end
-    
-    Component->>DOM: Update Save button state
-    Component->>DOM: Set data-row-invalid
-    Component->>DOM: Set data-invalid on fields
-    Component->>DOM: Set aria-invalid
-    Component->>DOM: Update error messages
-    Component->>DOM: Set aria-describedby
-    Component->>DOM: Update error count
-    Component->>DOM: Update error summary
-    
-    DOM->>ScreenReader: Announce via aria-live
-    DOM-->>User: Visual feedback
-```
-
-**Validation Trigger Points:**
-
-1. **On Input Change**: Real-time validation as user types
-2. **On Save Click**: Final validation before committing changes
-3. **On Mode Toggle**: Validation when entering edit mode
-
-**UI Update Sequence:**
-
-1. Save button disabled state updated
-2. Row-level `data-row-invalid` attribute set/removed
-3. Field-level `data-invalid` attributes updated
-4. ARIA `aria-invalid` attributes synchronized
-5. Error message text populated
-6. ARIA `aria-describedby` relationships established
-7. Error count display updated
-8. Error summary updated (triggers screen reader announcement)
-
-### Performance Considerations
-- Validation runs synchronously on input change
-- Only validates the specific row being edited
-- DOM updates are targeted (no full re-render)
-- Error message IDs are generated once and reused
-- ARIA attributes updated only when validation state changes
-
-
-## Keyed Rendering & Performance
-
-As of Week 3, the component uses a **keyed partial re-rendering strategy** to optimize performance and preserve DOM state (focus, selection, scroll position).
-
-### Rendering Strategy
-
-Instead of clearing `innerHTML` on every update, the renderer:
-1. **Generates Stable Keys**: Each data item is assigned a unique, stable key (e.g., `row-123`) stored in a WeakMap.
-2. **Diffing**: During `render()`, the component compares the current data against the existing DOM nodes.
-   - **Match**: If a node with the matching `data-key` exists, it is **updated** in place (attributes, text content, input values).
-   - **New**: If no match is found, a new row element is created and appended.
-   - **Obsolete**: DOM nodes with keys no longer in the data are removed.
-3. **Reordering**: Existing nodes are re-ordered in the DOM to match the data array order.
+1. **Stable Keys**: Each row gets a unique key (`row-0`, `row-1`, etc.)
+2. **DOM Diffing**: Compare existing DOM nodes against data
+3. **Reuse**: Update existing nodes instead of recreating
+4. **Cleanup**: Remove nodes for deleted rows
+5. **Reorder**: Move nodes to match data order
 
 ### Event Listener Management
 
-To prevent memory leaks and duplicate listeners when reusing DOM nodes:
-- The component uses `AbortController` for all event listeners attached to row elements.
-- Each row/mode pair has an associated `AbortController` stored in `_rowControllers`.
-- Before updating a row, the old controller is `abort()`-ed, instantly removing all listeners.
-- New listeners are attached with `{ signal: newController.signal }`.
+Uses `AbortController` to prevent memory leaks:
 
-This approach ensures that:
-- **Focus is preserved**: Typing in an input doesn't cause the input to be destroyed and recreated.
-- **Performance is O(n)**: Updates are proportional to the number of rows, but significantly cheaper than full re-renders for small changes.
-- **Memory is managed**: Event listeners are strictly lifecycle-managed.
+```typescript
+// Per-element controller storage
+private _rowControllers = new Map<string, AbortController>();
 
-### DOM Node Reuse
+// On row update:
+if (this._rowControllers.has(elementKey)) {
+  this._rowControllers.get(elementKey)!.abort(); // Remove old listeners
+}
+const controller = new AbortController();
+this._rowControllers.set(elementKey, controller);
 
-```mermaid
-graph TD
-    A[Render Call] --> B{Has Data Changed?}
-    B -- Yes --> C[Iterate Data Items]
-    C --> D{Key Exists in DOM?}
-    D -- Yes --> E[Update Existing Node]
-    E --> F[Abort Old Listeners]
-    F --> G[Bind New Data]
-    G --> H[Attach New Listeners]
-    D -- No --> I[Create New Node]
-    I --> J[Append to Container]
-    C --> K[Remove Obsolete Nodes]
+// Attach listeners with signal
+elem.addEventListener('input', handler, { signal: controller.signal });
 ```
+
+---
+
+## Validation System
+
+### ValidationManager Class
+
+```typescript
+class ValidationManager {
+  static validateRow(
+    row: InternalRowData,
+    schema: ValidationSchema | null,
+    i18n?: I18nMessages
+  ): ValidationResult
+  
+  private static validateRequiredFields(row, schema, i18n): Record<string, string[]>
+  private static validatePropertyConstraints(row, schema, requiredErrors, i18n): Record<string, string[]>
+  private static formatValidationError(field, constraint, value, i18n): string
+}
+```
+
+### Validation Flow
+
+```
+Input Change
+    │
+    ▼
+commitRowValue()
+    │
+    ▼
+updateSaveButtonState(rowIndex)
+    │
+    ▼
+validateRowDetailed(rowIndex) → ValidationManager.validateRow()
+    │
+    ├─► Check required fields
+    │
+    ├─► Check property constraints (minLength)
+    │
+    └─► Return { isValid, errors }
+    │
+    ▼
+Update UI:
+├─► Save button: disabled={!isValid}
+├─► Row wrapper: data-row-invalid={!isValid}
+├─► Inputs: aria-invalid={hasError}
+├─► Error elements: textContent={errorMessage}
+└─► Error summary: aria-live announcement
+```
+
+---
+
+## Style Management
+
+### Style Mirroring
+
+The component mirrors `<style slot="styles">` from light DOM to shadow DOM:
+
+```
+Light DOM                          Shadow DOM
+┌────────────────────────┐        ┌────────────────────────┐
+│ <style slot="styles">  │───────►│ <style data-mirrored>  │
+│   .row { ... }         │        │   .row { ... }         │
+│ </style>               │        │ </style>               │
+└────────────────────────┘        └────────────────────────┘
+```
+
+### MutationObserver
+
+Watches for style changes and re-mirrors:
+
+```typescript
+this._styleObserver = new MutationObserver(mutations => {
+  const shouldRemirror = mutations.some(m => this.isStyleMutation(m));
+  if (shouldRemirror) this.mirrorStyles();
+});
+
+this._styleObserver.observe(this, {
+  childList: true,
+  characterData: true,
+  subtree: true
+});
+```
+
+### CSS Custom Properties
+
+Defined in `:host` selector:
+
+```css
+:host {
+  --ck-row-padding: 12px;
+  --ck-error-color: #dc3545;
+  --ck-border-radius: 4px;
+  --ck-border-color: #ddd;
+  --ck-focus-color: #0066cc;
+  --ck-disabled-opacity: 0.5;
+}
+```
+
+---
+
+## Event System
+
+### Event Dispatch Pattern
+
+All events use consistent configuration:
+
+```typescript
+new CustomEvent('eventname', {
+  bubbles: true,      // Propagate up DOM tree
+  composed: true,     // Cross shadow DOM boundaries
+  cancelable: false,  // (or true for beforetogglemode)
+  detail: { ... }     // Event payload (cloned data)
+});
+```
+
+### Event Contracts
+
+| Event | Cancelable | Payload | When Fired |
+|-------|-----------|---------|------------|
+| `datachanged` | No | `{ data: Array }` | Data mutations |
+| `beforetogglemode` | Yes | `{ index, from, to }` | Before mode switch |
+| `aftertogglemode` | No | `{ index, mode }` | After mode switch |
+
+### Immutability in Events
+
+Event `detail.data` is always a fresh clone:
+
+```typescript
+dispatchDataChanged(): void {
+  const event = new CustomEvent('datachanged', {
+    bubbles: true,
+    composed: true,
+    detail: { data: this.data } // Getter returns clone
+  });
+  this.dispatchEvent(event);
+}
+```
+
+---
+
+## Input Type Handling
+
+### Text/Textarea Inputs
+
+- Uses `input` event for real-time updates
+- Sets `value` property
+- `readOnly` when not in edit mode
+
+### Select Dropdowns
+
+- Uses `change` event
+- Single select: `value` property
+- Multi-select: Array of selected values
+
+### Radio Buttons
+
+- Uses `change` event (only on checked radio)
+- Sets `checked` property based on value match
+- `aria-checked` for accessibility
+- Does NOT overwrite `value` attribute
+
+### Checkboxes
+
+- Single checkbox: Boolean binding
+- Multiple checkboxes: Array binding
+- Uses `change` event
+- Reads fresh data on change to avoid stale state
+
+### Datalist/Combo
+
+- Uses `input` event like text inputs
+- Component remaps datalist IDs per row (e.g., `list-0`, `list-1`)
+
+---
+
+## Modal Edit Mode
+
+### Activation
+
+```html
+<ck-editable-array modal-edit>
+<!-- or -->
+el.modalEdit = true;
+```
+
+### Rendering Behavior
+
+When modal edit is enabled:
+1. Rows container renders only display templates
+2. Edit templates render in modal overlay
+3. Modal has `role="dialog"`, `aria-modal="true"`
+4. `.hidden` class and `aria-hidden` toggle visibility
+
+### Modal Structure
+
+```html
+<div part="modal" class="modal-overlay hidden" aria-hidden="true">
+  <div part="modal-surface" class="modal-surface" role="dialog" aria-modal="true">
+    <!-- Edit template cloned here -->
+  </div>
+</div>
+```
+
+---
+
+## Focus Management
+
+### Auto-Focus on Edit
+
+When entering edit mode, first focusable input receives focus:
+
+```typescript
+// In handleToggleClick() after render
+if (toMode === 'edit') {
+  window.requestAnimationFrame(() => {
+    const firstInput = editWrapper?.querySelector('input, textarea, select');
+    firstInput?.focus();
+  });
+}
+```
+
+### Focus Restoration
+
+When exiting edit mode, focus returns to toggle button:
+
+```typescript
+// In handleSaveClick() / handleCancelClick()
+window.requestAnimationFrame(() => {
+  const toggleBtn = displayWrapper?.querySelector('[data-action="toggle"]');
+  toggleBtn?.focus();
+});
+```
+
+---
+
+## Performance Considerations
+
+### Optimizations Implemented
+
+1. **Keyed Rendering**: Reuse DOM nodes instead of recreating
+2. **Targeted Updates**: `updateBoundNodes()` for partial updates
+3. **AbortController**: Clean listener management
+4. **Selective Validation**: Only validate affected row
+5. **Shallow DOM Updates**: Avoid innerHTML
+
+### Recommendations
+
+- Keep arrays under 100 items
+- Use simple templates
+- Batch data updates
+- Debounce server sync
+
+---
+
+## Security Considerations
+
+### XSS Prevention
+
+- Display binding uses `textContent` (not `innerHTML`)
+- Template cloning uses `cloneNode()` (not string interpolation)
+- No `eval()` or `Function()` usage
+
+### Prototype Pollution
+
+- Deep cloning via `JSON.parse(JSON.stringify())`
+- Circular reference fallback to shallow copy
+
+### CSP Compliance
+
+- No inline scripts generated
+- All event handlers attached via `addEventListener()`
+
+---
+
+## Browser Compatibility
+
+### Minimum Requirements
+
+- Custom Elements v1
+- Shadow DOM v1
+- ES6 (classes, arrow functions, template literals)
+
+### Feature Detection
+
+```javascript
+if (!('customElements' in window)) {
+  // Load polyfills
+}
+```
+
+### Polyfills
+
+```html
+<!-- Web Components -->
+<script src="https://unpkg.com/@webcomponents/webcomponentsjs@2.8.0/webcomponents-loader.js"></script>
+
+<!-- Inert attribute (for older Firefox/Safari) -->
+<script src="https://unpkg.com/wicg-inert@3.1.2/dist/inert.min.js"></script>
+```
+
+---
+
+## Testing Architecture
+
+### Test Organization
+
+```
+tests/ck-editable-array/
+├── ck-editable-array.init.test.ts           # Initialization tests
+├── ck-editable-array.step1.render.test.ts   # Basic rendering
+├── ck-editable-array.step2.public-api.test.ts
+├── ck-editable-array.step3.lifecycle-styles.test.ts
+├── ck-editable-array.step4.rendering-row-modes.test.ts
+├── ck-editable-array.step5.add-button.test.ts
+├── ck-editable-array.step6.save-cancel.test.ts
+├── ck-editable-array.step7.validation.test.ts
+├── ck-editable-array.step8.cloning.test.ts
+├── ck-editable-array.modal-edit.test.ts
+├── ck-editable-array.accessibility.test.ts
+├── ck-editable-array.security.test.ts
+├── ck-editable-array.performance.test.ts
+├── ck-editable-array.radio-binding.test.ts
+├── ck-editable-array.advanced-inputs.test.ts
+├── ck-editable-array.simple-strings.test.ts
+├── ck-editable-array.week3.performance.test.ts
+├── ck-editable-array.week4.focus.test.ts
+├── ck-editable-array.week4.i18n.test.ts
+├── ck-editable-array.week5.circular.test.ts
+├── ck-editable-array.week5.css-vars.test.ts
+└── ck-editable-array.visual.test.ts
+```
+
+### Test Utilities
+
+```typescript
+// tests/test-utils.ts
+export async function waitForRender(ms?: number): Promise<void>
+export function getRow(el: CkEditableArray, index: number): HTMLElement | null
+export function simulateInput(input: HTMLInputElement, value: string): void
+```
+
+---
+
+## Related Documentation
+
+- [README.md](README.md) - User-facing API reference
+- [spec.md](spec.md) - Formal specification
+- [migration-guide.md](migration-guide.md) - Integration patterns
+- [quality-audit.md](quality-audit.md) - Compliance matrix

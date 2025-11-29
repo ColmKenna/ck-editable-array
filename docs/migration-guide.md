@@ -1,5 +1,8 @@
 # Migration Guide: ck-editable-array
 
+**Last Updated**: November 29, 2025  
+**Version**: 1.0.0
+
 This guide helps you integrate `ck-editable-array` into existing projects and migrate from alternative implementations.
 
 ---
