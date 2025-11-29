@@ -40,7 +40,9 @@ describe('CkEditableArray - Week 3: Rendering Performance', () => {
     const originalDisplayRow = displayRow;
 
     // Toggle to edit
-    const toggleBtn = displayRow!.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+    const toggleBtn = displayRow!.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
     toggleBtn.click();
     await waitForRender();
 
@@ -63,7 +65,9 @@ describe('CkEditableArray - Week 3: Rendering Performance', () => {
     const originalDisplayRow = displayRow;
 
     // Toggle to edit
-    const toggleBtn = displayRow!.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+    const toggleBtn = displayRow!.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
     toggleBtn.click();
     await waitForRender();
 
@@ -73,7 +77,9 @@ describe('CkEditableArray - Week 3: Rendering Performance', () => {
     input.dispatchEvent(new Event('input'));
 
     // Save
-    const saveBtn = root!.querySelector('[data-action="save"]') as HTMLButtonElement;
+    const saveBtn = root!.querySelector(
+      '[data-action="save"]'
+    ) as HTMLButtonElement;
     saveBtn.click();
     await waitForRender();
 

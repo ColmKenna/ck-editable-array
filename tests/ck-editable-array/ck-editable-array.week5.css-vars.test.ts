@@ -213,8 +213,10 @@ describe('ck-editable-array CSS custom properties', () => {
       el.data = [{ name: 'Alice' }];
 
       // The CSS variable should be overridable
-      const computedStyle = getComputedStyle(el);
-      expect(computedStyle.getPropertyValue('--ck-error-color').trim()).toBe('#ff0000');
+      const computedStyle = globalThis.getComputedStyle(el as any);
+      expect(computedStyle.getPropertyValue('--ck-error-color').trim()).toBe(
+        '#ff0000'
+      );
 
       // Cleanup
       document.head.removeChild(styleEl);

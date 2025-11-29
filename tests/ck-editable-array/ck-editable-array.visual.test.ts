@@ -1,11 +1,11 @@
 /**
  * Week 5: Visual Regression Test Harness
- * 
+ *
  * This file provides a foundation for visual regression testing.
  * For full visual regression testing, integrate with:
  * - jest-image-snapshot (for Jest-based screenshot comparisons)
  * - Playwright (for cross-browser visual testing)
- * 
+ *
  * The tests below verify structural consistency that visual tests would validate.
  */
 
@@ -85,11 +85,15 @@ describe('ck-editable-array visual consistency harness', () => {
       el.data = [{ name: 'Alice' }];
 
       // Click edit button
-      const editBtn = el.shadowRoot?.querySelector('[data-action="toggle"]') as HTMLElement;
+      const editBtn = el.shadowRoot?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLElement;
       editBtn?.click();
 
       // Verify edit template is shown
-      const input = el.shadowRoot?.querySelector('.name-input') as HTMLInputElement;
+      const input = el.shadowRoot?.querySelector(
+        '.name-input'
+      ) as HTMLInputElement;
       expect(input).not.toBeNull();
       expect(input?.value).toBe('Alice');
     });
@@ -114,22 +118,28 @@ describe('ck-editable-array visual consistency harness', () => {
       el.schema = {
         required: ['name'],
         properties: {
-          name: { minLength: 5 }
-        }
+          name: { minLength: 5 },
+        },
       };
 
       el.data = [{ name: 'A' }]; // Too short
 
       // Click edit button
-      const editBtn = el.shadowRoot?.querySelector('[data-action="toggle"]') as HTMLElement;
+      const editBtn = el.shadowRoot?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLElement;
       editBtn?.click();
 
       // Wait for validation to complete
       await new Promise(resolve => setTimeout(resolve, 10));
 
       // Get edit wrapper and find input within it
-      const editWrapper = el.shadowRoot?.querySelector('.edit-content[data-row="0"]');
-      const input = editWrapper?.querySelector('[data-bind="name"]') as HTMLInputElement;
+      const editWrapper = el.shadowRoot?.querySelector(
+        '.edit-content[data-row="0"]'
+      );
+      const input = editWrapper?.querySelector(
+        '[data-bind="name"]'
+      ) as HTMLInputElement;
 
       // Trigger input event to run validation
       input.value = 'A';
@@ -163,7 +173,9 @@ describe('ck-editable-array visual consistency harness', () => {
       el.data = [{ name: 'Alice' }, { name: 'Bob' }];
 
       // Delete first row
-      const deleteBtn = el.shadowRoot?.querySelector('[data-action="delete"]') as HTMLElement;
+      const deleteBtn = el.shadowRoot?.querySelector(
+        '[data-action="delete"]'
+      ) as HTMLElement;
       deleteBtn?.click();
 
       // Verify row is marked as deleted
@@ -190,7 +202,9 @@ describe('ck-editable-array visual consistency harness', () => {
       el.data = [{ name: 'Alice' }];
 
       // Click edit to open modal
-      const editBtn = el.shadowRoot?.querySelector('[data-action="toggle"]') as HTMLElement;
+      const editBtn = el.shadowRoot?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLElement;
       editBtn?.click();
 
       // Verify modal structure
