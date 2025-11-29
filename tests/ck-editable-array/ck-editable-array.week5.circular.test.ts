@@ -145,9 +145,9 @@ describe('ck-editable-array circular reference handling', () => {
         name: 'Eve',
         nested: {
           level1: {
-            level2: {}
-          }
-        }
+            level2: {},
+          },
+        },
       };
       (data.nested as Record<string, unknown>).level1 = data;
 
@@ -178,7 +178,14 @@ describe('ck-editable-array circular reference handling', () => {
       expect(el.data[0]).not.toBe(normalData);
       expect((el.data[0] as Record<string, unknown>).name).toBe('Frank');
       expect((el.data[0] as Record<string, unknown>).age).toBe(25);
-      expect(((el.data[0] as Record<string, unknown>).address as Record<string, unknown>).city).toBe('NYC');
+      expect(
+        (
+          (el.data[0] as Record<string, unknown>).address as Record<
+            string,
+            unknown
+          >
+        ).city
+      ).toBe('NYC');
 
       // Mutating original should not affect component data (immutability)
       normalData.name = 'Changed';

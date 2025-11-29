@@ -6,7 +6,7 @@ describe('CkEditableArray - Week 4: Focus Management', () => {
   beforeEach(() => {
     el = new CkEditableArray();
     document.body.appendChild(el);
-    
+
     // Setup templates
     const tplDisplay = document.createElement('template');
     tplDisplay.setAttribute('slot', 'display');
@@ -37,9 +37,13 @@ describe('CkEditableArray - Week 4: Focus Management', () => {
   });
 
   test('Focus moves to first input when entering edit mode', async () => {
-    const rowDisplay = el.shadowRoot?.querySelector('.display-content[data-row="0"]');
-    const toggleBtn = rowDisplay?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
-    
+    const rowDisplay = el.shadowRoot?.querySelector(
+      '.display-content[data-row="0"]'
+    );
+    const toggleBtn = rowDisplay?.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
+
     toggleBtn.click();
 
     // Wait for microtasks/rendering
@@ -47,7 +51,7 @@ describe('CkEditableArray - Week 4: Focus Management', () => {
 
     const rowEdit = el.shadowRoot?.querySelector('.edit-content[data-row="0"]');
     const input = rowEdit?.querySelector('input');
-    
+
     // console.log('Row Edit:', rowEdit?.outerHTML);
     // console.log('Input:', input?.outerHTML);
     // console.log('Active Element:', el.shadowRoot?.activeElement?.outerHTML);
@@ -57,43 +61,63 @@ describe('CkEditableArray - Week 4: Focus Management', () => {
 
   test('Focus returns to toggle button when cancelling edit', async () => {
     // Enter edit mode first
-    const rowDisplay = el.shadowRoot?.querySelector('.display-content[data-row="0"]');
-    const toggleBtn = rowDisplay?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+    const rowDisplay = el.shadowRoot?.querySelector(
+      '.display-content[data-row="0"]'
+    );
+    const toggleBtn = rowDisplay?.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
     toggleBtn.click();
     await new Promise(resolve => setTimeout(resolve, 100));
 
     // Click cancel
     const rowEdit = el.shadowRoot?.querySelector('.edit-content[data-row="0"]');
-    const cancelBtn = rowEdit?.querySelector('[data-action="cancel"]') as HTMLButtonElement;
+    const cancelBtn = rowEdit?.querySelector(
+      '[data-action="cancel"]'
+    ) as HTMLButtonElement;
     cancelBtn.click();
 
     // Wait for microtasks/rendering
     await new Promise(resolve => setTimeout(resolve, 100));
 
     // Re-query because DOM might have been updated (though keyed rendering should preserve it)
-    const rowDisplayAfter = el.shadowRoot?.querySelector('.display-content[data-row="0"]');
-    const toggleBtnAfter = rowDisplayAfter?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+    const rowDisplayAfter = el.shadowRoot?.querySelector(
+      '.display-content[data-row="0"]'
+    );
+    const toggleBtnAfter = rowDisplayAfter?.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
 
     expect(el.shadowRoot?.activeElement).toBe(toggleBtnAfter);
   });
 
   test('Focus returns to toggle button when saving edit', async () => {
     // Enter edit mode first
-    const rowDisplay = el.shadowRoot?.querySelector('.display-content[data-row="0"]');
-    const toggleBtn = rowDisplay?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+    const rowDisplay = el.shadowRoot?.querySelector(
+      '.display-content[data-row="0"]'
+    );
+    const toggleBtn = rowDisplay?.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
     toggleBtn.click();
     await new Promise(resolve => setTimeout(resolve, 100));
 
     // Click save
     const rowEdit = el.shadowRoot?.querySelector('.edit-content[data-row="0"]');
-    const saveBtn = rowEdit?.querySelector('[data-action="save"]') as HTMLButtonElement;
+    const saveBtn = rowEdit?.querySelector(
+      '[data-action="save"]'
+    ) as HTMLButtonElement;
     saveBtn.click();
 
     // Wait for microtasks/rendering
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    const rowDisplayAfter = el.shadowRoot?.querySelector('.display-content[data-row="0"]');
-    const toggleBtnAfter = rowDisplayAfter?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+    const rowDisplayAfter = el.shadowRoot?.querySelector(
+      '.display-content[data-row="0"]'
+    );
+    const toggleBtnAfter = rowDisplayAfter?.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
 
     expect(el.shadowRoot?.activeElement).toBe(toggleBtnAfter);
   });

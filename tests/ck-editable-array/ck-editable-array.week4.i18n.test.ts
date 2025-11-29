@@ -14,7 +14,7 @@ describe('CkEditableArray - Week 4: Internationalization (i18n)', () => {
 
   const setupComponent = (schema: any, data: any[]) => {
     el.schema = schema;
-    
+
     const tplDisplay = document.createElement('template');
     tplDisplay.setAttribute('slot', 'display');
     tplDisplay.innerHTML = `<div><span data-bind="name"></span><button data-action="toggle">Edit</button></div>`;
@@ -41,7 +41,9 @@ describe('CkEditableArray - Week 4: Internationalization (i18n)', () => {
     );
 
     // Enter edit mode
-    const toggleBtn = el.shadowRoot?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+    const toggleBtn = el.shadowRoot?.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
     toggleBtn.click();
 
     // Check error message
@@ -50,18 +52,17 @@ describe('CkEditableArray - Week 4: Internationalization (i18n)', () => {
   });
 
   test('Custom i18n messages override defaults', async () => {
-    setupComponent(
-      { required: ['name'] },
-      [{ name: '' }]
-    );
+    setupComponent({ required: ['name'] }, [{ name: '' }]);
 
     // Set custom messages
     (el as any).i18n = {
-      required: (field: string) => `Le champ ${field} est requis`
+      required: (field: string) => `Le champ ${field} est requis`,
     };
 
     // Enter edit mode
-    const toggleBtn = el.shadowRoot?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+    const toggleBtn = el.shadowRoot?.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
     toggleBtn.click();
 
     // Check error message
@@ -71,23 +72,28 @@ describe('CkEditableArray - Week 4: Internationalization (i18n)', () => {
 
   test('i18n supports dynamic values (e.g. minLength)', async () => {
     setupComponent(
-      { 
-        properties: { name: { minLength: 5 } }
+      {
+        properties: { name: { minLength: 5 } },
       },
       [{ name: 'Bob' }] // Too short
     );
 
     // Set custom messages
     (el as any).i18n = {
-      minLength: (field: string, min: number) => `${field} muss mindestens ${min} Zeichen lang sein`
+      minLength: (field: string, min: number) =>
+        `${field} muss mindestens ${min} Zeichen lang sein`,
     };
 
     // Enter edit mode
-    const toggleBtn = el.shadowRoot?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+    const toggleBtn = el.shadowRoot?.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
     toggleBtn.click();
 
     // Check error message
     const errorSpan = el.shadowRoot?.querySelector('[data-field-error="name"]');
-    expect(errorSpan?.textContent).toBe('name muss mindestens 5 Zeichen lang sein');
+    expect(errorSpan?.textContent).toBe(
+      'name muss mindestens 5 Zeichen lang sein'
+    );
   });
 });
