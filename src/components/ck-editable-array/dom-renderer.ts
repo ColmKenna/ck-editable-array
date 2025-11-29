@@ -629,6 +629,15 @@ export class DomRenderer {
             case 'restore':
               this.context.handleRestoreClick(index);
               break;
+            case 'move-up':
+              this.context.moveUp(index);
+              break;
+            case 'move-down':
+              this.context.moveDown(index);
+              break;
+            case 'select':
+              this.context.toggleSelection(index);
+              break;
           }
         },
         { signal }
@@ -658,6 +667,62 @@ export class DomRenderer {
           actionElem.classList.add(CONSTANTS.CLASS_HIDDEN);
         } else {
           actionElem.classList.remove(CONSTANTS.CLASS_HIDDEN);
+        }
+      } else if (action === 'move-up') {
+        // Disable if at top, editing, deleted, or readonly
+        const shouldDisable =
+          index === 0 ||
+          isEditing ||
+          isDeleted ||
+          this.context.hasAttribute('readonly') ||
+          this.context.editingRowIndex >= 0;
+        if (actionElem instanceof HTMLButtonElement) {
+          actionElem.disabled = shouldDisable;
+        }
+        if (shouldDisable) {
+          actionElem.setAttribute('aria-disabled', 'true');
+        } else {
+          actionElem.removeAttribute('aria-disabled');
+        }
+      } else if (action === 'move-down') {
+        // Disable if at bottom, editing, deleted, or readonly
+        const dataLength = this.context.internalData.length;
+        const shouldDisable =
+          index === dataLength - 1 ||
+          isEditing ||
+          isDeleted ||
+          this.context.hasAttribute('readonly') ||
+          this.context.editingRowIndex >= 0;
+        if (actionElem instanceof HTMLButtonElement) {
+          actionElem.disabled = shouldDisable;
+        }
+        if (shouldDisable) {
+          actionElem.setAttribute('aria-disabled', 'true');
+        } else {
+          actionElem.removeAttribute('aria-disabled');
+        }
+      } else if (action === 'select') {
+        // Update selection visual state
+        const isCurrentlySelected = this.context.isSelected(index);
+        if (
+          actionElem instanceof HTMLInputElement &&
+          actionElem.type === 'checkbox'
+        ) {
+          actionElem.checked = isCurrentlySelected;
+          // Add change event listener for checkbox
+          actionElem.addEventListener(
+            'change',
+            e => {
+              e.stopPropagation();
+              this.context.toggleSelection(index);
+            },
+            { signal }
+          );
+        }
+        if (isCurrentlySelected) {
+          actionElem.setAttribute('aria-pressed', 'true');
+        } else {
+          actionElem.setAttribute('aria-pressed', 'false');
         }
       }
     });

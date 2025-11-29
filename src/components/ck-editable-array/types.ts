@@ -67,6 +67,17 @@ export interface EditableArrayContext {
   getRowData(rowIndex: number): EditableRow;
   getRowKey(rowIndex: number): string;
 
+  // Array reordering methods
+  moveUp(rowIndex: number): void;
+  moveDown(rowIndex: number): void;
+  moveTo(fromIndex: number, toIndex: number): void;
+
+  // Selection methods
+  select(rowIndex: number): void;
+  deselect(rowIndex: number): void;
+  toggleSelection(rowIndex: number): void;
+  isSelected(rowIndex: number): boolean;
+
   // Properties
   data: unknown[]; // Public API returns unknown[]
   internalData: EditableRow[]; // Internal data for renderer

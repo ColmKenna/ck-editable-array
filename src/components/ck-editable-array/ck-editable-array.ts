@@ -51,6 +51,19 @@ export class CkEditableArray extends HTMLElement {
   private _styleObserver: MutationObserver | null = null;
   private _domRenderer: DomRenderer;
 
+  // Undo/Redo history
+  private _history: EditableRow[][] = [];
+  private _historyIndex = -1;
+  private _maxHistorySize = 50;
+
+  // Selection state for batch operations
+  private _selectedIndices: Set<number> = new Set();
+
+  // Error boundary state
+  private _hasError = false;
+  private _lastError: Error | null = null;
+  private _debug = false;
+
   // ============================================================================
   // LIFECYCLE METHODS
   // ============================================================================
@@ -162,6 +175,7 @@ export class CkEditableArray extends HTMLElement {
       : [];
     this._rowKeys = this._data.map(() => this.generateKey());
     if (this.isConnected) {
+      this.pushToHistory();
       this.render();
       this.dispatchDataChanged();
     }
@@ -206,6 +220,588 @@ export class CkEditableArray extends HTMLElement {
     } else {
       this.removeAttribute('modal-edit');
     }
+  }
+
+  // ============================================================================
+  // UNDO/REDO API
+  // ============================================================================
+
+  /**
+   * Whether an undo operation is available
+   */
+  get canUndo(): boolean {
+    return this._historyIndex > 0;
+  }
+
+  /**
+   * Whether a redo operation is available
+   */
+  get canRedo(): boolean {
+    return this._historyIndex < this._history.length - 1;
+  }
+
+  /**
+   * Get maximum history size
+   */
+  get maxHistorySize(): number {
+    return this._maxHistorySize;
+  }
+
+  /**
+   * Set maximum history size
+   */
+  set maxHistorySize(v: number) {
+    this._maxHistorySize = Math.max(1, v);
+    // Trim history if needed
+    if (this._history.length > this._maxHistorySize) {
+      const excess = this._history.length - this._maxHistorySize;
+      this._history = this._history.slice(excess);
+      this._historyIndex = Math.max(0, this._historyIndex - excess);
+    }
+  }
+
+  /**
+   * Undo the last change
+   */
+  undo(): void {
+    if (!this.canUndo) return;
+    this._historyIndex--;
+    this._data = this.cloneDataArray(this._history[this._historyIndex]);
+    this._rowKeys = this._data.map(() => this.generateKey());
+    if (this.isConnected) {
+      this.render();
+      this.dispatchDataChanged();
+      this.dispatchEvent(
+        new CustomEvent('undo', {
+          bubbles: true,
+          composed: true,
+          detail: { data: this.data },
+        })
+      );
+    }
+  }
+
+  /**
+   * Redo the last undone change
+   */
+  redo(): void {
+    if (!this.canRedo) return;
+    this._historyIndex++;
+    this._data = this.cloneDataArray(this._history[this._historyIndex]);
+    this._rowKeys = this._data.map(() => this.generateKey());
+    if (this.isConnected) {
+      this.render();
+      this.dispatchDataChanged();
+      this.dispatchEvent(
+        new CustomEvent('redo', {
+          bubbles: true,
+          composed: true,
+          detail: { data: this.data },
+        })
+      );
+    }
+  }
+
+  /**
+   * Clear the undo/redo history
+   */
+  clearHistory(): void {
+    this._history = [];
+    this._historyIndex = -1;
+  }
+
+  /**
+   * Push the current state to history (called internally after data changes)
+   */
+  private pushToHistory(): void {
+    // Remove any redo history beyond current position
+    if (this._historyIndex < this._history.length - 1) {
+      this._history = this._history.slice(0, this._historyIndex + 1);
+    }
+
+    // Add current state
+    this._history.push(this.cloneDataArray(this._data));
+    this._historyIndex = this._history.length - 1;
+
+    // Trim old history if exceeds max
+    if (this._history.length > this._maxHistorySize) {
+      this._history.shift();
+      this._historyIndex--;
+    }
+  }
+
+  /**
+   * Clone an array of row data for history
+   */
+  private cloneDataArray(data: EditableRow[]): EditableRow[] {
+    return data.map(item => this.cloneRow(item));
+  }
+
+  // ============================================================================
+  // ARRAY REORDERING API
+  // ============================================================================
+
+  /**
+   * Move a row up in the array
+   */
+  moveUp(rowIndex: number): void {
+    if (
+      !this.isValidRowIndex(rowIndex) ||
+      rowIndex === 0 ||
+      this.isReadonlyBlocked() ||
+      this.isEditLocked()
+    ) {
+      return;
+    }
+    this.moveTo(rowIndex, rowIndex - 1);
+  }
+
+  /**
+   * Move a row down in the array
+   */
+  moveDown(rowIndex: number): void {
+    if (
+      !this.isValidRowIndex(rowIndex) ||
+      rowIndex === this._data.length - 1 ||
+      this.isReadonlyBlocked() ||
+      this.isEditLocked()
+    ) {
+      return;
+    }
+    this.moveTo(rowIndex, rowIndex + 1);
+  }
+
+  /**
+   * Move a row to a specific position
+   */
+  moveTo(fromIndex: number, toIndex: number): void {
+    if (
+      !this.isValidRowIndex(fromIndex) ||
+      this.isReadonlyBlocked() ||
+      this.isEditLocked()
+    ) {
+      return;
+    }
+
+    // Clamp toIndex to valid range
+    const clampedToIndex = Math.max(
+      0,
+      Math.min(toIndex, this._data.length - 1)
+    );
+
+    // No-op if same position after clamping
+    if (fromIndex === clampedToIndex) {
+      return;
+    }
+
+    const newData = [...this._data];
+    const newKeys = [...this._rowKeys];
+    const [movedItem] = newData.splice(fromIndex, 1);
+    const [movedKey] = newKeys.splice(fromIndex, 1);
+    newData.splice(clampedToIndex, 0, movedItem);
+    newKeys.splice(clampedToIndex, 0, movedKey);
+
+    this._data = newData;
+    this._rowKeys = newKeys;
+
+    if (this.isConnected) {
+      this.pushToHistory();
+      this.render();
+      this.dispatchDataChanged();
+      this.dispatchEvent(
+        new CustomEvent('reorder', {
+          bubbles: true,
+          composed: true,
+          detail: { fromIndex, toIndex: clampedToIndex, data: this.data },
+        })
+      );
+    }
+  }
+
+  // ============================================================================
+  // BATCH OPERATIONS API
+  // ============================================================================
+
+  /**
+   * Get the set of selected row indices
+   */
+  get selectedIndices(): number[] {
+    return Array.from(this._selectedIndices).sort((a, b) => a - b);
+  }
+
+  /**
+   * Select a row by index
+   */
+  select(rowIndex: number): void {
+    if (!this.isValidRowIndex(rowIndex)) return;
+    this._selectedIndices.add(rowIndex);
+    this.updateSelectionUI();
+    this.dispatchSelectionChanged();
+  }
+
+  /**
+   * Deselect a row by index
+   */
+  deselect(rowIndex: number): void {
+    this._selectedIndices.delete(rowIndex);
+    this.updateSelectionUI();
+    this.dispatchSelectionChanged();
+  }
+
+  /**
+   * Toggle selection of a row
+   */
+  toggleSelection(rowIndex: number): void {
+    if (this._selectedIndices.has(rowIndex)) {
+      this._selectedIndices.delete(rowIndex);
+    } else {
+      if (this.isValidRowIndex(rowIndex)) {
+        this._selectedIndices.add(rowIndex);
+      }
+    }
+    this.updateSelectionUI();
+    this.dispatchSelectionChanged();
+  }
+
+  /**
+   * Select all rows
+   */
+  selectAll(): void {
+    for (let i = 0; i < this._data.length; i++) {
+      this._selectedIndices.add(i);
+    }
+    this.updateSelectionUI();
+    this.dispatchSelectionChanged();
+  }
+
+  /**
+   * Deselect all rows (alias for clearSelection)
+   */
+  deselectAll(): void {
+    this.clearSelection();
+  }
+
+  /**
+   * Clear all selections
+   */
+  clearSelection(): void {
+    this._selectedIndices.clear();
+    this.updateSelectionUI();
+    this.dispatchSelectionChanged();
+  }
+
+  /**
+   * Check if a row is selected
+   */
+  isSelected(rowIndex: number): boolean {
+    return this._selectedIndices.has(rowIndex);
+  }
+
+  /**
+   * Dispatch selection changed event
+   */
+  private dispatchSelectionChanged(): void {
+    this.dispatchEvent(
+      new CustomEvent('selectionchanged', {
+        bubbles: true,
+        composed: true,
+        detail: { selectedIndices: this.selectedIndices },
+      })
+    );
+  }
+
+  /**
+   * Delete all selected rows (removes them from array)
+   */
+  deleteSelected(): void {
+    if (
+      this.isReadonlyBlocked() ||
+      this.isEditLocked() ||
+      this._selectedIndices.size === 0
+    ) {
+      return;
+    }
+
+    // Actually remove selected rows (filter them out)
+    const sortedIndices = Array.from(this._selectedIndices).sort(
+      (a, b) => b - a
+    ); // Sort descending
+    const nextData = [...this._data];
+    const nextKeys = [...this._rowKeys];
+
+    for (const idx of sortedIndices) {
+      nextData.splice(idx, 1);
+      nextKeys.splice(idx, 1);
+    }
+
+    this._data = nextData;
+    this._rowKeys = nextKeys;
+    this._selectedIndices.clear();
+
+    if (this.isConnected) {
+      this.pushToHistory();
+      this.render();
+      this.dispatchDataChanged();
+    }
+  }
+
+  /**
+   * Mark selected rows as deleted (soft delete)
+   */
+  markSelectedDeleted(): void {
+    if (
+      this.isReadonlyBlocked() ||
+      this.isEditLocked() ||
+      this._selectedIndices.size === 0
+    ) {
+      return;
+    }
+
+    const nextData: EditableRow[] = this._data.map((entry, idx) => {
+      if (this._selectedIndices.has(idx) && this.isRecord(entry)) {
+        return { ...entry, deleted: true };
+      }
+      return this.isRecord(entry) ? { ...entry } : entry;
+    });
+
+    this._data = nextData;
+    this._selectedIndices.clear();
+
+    if (this.isConnected) {
+      this.pushToHistory();
+      this.render();
+      this.dispatchDataChanged();
+    }
+  }
+
+  /**
+   * Update multiple rows at once
+   */
+  bulkUpdate(updates: Record<string, unknown>): void {
+    if (
+      this.isReadonlyBlocked() ||
+      this.isEditLocked() ||
+      this._selectedIndices.size === 0
+    ) {
+      return;
+    }
+
+    const nextData: EditableRow[] = this._data.map((entry, idx) => {
+      if (this._selectedIndices.has(idx) && this.isRecord(entry)) {
+        return { ...entry, ...updates };
+      }
+      return this.isRecord(entry) ? { ...entry } : entry;
+    });
+
+    this._data = nextData;
+
+    if (this.isConnected) {
+      this.pushToHistory();
+      this.render();
+      this.dispatchDataChanged();
+    }
+  }
+
+  /**
+   * Get the data for all selected rows
+   */
+  getSelectedData(): unknown[] {
+    return this.selectedIndices.map(idx =>
+      this.toPublicRowData(this._data[idx])
+    );
+  }
+
+  /**
+   * Update selection UI state in shadow DOM
+   */
+  private updateSelectionUI(): void {
+    if (!this.shadowRoot) return;
+    const rows = this.shadowRoot.querySelectorAll<HTMLElement>('[data-row]');
+    rows.forEach(row => {
+      const rowIndex = parseInt(row.getAttribute('data-row') || '-1', 10);
+      if (this._selectedIndices.has(rowIndex)) {
+        row.setAttribute('data-selected', 'true');
+        row.setAttribute('aria-selected', 'true');
+      } else {
+        row.removeAttribute('data-selected');
+        row.removeAttribute('aria-selected');
+      }
+    });
+  }
+
+  // ============================================================================
+  // FORM INTEGRATION API
+  // ============================================================================
+
+  /**
+   * Get the associated form element
+   */
+  get form(): HTMLFormElement | null {
+    return this.closest('form');
+  }
+
+  /**
+   * Get the component's data as a JSON string
+   */
+  get value(): string {
+    return JSON.stringify(this.data);
+  }
+
+  /**
+   * Set the component's data from a JSON string
+   */
+  set value(v: string) {
+    try {
+      const parsed = JSON.parse(v);
+      if (Array.isArray(parsed)) {
+        this.data = parsed;
+      }
+    } catch {
+      // Invalid JSON, ignore
+    }
+  }
+
+  /**
+   * Convert data to FormData format
+   */
+  toFormData(): FormData {
+    const formData = new FormData();
+    const name = this.getAttribute('name') || 'items';
+
+    this.data.forEach((item, index) => {
+      if (typeof item === 'object' && item !== null) {
+        this.flattenToFormData(
+          formData,
+          `${name}[${index}]`,
+          item as Record<string, unknown>
+        );
+      } else {
+        formData.append(`${name}[${index}]`, String(item));
+      }
+    });
+
+    return formData;
+  }
+
+  /**
+   * Flatten nested object to FormData entries
+   */
+  private flattenToFormData(
+    formData: FormData,
+    prefix: string,
+    obj: Record<string, unknown>
+  ): void {
+    for (const [key, value] of Object.entries(obj)) {
+      // Skip internal properties
+      if (key.startsWith('__') || key === 'editing' || key === 'deleted') {
+        continue;
+      }
+      const fullKey = `${prefix}[${key}]`;
+      if (
+        value !== null &&
+        typeof value === 'object' &&
+        !Array.isArray(value)
+      ) {
+        this.flattenToFormData(
+          formData,
+          fullKey,
+          value as Record<string, unknown>
+        );
+      } else {
+        formData.append(fullKey, String(value ?? ''));
+      }
+    }
+  }
+
+  /**
+   * Convert data to JSON string
+   */
+  toJSON(space?: number): string {
+    return JSON.stringify(this.data, null, space);
+  }
+
+  /**
+   * Check if all data is valid
+   */
+  checkValidity(): boolean {
+    for (let i = 0; i < this._data.length; i++) {
+      const result = this.validateRowDetailed(i);
+      if (!result.isValid) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Report validity and show validation UI
+   */
+  reportValidity(): boolean {
+    const isValid = this.checkValidity();
+    if (!isValid) {
+      // Update all rows to show validation state
+      for (let i = 0; i < this._data.length; i++) {
+        this.updateSaveButtonState(i);
+      }
+    }
+    return isValid;
+  }
+
+  // ============================================================================
+  // ERROR BOUNDARY API
+  // ============================================================================
+
+  /**
+   * Whether the component has encountered an error
+   */
+  get hasError(): boolean {
+    return this._hasError;
+  }
+
+  /**
+   * The last error that occurred
+   */
+  get lastError(): Error | null {
+    return this._lastError;
+  }
+
+  /**
+   * Debug mode - enables detailed error logging
+   */
+  get debug(): boolean {
+    return this._debug;
+  }
+
+  set debug(v: boolean) {
+    this._debug = v;
+  }
+
+  /**
+   * Clear the error state
+   */
+  clearError(): void {
+    this._hasError = false;
+    this._lastError = null;
+  }
+
+  /**
+   * Handle and log an error
+   */
+  private handleError(error: Error, context: string): void {
+    this._hasError = true;
+    this._lastError = error;
+
+    if (this._debug) {
+      console.error(`[ck-editable-array] ${context}:`, error);
+    }
+
+    this.dispatchEvent(
+      new CustomEvent('rendererror', {
+        bubbles: true,
+        composed: true,
+        detail: { error, context },
+      })
+    );
   }
 
   /** @internal */
