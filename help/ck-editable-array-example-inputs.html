@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ck-editable-array – All Input Types Example</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f7fafc;
+      color: #1a202c;
+    }
+    h1 { margin: 0 0 0.25rem; }
+    h2 { margin: 1.5rem 0 0.5rem; color: #374151; }
+    p { margin: 0.25rem 0 0.75rem; max-width: 800px; font-size: 0.95rem; line-height: 1.6; }
+    code {
+      background: #e2e8f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+    
+    .layout {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 24px;
+      max-width: 1200px;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    ck-editable-array {
+      display: block;
+      margin: 1rem 0;
+      padding: 20px;
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    }
+
+    .sidebar {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #e2e8f0;
+      position: sticky;
+      top: 24px;
+    }
+    .sidebar h3 { margin: 0 0 12px; }
+    .sidebar pre {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      overflow-x: auto;
+      max-height: 400px;
+    }
+  </style>
+</head>
+<body>
+  <h1>ck-editable-array – All Input Types</h1>
+  <p>
+    This example demonstrates all supported input types: text, textarea, select, multi-select, radio buttons,
+    and checkbox groups. Each input type binds to data using the <code>data-bind</code> attribute.
+  </p>
+
+  <div class="layout">
+    <div>
+      <ck-editable-array id="tasks" name="tasks">
+        <style slot="styles">
+          .row-display {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            padding: 16px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            background: #fafafa;
+          }
+          .row-display .info { display: grid; gap: 6px; }
+          .row-display .title { font-weight: 600; font-size: 1.05rem; }
+          .row-display .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #6b7280;
+          }
+          .row-display .meta span { 
+            background: #e5e7eb; 
+            padding: 2px 8px; 
+            border-radius: 4px;
+          }
+          .row-display .description {
+            font-size: 0.9rem;
+            color: #4b5563;
+            margin-top: 4px;
+          }
+          
+          .row-edit {
+            display: grid;
+            gap: 16px;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #3b82f6;
+            background: #fff;
+            margin-bottom: 10px;
+          }
+          .row-edit label {
+            display: grid;
+            gap: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #374151;
+          }
+          .row-edit input[type="text"],
+          .row-edit input[type="email"],
+          .row-edit input[type="date"],
+          .row-edit textarea,
+          .row-edit select {
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+          }
+          .row-edit textarea {
+            min-height: 80px;
+            resize: vertical;
+          }
+          .row-edit input:focus,
+          .row-edit textarea:focus,
+          .row-edit select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          }
+          
+          /* Radio buttons styling */
+          .radio-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+          }
+          .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            cursor: pointer;
+          }
+          .radio-group input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #3b82f6;
+          }
+          
+          /* Checkbox group styling */
+          .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+          }
+          .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 6px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background: #f9fafb;
+          }
+          .checkbox-group label:has(input:checked) {
+            border-color: #3b82f6;
+            background: #eff6ff;
+          }
+          .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #3b82f6;
+          }
+          
+          /* Multi-select styling */
+          select[multiple] {
+            min-height: 100px;
+          }
+          
+          .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 8px;
+          }
+          button {
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+          }
+          button[data-action="toggle"] { background: #3b82f6; color: #fff; }
+          button[data-action="save"] { background: #10b981; color: #fff; }
+          button[data-action="cancel"] { background: #e5e7eb; color: #374151; }
+          button[data-action="add"] { background: #6366f1; color: #fff; }
+        </style>
+
+        <template slot="display">
+          <div class="row-display">
+            <div class="info">
+              <div class="title" data-bind="title"></div>
+              <div class="meta">
+                <span>Priority: <strong data-bind="priority"></strong></span>
+                <span>Status: <strong data-bind="status"></strong></span>
+                <span>Due: <strong data-bind="dueDate"></strong></span>
+              </div>
+              <div class="meta">
+                <span>Tags: <strong data-bind="tags"></strong></span>
+              </div>
+              <div class="meta">
+                <span>Skills: <strong data-bind="skills"></strong></span>
+              </div>
+              <div class="description" data-bind="description"></div>
+            </div>
+            <div>
+              <button type="button" data-action="toggle">Edit</button>
+            </div>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <div class="row-edit">
+            <!-- Text input -->
+            <label>
+              Title (text input)
+              <input type="text" data-bind="title" placeholder="Enter task title" />
+            </label>
+
+            <!-- Textarea -->
+            <label>
+              Description (textarea)
+              <textarea data-bind="description" placeholder="Enter task description"></textarea>
+            </label>
+
+            <!-- Date input -->
+            <label>
+              Due Date (date input)
+              <input type="date" data-bind="dueDate" />
+            </label>
+
+            <!-- Select dropdown -->
+            <label>
+              Status (select dropdown)
+              <select data-bind="status">
+                <option value="">-- Select status --</option>
+                <option value="todo">To Do</option>
+                <option value="in-progress">In Progress</option>
+                <option value="review">In Review</option>
+                <option value="done">Done</option>
+              </select>
+            </label>
+
+            <!-- Radio buttons -->
+            <div>
+              <div style="font-weight:600; margin-bottom:8px;">Priority (radio buttons)</div>
+              <div class="radio-group">
+                <label>
+                  <input type="radio" value="low" data-bind="priority" />
+                  🟢 Low
+                </label>
+                <label>
+                  <input type="radio" value="medium" data-bind="priority" />
+                  🟡 Medium
+                </label>
+                <label>
+                  <input type="radio" value="high" data-bind="priority" />
+                  🔴 High
+                </label>
+                <label>
+                  <input type="radio" value="critical" data-bind="priority" />
+                  🚨 Critical
+                </label>
+              </div>
+            </div>
+
+            <!-- Checkbox group (array binding) -->
+            <div>
+              <div style="font-weight:600; margin-bottom:8px;">Tags (checkbox group → array)</div>
+              <div class="checkbox-group">
+                <label>
+                  <input type="checkbox" value="frontend" data-bind="tags" />
+                  Frontend
+                </label>
+                <label>
+                  <input type="checkbox" value="backend" data-bind="tags" />
+                  Backend
+                </label>
+                <label>
+                  <input type="checkbox" value="design" data-bind="tags" />
+                  Design
+                </label>
+                <label>
+                  <input type="checkbox" value="testing" data-bind="tags" />
+                  Testing
+                </label>
+                <label>
+                  <input type="checkbox" value="docs" data-bind="tags" />
+                  Documentation
+                </label>
+              </div>
+            </div>
+
+            <!-- Multi-select (array binding) -->
+            <label>
+              Skills Required (multi-select → array)
+              <select multiple data-bind="skills">
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="react">React</option>
+                <option value="vue">Vue</option>
+                <option value="angular">Angular</option>
+                <option value="css">CSS</option>
+                <option value="nodejs">Node.js</option>
+                <option value="python">Python</option>
+              </select>
+              <small style="color:#6b7280;">Hold Ctrl/Cmd to select multiple</small>
+            </label>
+
+            <div class="actions">
+              <button type="button" data-action="cancel">Cancel</button>
+              <button type="button" data-action="save">Save Task</button>
+            </div>
+          </div>
+        </template>
+
+        <template slot="add-button">
+          <button type="button" data-action="add">+ Add New Task</button>
+        </template>
+      </ck-editable-array>
+    </div>
+
+    <div class="sidebar">
+      <h3>Live Data (JSON)</h3>
+      <p style="font-size:0.85rem; color:#6b7280;">
+        Watch how different input types map to data:
+      </p>
+      <pre id="data-display">Loading...</pre>
+    </div>
+  </div>
+
+  <h2>Input Type Summary</h2>
+  <table style="width:100%; max-width:800px; border-collapse:collapse; font-size:0.9rem;">
+    <thead>
+      <tr style="background:#f1f5f9;">
+        <th style="padding:10px; text-align:left; border:1px solid #e2e8f0;">Input Type</th>
+        <th style="padding:10px; text-align:left; border:1px solid #e2e8f0;">Data Type</th>
+        <th style="padding:10px; text-align:left; border:1px solid #e2e8f0;">Example Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding:10px; border:1px solid #e2e8f0;"><code>&lt;input type="text"&gt;</code></td>
+        <td style="padding:10px; border:1px solid #e2e8f0;">string</td>
+        <td style="padding:10px; border:1px solid #e2e8f0;"><code>"My task title"</code></td>
+      </tr>
+      <tr>
+        <td style="padding:10px; border:1px solid #e2e8f0;"><code>&lt;textarea&gt;</code></td>
+        <td style="padding:10px; border:1px solid #e2e8f0;">string</td>
+        <td style="padding:10px; border:1px solid #e2e8f0;"><code>"Description text..."</code></td>
+      </tr>
+      <tr>
+        <td style="padding:10px; border:1px solid #e2e8f0;"><code>&lt;input type="date"&gt;</code></td>
+        <td style="padding:10px; border:1px solid #e2e8f0;">string</td>
+        <td style="padding:10px; border:1px solid #e2e8f0;"><code>"2025-11-30"</code></td>
+      </tr>
+      <tr>
+        <td style="padding:10px; border:1px solid #e2e8f0;"><code>&lt;select&gt;</code></td>
+        <td style="padding:10px; border:1px solid #e2e8f0;">string</td>
+        <td style="padding:10px; border:1px solid #e2e8f0;"><code>"in-progress"</code></td>
+      </tr>
+      <tr>
+        <td style="padding:10px; border:1px solid #e2e8f0;"><code>&lt;input type="radio"&gt;</code></td>
+        <td style="padding:10px; border:1px solid #e2e8f0;">string</td>
+        <td style="padding:10px; border:1px solid #e2e8f0;"><code>"high"</code></td>
+      </tr>
+      <tr>
+        <td style="padding:10px; border:1px solid #e2e8f0;"><code>&lt;input type="checkbox"&gt;</code> (group)</td>
+        <td style="padding:10px; border:1px solid #e2e8f0;">string[]</td>
+        <td style="padding:10px; border:1px solid #e2e8f0;"><code>["frontend", "testing"]</code></td>
+      </tr>
+      <tr>
+        <td style="padding:10px; border:1px solid #e2e8f0;"><code>&lt;select multiple&gt;</code></td>
+        <td style="padding:10px; border:1px solid #e2e8f0;">string[]</td>
+        <td style="padding:10px; border:1px solid #e2e8f0;"><code>["javascript", "react"]</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <script type="module">
+    import '../dist/ck-editable-array/ck-editable-array.esm.js';
+
+    const el = document.getElementById('tasks');
+    const dataDisplay = document.getElementById('data-display');
+
+    // Sample data with all input types
+    el.data = [
+      {
+        title: 'Build dashboard component',
+        description: 'Create a reusable dashboard widget with charts and metrics',
+        dueDate: '2025-12-15',
+        status: 'in-progress',
+        priority: 'high',
+        tags: ['frontend', 'design'],
+        skills: ['javascript', 'react', 'css']
+      },
+      {
+        title: 'Write API documentation',
+        description: 'Document all REST endpoints with examples',
+        dueDate: '2025-12-01',
+        status: 'todo',
+        priority: 'medium',
+        tags: ['docs', 'backend'],
+        skills: ['nodejs', 'typescript']
+      }
+    ];
+
+    el.newItemFactory = () => ({
+      title: '',
+      description: '',
+      dueDate: '',
+      status: '',
+      priority: 'medium',
+      tags: [],
+      skills: []
+    });
+
+    // Update display on every change
+    function updateDisplay() {
+      dataDisplay.textContent = JSON.stringify(el.data, null, 2);
+    }
+
+    updateDisplay();
+
+    el.addEventListener('datachanged', (event) => {
+      updateDisplay();
+      console.log('Data changed:', event.detail.data);
+    });
+  </script>
+</body>
+</html>

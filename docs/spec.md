@@ -53,7 +53,14 @@ The component provides an editable array interface with:
 | Step 7 | Validation | Validation System | ✅ Implemented | `step7.validation.test.ts` |
 | Step 8.1 | Data Immutability | Data Cloning & Immutability | ✅ Implemented | `step8.cloning.test.ts` |
 | Step 8.2 | Data Immutability | Deep vs Shallow Clone Behaviour | ✅ Implemented | `step8.cloning.test.ts` |
-| Step 9 | Edit Operations | Modal edit mode renders edit template inside modal overlay when `modal-edit` is set | ✅ Implemented | `ck-editable-array.modal-edit.test.ts` |
+| Step 9 | Edit Operations | Modal edit mode renders edit template inside modal overlay when `modal-edit` is set | ✅ Implemented | `modal-edit.test.ts` |
+| Step 9.1 | Modal Validation | Modal validation blocks Save when data is invalid | ✅ Implemented | `modal-edit.test.ts` |
+| Step 9.2 | Modal Validation | Cancel in modal reverts data even with validation errors | ✅ Implemented | `modal-edit.test.ts` |
+| Step 9.3 | Modal Validation | Adding new item via modal, cancel discards new item | ✅ Implemented | `modal-edit.test.ts` |
+| Week 4.1 | Enhancement | Internationalization (i18n) for validation messages | ✅ Implemented | `week4.i18n.test.ts` |
+| Week 4.2 | Enhancement | Focus management (auto-focus on edit, restore on save/cancel) | ✅ Implemented | `week4.focus.test.ts` |
+| Week 5.1 | Enhancement | CSS Custom Properties for theming | ✅ Implemented | `week5.css-vars.test.ts` |
+| Week 5.2 | Enhancement | Circular reference handling in cloneRow | ✅ Implemented | `week5.circular.test.ts` |
 | Accessibility | Accessibility | ARIA & Keyboard Support | ✅ Implemented | `accessibility.test.ts` |
 | Security | Security | XSS Protection | ✅ Implemented | `security.test.ts` |
 
@@ -856,40 +863,166 @@ Visual changes when toggling from edit to display:
 
 ---
 
+### Internationalization (i18n)
+
+#### Week 4 – i18n Support
+
+**Test File:** `tests/ck-editable-array/ck-editable-array.week4.i18n.test.ts`
+
+##### i18n Property
+- Component exposes `i18n` property for custom validation error messages
+- Property is optional; defaults to English messages if not set
+- Accepts `I18nMessages` interface with callback functions
+
+##### I18nMessages Interface
+```typescript
+interface I18nMessages {
+  required?: (field: string) => string;
+  minLength?: (field: string, min: number) => string;
+}
+```
+
+##### Default Messages
+Without custom i18n:
+- Required: `"${field} is required"`
+- MinLength: `"${field} must be at least ${min} characters"`
+
+##### Custom Messages
+- Messages can be static strings or dynamic functions
+- Functions receive field name and constraint values as parameters
+- Enables localization to any language
+- Messages update immediately when `i18n` property changes
+
+##### Implementation
+- `ValidationManager.validateRow()` accepts optional `i18n` parameter
+- `formatValidationError()` uses i18n callbacks if provided
+- Falls back to default English messages if callback is missing
+
+---
+
+### CSS Custom Properties (Theming)
+
+#### Week 5 – CSS Custom Properties
+
+**Test File:** `tests/ck-editable-array/ck-editable-array.week5.css-vars.test.ts`
+
+##### Theming Variables
+Component exposes CSS custom properties for theming:
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `--ck-row-padding` | `12px` | Padding for row elements |
+| `--ck-error-color` | `#dc3545` | Color for validation errors |
+| `--ck-border-radius` | `4px` | Border radius for elements |
+| `--ck-border-color` | `#ddd` | Default border color |
+| `--ck-focus-color` | `#0066cc` | Focus indicator color |
+| `--ck-disabled-opacity` | `0.5` | Opacity for disabled elements |
+
+##### Variable Usage
+- Variables are defined in `:host` selector in shadow DOM styles
+- Applied to built-in validation styles and disabled states
+- Can be overridden from outside the component
+
+##### Override Pattern
+```css
+ck-editable-array {
+  --ck-error-color: #e74c3c;
+  --ck-border-radius: 8px;
+}
+```
+
+##### Inheritance
+- Variables inherit through the shadow DOM boundary
+- Can be set on component element or any ancestor
+- Enable consistent theming across multiple components
+
+---
+
+### Focus Management
+
+#### Week 4 – Focus Management
+
+**Test File:** `tests/ck-editable-array/ck-editable-array.week4.focus.test.ts`
+
+##### Auto-Focus on Edit Mode
+- When entering edit mode, first input/textarea/select is automatically focused
+- Uses `requestAnimationFrame` to ensure DOM is ready
+- Applies to both inline and modal edit modes
+
+##### Focus Restoration on Exit
+- When saving or cancelling, focus returns to toggle button
+- Maintains keyboard navigation continuity
+- Uses `requestAnimationFrame` for timing
+
+##### Implementation
+- Focus management in `handleToggleClick()` and `handleSaveClick()`/`handleCancelClick()`
+- Queries first focusable element in edit wrapper
+- Queries toggle button in display wrapper for restoration
+
+---
+
+### Circular Reference Handling
+
+#### Week 5 – Circular Reference Handling
+
+**Test File:** `tests/ck-editable-array/ck-editable-array.week5.circular.test.ts`
+
+##### Problem
+- `cloneRow()` uses `JSON.parse(JSON.stringify())` for deep cloning
+- This throws on circular references in data objects
+
+##### Solution
+- Added try-catch wrapper in `cloneRow()` method
+- Falls back to shallow copy (`{ ...object }`) on error
+- Logs warning to console when fallback is used
+
+##### Behavior
+- Circular references are handled gracefully (no crash)
+- Data remains accessible (shallow copy preserves top-level properties)
+- Warning logged for debugging purposes
+
+---
+
 ## Version History
 
 ### Version 1.0 (Current)
 
-**Release Date:** 2024
+**Release Date:** November 2025
 
 **Specifications Added:**
 
 | Spec ID | Description | Date Added |
 |---------|-------------|------------|
-| P1-P5 | Initial data binding and rendering specifications | Initial Release |
-| Step 4 | Core rendering and row modes | Initial Release |
-| Step 5.1-5.6 | Add button functionality and exclusive locking | Initial Release |
-| Step 6.1-6.3 | Edit operations (save, toggle, visual switching) | Initial Release |
-| Step 7 | Validation system | Initial Release |
-| Step 8.1-8.2 | Data immutability and cloning | Initial Release |
-| Accessibility | ARIA attributes and keyboard navigation | Initial Release |
-| Security | XSS protection and input sanitization | Initial Release |
+| P1-P5 | Initial data binding and rendering specifications | November 2025 |
+| Step 4 | Core rendering and row modes | November 2025 |
+| Step 5.1-5.6 | Add button functionality and exclusive locking | November 2025 |
+| Step 6.1-6.3 | Edit operations (save, toggle, visual switching) | November 2025 |
+| Step 7 | Validation system | November 2025 |
+| Step 8.1-8.2 | Data immutability and cloning | November 2025 |
+| Step 9 | Modal edit mode | November 2025 |
+| Week 4 | i18n support, focus management | November 2025 |
+| Week 5 | CSS custom properties, circular reference handling | November 2025 |
+| Radio Binding | Radio button group support | November 2025 |
+| Advanced Inputs | Checkbox groups, multi-select, datalist | November 2025 |
+| Accessibility | ARIA attributes and keyboard navigation | November 2025 |
+| Security | XSS protection and input sanitization | November 2025 |
 
 **Test Coverage:**
-- 11 test files covering all major specifications
-- Comprehensive unit and integration tests
+- 22 test files covering all major specifications
+- 237 unit and integration tests passing
 - Accessibility and security testing included
+- Performance and keyed rendering tests
 
 **Known Limitations:**
 - JSON serialization for cloning (no functions, symbols, or circular references)
 - Date objects converted to strings during cloning
-- Performance considerations for very large datasets
+- Performance considerations for very large datasets (recommend < 100 items)
 
 ---
 
 ## Maintenance Notes
 
-**Last Updated:** 2024
+**Last Updated:** November 29, 2025
 
 **Document Maintainers:**
 - Review this specification when adding new features

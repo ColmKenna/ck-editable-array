@@ -124,6 +124,8 @@
         <li><a href="#events">Events</a></li>
         <li><a href="#templates">Templates &amp; slots</a></li>
         <li><a href="#css">CSS &amp; theming</a></li>
+        <li><a href="#css-vars">CSS custom properties</a></li>
+        <li><a href="#i18n">Internationalization (i18n)</a></li>
         <li><a href="#frameworks">Using with frameworks</a></li>
         <li><a href="#examples">Examples</a></li>
         <li><a href="#example-custom-css">Custom CSS example</a></li>
@@ -131,12 +133,15 @@
         <li><a href="#example-modal-edit">Modal edit example</a></li>
         <li><a href="#example-modal-styled">Styled modal example</a></li>
         <li><a href="#example-modal-validation">Modal validation example</a></li>
+        <li><a href="#example-inputs">All input types</a></li>
+        <li><a href="#example-i18n">i18n example</a></li>
         <li><a href="#accessibility">Accessibility</a></li>
         <li><a href="#faq">FAQ</a></li>
       </ul>
       <div class="meta">
         Tag: <code>&lt;ck-editable-array&gt;</code><br>
-        Category: form / collection editor
+        Category: form / collection editor<br>
+        <a href="index.html" style="color:#3b82f6;">← Back to index</a>
       </div>
     </nav>
 
@@ -252,6 +257,12 @@ import '@colmkenna/ck-webcomponents/ck-editable-array';</code></pre>
               <td><code>() =&gt; EditableRow</code></td>
               <td><code>() =&gt; ({})</code></td>
               <td>Factory for new rows when the Add button is clicked.</td>
+            </tr>
+            <tr>
+              <td><code>i18n</code></td>
+              <td><code>I18nMessages</code></td>
+              <td><code>undefined</code></td>
+              <td>Custom validation error message callbacks. Supports <code>required(field)</code> and <code>minLength(field, min)</code> functions.</td>
             </tr>
             <tr>
               <td><code>modalEdit</code></td>
@@ -385,6 +396,102 @@ ck-editable-array::part(root) { box-shadow: 0 4px 14px rgba(0,0,0,0.08); }</code
       <p class="note">Full runnable example: <a href="ck-editable-array-example-custom-css.html">Custom CSS example – styling with parts and slots</a></p>
       </section>
 
+      <section id="css-vars">
+        <h2>CSS custom properties (theming)</h2>
+        <p>
+          The component exposes CSS custom properties for consistent theming. Override these on the component element or any ancestor.
+        </p>
+        <table>
+          <thead>
+            <tr><th>Property</th><th>Default</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>--ck-row-padding</code></td>
+              <td><code>12px</code></td>
+              <td>Padding for row elements</td>
+            </tr>
+            <tr>
+              <td><code>--ck-error-color</code></td>
+              <td><code>#dc3545</code></td>
+              <td>Color for validation errors (borders, text)</td>
+            </tr>
+            <tr>
+              <td><code>--ck-border-radius</code></td>
+              <td><code>4px</code></td>
+              <td>Border radius for elements</td>
+            </tr>
+            <tr>
+              <td><code>--ck-border-color</code></td>
+              <td><code>#ddd</code></td>
+              <td>Default border color</td>
+            </tr>
+            <tr>
+              <td><code>--ck-focus-color</code></td>
+              <td><code>#0066cc</code></td>
+              <td>Focus indicator color</td>
+            </tr>
+            <tr>
+              <td><code>--ck-disabled-opacity</code></td>
+              <td><code>0.5</code></td>
+              <td>Opacity for disabled elements</td>
+            </tr>
+          </tbody>
+        </table>
+        <h3>Override example</h3>
+        <pre><code>/* Apply a red theme for errors */
+ck-editable-array {
+  --ck-error-color: #e74c3c;
+  --ck-border-radius: 8px;
+  --ck-focus-color: #3498db;
+}
+
+/* Theme from a parent container */
+.dark-theme ck-editable-array {
+  --ck-error-color: #ff6b6b;
+  --ck-border-color: #4a5568;
+}</code></pre>
+        <p class="note">Full runnable example: <a href="ck-editable-array-example-theming.html">Theming example – CSS custom properties</a></p>
+      </section>
+
+      <section id="i18n">
+        <h2>Internationalization (i18n)</h2>
+        <p>
+          Customize validation error messages for different languages using the <code>i18n</code> property.
+        </p>
+        <h3>I18nMessages interface</h3>
+        <pre><code>interface I18nMessages {
+  required?: (field: string) =&gt; string;
+  minLength?: (field: string, min: number) =&gt; string;
+}</code></pre>
+        <h3>Default messages (English)</h3>
+        <ul>
+          <li><strong>Required:</strong> <code>"${field} is required"</code></li>
+          <li><strong>MinLength:</strong> <code>"${field} must be at least ${min} characters"</code></li>
+        </ul>
+        <h3>Custom messages example</h3>
+        <pre><code>const el = document.querySelector('ck-editable-array');
+
+// Spanish messages
+el.i18n = {
+  required: (field) =&gt; `${field} es obligatorio`,
+  minLength: (field, min) =&gt; `${field} debe tener al menos ${min} caracteres`
+};
+
+// German messages
+el.i18n = {
+  required: (field) =&gt; `${field} ist erforderlich`,
+  minLength: (field, min) =&gt; `${field} muss mindestens ${min} Zeichen haben`
+};
+
+// French messages
+el.i18n = {
+  required: (field) =&gt; `${field} est requis`,
+  minLength: (field, min) =&gt; `${field} doit contenir au moins ${min} caractères`
+};</code></pre>
+        <p class="note">Full runnable example: <a href="ck-editable-array-example-i18n.html">i18n example – localized validation messages</a></p>
+      </section>
+
       <section id="frameworks">
         <h2>Using with frameworks</h2>
 
@@ -457,15 +564,32 @@ ngAfterViewInit() {
 
       <section id="examples">
         <h2>Examples</h2>
-        <p>Open these files directly in a browser from the <code>help/</code> folder:</p>
+        <p>Open these files directly in a browser from the <code>help/</code> folder, or start from the <a href="index.html">Documentation Index</a>:</p>
+        
+        <h3>Getting started</h3>
         <ul>
           <li><a href="ck-editable-array-example-basic.html">Basic example – strings</a></li>
           <li><a href="ck-editable-array-example-advanced.html">Advanced example – objects &amp; validation</a></li>
+        </ul>
+
+        <h3>Styling &amp; customization</h3>
+        <ul>
           <li><a href="ck-editable-array-example-custom-css.html">Custom CSS example – styling with parts and slots</a></li>
           <li><a href="ck-editable-array-example-custom-buttons.html">Custom buttons example – using slotted action buttons</a></li>
+          <li><a href="ck-editable-array-example-theming.html">Theming example – CSS custom properties</a></li>
+        </ul>
+
+        <h3>Modal editing</h3>
+        <ul>
           <li><a href="ck-editable-array-example-modal-edit.html">Modal edit example – editing in an overlay dialog</a></li>
           <li><a href="ck-editable-array-example-modal-styled.html">Styled modal example – custom modal overlay and surface styling</a></li>
           <li><a href="ck-editable-array-example-modal-validation.html">Modal validation example – required fields and error messaging</a></li>
+        </ul>
+
+        <h3>Form inputs &amp; localization</h3>
+        <ul>
+          <li><a href="ck-editable-array-example-inputs.html">All input types – text, select, radio, checkbox, multi-select</a></li>
+          <li><a href="ck-editable-array-example-i18n.html">i18n example – localized validation messages</a></li>
         </ul>
       </section>
 
@@ -564,6 +688,86 @@ ck-editable-array::part(modal-surface) {
   ex.schema = { required: ['name','email'], properties: { name: { minLength: 2 }, email: { minLength: 5 } } };
 &lt;/script&gt;</code></pre>
         <p class="note">See the runnable modal demos above for complete working examples with validation.</p>
+      </section>
+
+      <section id="example-inputs">
+        <h2>All input types example (inlined)</h2>
+        <p>
+          The component supports multiple input types: text, textarea, select, multi-select, radio buttons, and checkbox groups.
+        </p>
+        <h3>Supported input types</h3>
+        <ul>
+          <li><strong>Text inputs:</strong> <code>&lt;input type="text|email|date|..."&gt;</code></li>
+          <li><strong>Textareas:</strong> <code>&lt;textarea&gt;</code></li>
+          <li><strong>Select dropdowns:</strong> <code>&lt;select&gt;</code> with <code>&lt;option&gt;</code> children</li>
+          <li><strong>Multi-select:</strong> <code>&lt;select multiple&gt;</code> – maps to arrays</li>
+          <li><strong>Combo (datalist):</strong> <code>&lt;input list="id"&gt;</code> paired with <code>&lt;datalist&gt;</code></li>
+          <li><strong>Radio buttons:</strong> Multiple <code>&lt;input type="radio"&gt;</code> with same <code>data-bind</code></li>
+          <li><strong>Checkbox groups:</strong> Multiple <code>&lt;input type="checkbox"&gt;</code> with same <code>data-bind</code> – maps to arrays</li>
+          <li><strong>Single checkbox:</strong> Single <code>&lt;input type="checkbox"&gt;</code> – maps to boolean</li>
+        </ul>
+        <h3>Radio buttons</h3>
+        <pre><code>&lt;template slot="edit"&gt;
+  &lt;fieldset&gt;
+    &lt;legend&gt;Priority&lt;/legend&gt;
+    &lt;label&gt;&lt;input type="radio" value="low" data-bind="priority" /&gt; Low&lt;/label&gt;
+    &lt;label&gt;&lt;input type="radio" value="medium" data-bind="priority" /&gt; Medium&lt;/label&gt;
+    &lt;label&gt;&lt;input type="radio" value="high" data-bind="priority" /&gt; High&lt;/label&gt;
+  &lt;/fieldset&gt;
+&lt;/template&gt;</code></pre>
+        <h3>Checkbox groups (array binding)</h3>
+        <pre><code>&lt;template slot="edit"&gt;
+  &lt;label&gt;&lt;input type="checkbox" value="frontend" data-bind="tags" /&gt; Frontend&lt;/label&gt;
+  &lt;label&gt;&lt;input type="checkbox" value="backend" data-bind="tags" /&gt; Backend&lt;/label&gt;
+  &lt;label&gt;&lt;input type="checkbox" value="ux" data-bind="tags" /&gt; UX&lt;/label&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+  // Data will have: { tags: ['frontend', 'ux'] }
+&lt;/script&gt;</code></pre>
+        <h3>Multi-select (array binding)</h3>
+        <pre><code>&lt;template slot="edit"&gt;
+  &lt;select multiple data-bind="skills"&gt;
+    &lt;option value="javascript"&gt;JavaScript&lt;/option&gt;
+    &lt;option value="typescript"&gt;TypeScript&lt;/option&gt;
+    &lt;option value="css"&gt;CSS&lt;/option&gt;
+  &lt;/select&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+  // Data will have: { skills: ['javascript', 'css'] }
+  // Display mode shows: "javascript, css"
+&lt;/script&gt;</code></pre>
+        <p class="note">Full runnable example: <a href="ck-editable-array-example-inputs.html">All input types – text, select, radio, checkbox, multi-select</a></p>
+      </section>
+
+      <section id="example-i18n">
+        <h2>i18n example (inlined)</h2>
+        <p>Customize validation messages for different languages.</p>
+        <pre><code>&lt;ck-editable-array id="contacts"&gt;
+  &lt;template slot="edit"&gt;
+    &lt;input data-bind="name" /&gt;
+    &lt;span data-field-error="name"&gt;&lt;/span&gt;
+    &lt;button data-action="save"&gt;Guardar&lt;/button&gt;
+    &lt;button data-action="cancel"&gt;Cancelar&lt;/button&gt;
+  &lt;/template&gt;
+&lt;/ck-editable-array&gt;
+
+&lt;script type="module"&gt;
+  const el = document.getElementById('contacts');
+  
+  // Spanish validation messages
+  el.i18n = {
+    required: (field) =&gt; `${field} es obligatorio`,
+    minLength: (field, min) =&gt; `${field} debe tener al menos ${min} caracteres`
+  };
+  
+  el.schema = {
+    required: ['name'],
+    properties: { name: { minLength: 2 } }
+  };
+&lt;/script&gt;</code></pre>
+        <p class="note">Full runnable example: <a href="ck-editable-array-example-i18n.html">i18n example – localized validation messages</a></p>
       </section>
 
       <section id="accessibility">

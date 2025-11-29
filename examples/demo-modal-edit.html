@@ -8,25 +8,33 @@
     :root { color-scheme: light; }
     body { font-family: system-ui, sans-serif; padding: 24px; background:#f5f7ff; }
     h1 { margin: 0 0 12px; }
+    h2 { margin: 24px 0 12px; font-size: 1.25rem; }
     p { margin: 0 0 18px; max-width: 720px; }
-    ck-editable-array { display:block; padding:16px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+    ck-editable-array { display:block; padding:16px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; box-shadow:0 6px 18px rgba(0,0,0,0.06); margin-bottom: 24px; }
     .row-display { display:flex; align-items:center; gap:12px; padding:12px; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc; }
     .row-display strong { min-width:120px; }
     .row-edit { display:grid; gap:10px; padding:0; }
     .row-edit label { display:grid; gap:6px; font-size:0.9rem; color:#1f2937; }
     .row-edit input { padding:8px 10px; border-radius:6px; border:1px solid #cbd5e1; }
+    .row-edit input[aria-invalid="true"] { border-color: #dc2626; background: #fef2f2; }
+    .row-edit .field-error { color: #dc2626; font-size: 0.8rem; min-height: 1.2em; }
+    .row-edit .error-summary { color: #dc2626; font-size: 0.85rem; margin-bottom: 8px; min-height: 1.4em; }
     .row-edit .actions { display:flex; gap:10px; justify-content:flex-end; }
     button { cursor:pointer; border-radius:6px; border:1px solid #cbd5e1; padding:8px 12px; font-weight:600; }
     button[data-action="toggle"] { background:#2563eb; color:#fff; border-color:#1d4ed8; }
     button[data-action="save"] { background:#16a34a; color:#fff; border-color:#15803d; }
+    button[data-action="save"]:disabled { background:#9ca3af; border-color:#6b7280; cursor:not-allowed; }
     button[data-action="cancel"] { background:#e2e8f0; }
+    button[data-action="add"] { background:#8b5cf6; color:#fff; border-color:#7c3aed; margin-top: 12px; }
     pre { background:#0f172a; color:#e2e8f0; padding:12px; border-radius:8px; font-size:0.8rem; }
+    .info { background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px; border-radius: 8px; font-size: 0.9rem; }
   </style>
 </head>
 <body>
   <h1>Modal Edit Mode</h1>
   <p>Enable <code>modal-edit</code> to render the edit template inside a built-in modal overlay. Display rows stay in place while edits happen in the dialog.</p>
 
+  <h2>Basic Modal (No Validation)</h2>
   <ck-editable-array id="contacts" modal-edit>
     <template slot="display">
       <div class="row-display">
@@ -53,11 +61,47 @@
     </template>
   </ck-editable-array>
 
+  <h2>Modal with Validation</h2>
+  <div class="info">
+    <strong>Validation rules:</strong> Name is required (min 3 chars), Email is required (min 5 chars).
+    Try clicking "Add Item" and see how Save is disabled until fields are valid. Cancel discards the new item.
+  </div>
+  <ck-editable-array id="validated-contacts" modal-edit>
+    <template slot="display">
+      <div class="row-display">
+        <strong data-bind="name"></strong>
+        <span data-bind="email"></span>
+        <button data-action="toggle">Edit</button>
+        <button data-action="delete">Delete</button>
+      </div>
+    </template>
+    <template slot="edit">
+      <div class="row-edit">
+        <div class="error-summary" data-error-summary role="alert" aria-live="polite"></div>
+        <label>
+          Name
+          <input data-bind="name" aria-label="Name" />
+          <span class="field-error" data-field-error="name"></span>
+        </label>
+        <label>
+          Email
+          <input type="email" data-bind="email" aria-label="Email" />
+          <span class="field-error" data-field-error="email"></span>
+        </label>
+        <div class="actions">
+          <button data-action="cancel">Cancel</button>
+          <button data-action="save">Save</button>
+        </div>
+      </div>
+    </template>
+  </ck-editable-array>
+
   <pre id="log" aria-live="polite">datachanged: (pending)</pre>
 
   <script type="module">
     import '../dist/ck-editable-array/ck-editable-array.esm.js';
 
+    // Basic modal (no validation)
     const el = document.getElementById('contacts');
     el.data = [
       { name: 'Alex Martin', email: 'alex@example.com' },
@@ -65,7 +109,25 @@
     ];
     el.addEventListener('datachanged', e => {
       document.getElementById('log').textContent =
-        'datachanged: ' + JSON.stringify(e.detail.data, null, 2);
+        'datachanged (basic): ' + JSON.stringify(e.detail.data, null, 2);
+    });
+
+    // Modal with validation
+    const validated = document.getElementById('validated-contacts');
+    validated.data = [
+      { name: 'Sam Wilson', email: 'sam@example.com' },
+    ];
+    validated.schema = {
+      required: ['name', 'email'],
+      properties: {
+        name: { minLength: 3 },
+        email: { minLength: 5 }
+      }
+    };
+    validated.newItemFactory = () => ({ name: '', email: '' });
+    validated.addEventListener('datachanged', e => {
+      document.getElementById('log').textContent =
+        'datachanged (validated): ' + JSON.stringify(e.detail.data, null, 2);
     });
   </script>
 </body>
