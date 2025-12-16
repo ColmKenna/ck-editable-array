@@ -417,8 +417,9 @@ console.log(element.data[0].name); // Still 'Original' ✓
       <div class="demo-section">
         <h2>7. Display Template (Light DOM)</h2>
         <p class="section-description">
-          Provide a <code>&lt;template slot="display"&gt;</code> inside the element to render custom content in the
-          component's shadow DOM.
+          Provide a <code>&lt;template slot="display"&gt;</code> inside the element as a <strong>row template</strong>.
+          The template is cloned once per <code>element.data</code> item, and elements with <code>data-bind</code> get
+          their text filled from each row object.
         </p>
 
         <div class="demo-grid">
@@ -427,16 +428,14 @@ console.log(element.data[0].name); // Still 'Original' ✓
             <div class="component-wrapper">
               <ck-editable-array id="templateDemo" name="Templated">
                 <template slot="display">
-                  <div
-                    style="
-                      margin-top: 0.75rem;
-                      padding: 0.75rem;
-                      background: rgba(255, 255, 255, 0.15);
-                      border-radius: 6px;
-                    "
-                  >
-                    <strong>Custom display content</strong>
-                    <p style="margin-top: 0.5rem;">This is cloned from light DOM.</p>
+                  <div>
+                    <strong data-bind="name"></strong>
+                    <div style="margin-top: 0.25rem;">
+                      <span data-bind="address.city"></span>
+                    </div>
+                    <div style="margin-top: 0.25rem; opacity: 0.9;">
+                      <small data-bind="tags"></small>
+                    </div>
                   </div>
                 </template>
               </ck-editable-array>
@@ -444,7 +443,7 @@ console.log(element.data[0].name); // Still 'Original' ✓
             <div class="code-block">
 &lt;ck-editable-array&gt;
   &lt;template slot="display"&gt;
-    ...
+    &lt;strong data-bind="name"&gt;&lt;/strong&gt;
   &lt;/template&gt;
 &lt;/ck-editable-array&gt;
             </div>
@@ -456,7 +455,7 @@ console.log(element.data[0].name); // Still 'Original' ✓
               <ck-editable-array id="emptyStateDemo" name="Empty State"></ck-editable-array>
             </div>
             <p class="section-description" style="margin-top: 1rem;">
-              When no display template is present, the component shows a helpful message in its display region.
+              When no display template is present, the component shows a helpful message in its rows region.
             </p>
           </div>
         </div>
@@ -465,7 +464,22 @@ console.log(element.data[0].name); // Still 'Original' ✓
 
     <!-- Component Import -->
     <script type="module">
-      import '@colmkenna/ck-webcomponents';
+      // Use a relative import so the demo works when served directly (no bundler/import-map).
+      import '../dist/hello-world/hello-world.esm.js';
+
+      // Display template demo initialization
+      const templateDemo = document.getElementById('templateDemo');
+      if (templateDemo) {
+        templateDemo.data = [
+          { name: 'Ada', address: { city: 'Dublin' }, tags: ['web', 'wc'] },
+          { name: 'Linus', address: { city: 'Helsinki' }, tags: ['oss'] },
+        ];
+      }
+
+      const emptyStateDemo = document.getElementById('emptyStateDemo');
+      if (emptyStateDemo) {
+        emptyStateDemo.data = [{ name: 'This will not render without a template' }];
+      }
 
       // Demo Helper: Output display
       function showOutput(elementId, message) {
