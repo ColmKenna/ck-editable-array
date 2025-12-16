@@ -74,6 +74,14 @@ export class CkEditableArray extends HTMLElement {
   set data(value: unknown) {
     this._data = Array.isArray(value) ? this._deepClone(value) : [];
     if (this.isConnected) this.render();
+
+    this.dispatchEvent(
+      new CustomEvent('datachanged', {
+        detail: { data: this._deepClone(this._data) },
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 
   private _deepClone(obj: unknown): unknown[] {

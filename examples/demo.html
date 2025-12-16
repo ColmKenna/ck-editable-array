@@ -243,10 +243,12 @@
           <button onclick="clearData()">Clear Data</button>
 
           <div class="output" id="output">Output will appear here...</div>
+          <div class="output" id="eventOutput">Event log will appear here...</div>
 
           <div class="code-block">
 // Set data
 const element = document.querySelector('ck-editable-array');
+element.addEventListener('datachanged', (e) => console.log(e.detail.data));
 element.data = [
   { id: 1, name: 'Item 1' },
   { id: 2, name: 'Item 2' }
@@ -485,6 +487,17 @@ console.log(element.data[0].name); // Still 'Original' ✓
       function showOutput(elementId, message) {
         document.getElementById(elementId).textContent = message;
       }
+
+      // Event log
+      const eventLog = [];
+      document.addEventListener('datachanged', (e) => {
+        const data = e.detail?.data ?? [];
+        eventLog.unshift(
+          `[${new Date().toLocaleTimeString()}] datachanged (${data.length} items)`
+        );
+        eventLog.splice(20);
+        showOutput('eventOutput', eventLog.join('\n'));
+      });
 
       // Demo 1: Set Basic Data
       window.setBasicData = function () {

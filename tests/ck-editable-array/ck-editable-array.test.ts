@@ -147,6 +147,38 @@ describe('CkEditableArray Component', () => {
     expect(element.data).not.toBe(complexData); // Should be a different reference
   });
 
+  test('should dispatch datachanged event when data is set', () => {
+    const elementHandler = jest.fn();
+    const bodyHandler = jest.fn();
+    const onElement = (event: unknown) => elementHandler(event);
+    const onBody = (event: unknown) => bodyHandler(event);
+
+    element.addEventListener('datachanged', onElement);
+    document.body.addEventListener('datachanged', onBody);
+
+    const testData = [{ id: 1, name: 'Item 1' }];
+    element.data = testData;
+
+    expect(elementHandler).toHaveBeenCalledTimes(1);
+    expect(bodyHandler).toHaveBeenCalledTimes(1);
+
+    const event = elementHandler.mock.calls[0][0] as unknown as {
+      type: string;
+      bubbles: boolean;
+      composed: boolean;
+      detail: { data: unknown[] };
+    };
+
+    expect(event.type).toBe('datachanged');
+    expect(event.bubbles).toBe(true);
+    expect(event.composed).toBe(true);
+    expect(event.detail.data).toEqual(testData);
+    expect(event.detail.data).not.toBe(testData);
+
+    document.body.removeEventListener('datachanged', onBody);
+    element.removeEventListener('datachanged', onElement);
+  });
+
   // Light DOM display template tests (TDD: RED phase)
   test('should render a helpful empty state when no display template is provided', () => {
     element.data = [{ id: 1 }];
