@@ -1,6 +1,9 @@
-import { helloWorldSheet, helloWorldCSS } from './hello.world.styles';
+import {
+  ckEditableArraySheet,
+  ckEditableArrayCSS,
+} from './ck-editable-array.styles';
 
-export class HelloWorld extends HTMLElement {
+export class CkEditableArray extends HTMLElement {
   private shadow: ShadowRoot;
 
   constructor() {
@@ -14,12 +17,12 @@ export class HelloWorld extends HTMLElement {
         adoptedStyleSheets?: CSSStyleSheet[];
       }
     ).adoptedStyleSheets;
-    if (helloWorldSheet && adopted !== undefined) {
+    if (ckEditableArraySheet && adopted !== undefined) {
       (
         this.shadow as unknown as ShadowRoot & {
           adoptedStyleSheets: CSSStyleSheet[];
         }
-      ).adoptedStyleSheets = [...adopted, helloWorldSheet];
+      ).adoptedStyleSheets = [...adopted, ckEditableArraySheet];
     }
   }
 
@@ -57,21 +60,23 @@ export class HelloWorld extends HTMLElement {
     // If constructable stylesheets are not available, ensure a single fallback <style>
     // is injected per-shadow-root. We avoid creating different style content per instance
     // by keeping per-instance differences in CSS custom properties.
-    if (!helloWorldSheet) {
+    if (!ckEditableArraySheet) {
       // Only inject the fallback style once per shadow root
-      if (!this.shadow.querySelector('style[data-hello-world-fallback]')) {
+      if (
+        !this.shadow.querySelector('style[data-ck-editable-array-fallback]')
+      ) {
         const style = document.createElement('style');
-        style.setAttribute('data-hello-world-fallback', '');
-        style.textContent = helloWorldCSS;
+        style.setAttribute('data-ck-editable-array-fallback', '');
+        style.textContent = ckEditableArrayCSS;
         this.shadow.appendChild(style);
       }
     }
 
     // Apply per-instance color via CSS custom property instead of embedding styles.
-    this.style.setProperty('--hw-color', this.color);
+    this.style.setProperty('--cea-color', this.color);
 
     this.shadow.innerHTML = `
-      <div class="hello-world">
+      <div class="ck-editable-array">
         <h1 class="message">Hello, ${this.name}!</h1>
         <p class="subtitle">Welcome to our Web Component Library</p>
       </div>
@@ -86,6 +91,6 @@ export class HelloWorld extends HTMLElement {
 }
 
 // Register the custom element
-if (!customElements.get('hello-world')) {
-  customElements.define('hello-world', HelloWorld);
+if (!customElements.get('ck-editable-array')) {
+  customElements.define('ck-editable-array', CkEditableArray);
 }
