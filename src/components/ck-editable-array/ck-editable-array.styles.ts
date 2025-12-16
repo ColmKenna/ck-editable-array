@@ -1,48 +1,41 @@
 export const ckEditableArrayCSS = `
 :host {
   display: block;
-  padding: 1rem;
-  font-family: Arial, sans-serif;
 }
 
 .ck-editable-array {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 2rem;
-  border-radius: 8px;
-  text-align: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease;
-}
-
-.ck-editable-array:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  background: var(--cea-background, transparent);
+  color: var(--cea-color, inherit);
+  padding: var(--cea-padding, 0);
+  border-radius: var(--cea-border-radius, 0);
 }
 
 .message {
   font-size: 1.5rem;
   margin: 0;
-  /* per-instance color via CSS custom property */
-  color: var(--cea-color, #333);
+  color: var(--cea-message-color, inherit);
 }
 
 .subtitle {
   font-size: 1rem;
   margin: 0.5rem 0 0 0;
-  opacity: 0.8;
 }
 
-.display {
+.rows {
   margin-top: 1.25rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.row {
+  padding: 0.75rem;
+}
+
+.row + .row {
+  margin-top: 0.75rem;
 }
 
 .empty-state {
   margin: 0;
   font-size: 0.95rem;
-  opacity: 0.9;
 }
 `;
 
