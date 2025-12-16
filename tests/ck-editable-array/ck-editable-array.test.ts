@@ -73,4 +73,77 @@ describe('CkEditableArray Component', () => {
     const shadowContent = element.shadowRoot?.innerHTML;
     expect(shadowContent).toContain('blue');
   });
+
+  // Data property tests (TDD: RED phase)
+  test('should have default empty array data', () => {
+    expect(element.data).toEqual([]);
+  });
+
+  test('should set and get data array', () => {
+    const testData = [{ id: 1, name: 'Item 1' }];
+    element.data = testData;
+    expect(element.data).toEqual(testData);
+  });
+
+  test('should normalize null to empty array', () => {
+    element.data = null as unknown as unknown[];
+    expect(element.data).toEqual([]);
+  });
+
+  test('should normalize undefined to empty array', () => {
+    element.data = undefined as unknown as unknown[];
+    expect(element.data).toEqual([]);
+  });
+
+  test('should normalize string to empty array', () => {
+    element.data = 'string' as unknown as unknown[];
+    expect(element.data).toEqual([]);
+  });
+
+  test('should normalize number to empty array', () => {
+    element.data = 123 as unknown as unknown[];
+    expect(element.data).toEqual([]);
+  });
+
+  test('should normalize object to empty array', () => {
+    element.data = {} as unknown as unknown[];
+    expect(element.data).toEqual([]);
+  });
+
+  test('should deep clone data on set', () => {
+    const originalData = [{ id: 1, nested: { value: 'original' } }];
+    element.data = originalData;
+
+    // Modify original data
+    originalData[0].nested.value = 'modified';
+
+    // Component data should be unchanged
+    const storedData = element.data as typeof originalData;
+    expect(storedData[0].nested.value).toBe('original');
+  });
+
+  test('should return deep cloned data on get', () => {
+    const inputData = [{ id: 1, nested: { value: 'original' } }];
+    element.data = inputData;
+
+    const retrievedData = element.data as typeof inputData;
+
+    // Modify retrieved data
+    retrievedData[0].nested.value = 'modified';
+
+    // Component data should be unchanged
+    const storedData = element.data as typeof inputData;
+    expect(storedData[0].nested.value).toBe('original');
+  });
+
+  test('should handle array with various data types', () => {
+    const complexData = [
+      { id: 1, name: 'string', count: 42, active: true, tags: ['a', 'b'] },
+      { id: 2, nested: { deep: { value: 123 } } },
+    ];
+    element.data = complexData;
+
+    expect(element.data).toEqual(complexData);
+    expect(element.data).not.toBe(complexData); // Should be a different reference
+  });
 });

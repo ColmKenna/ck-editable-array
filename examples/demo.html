@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CkEditableArray Component Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+          Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding: 2rem;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 1rem;
+        font-size: 2.5rem;
+      }
+
+      .subtitle {
+        text-align: center;
+        color: #666;
+        margin-bottom: 3rem;
+        font-size: 1.1rem;
+      }
+
+      .demo-section {
+        background: white;
+        border-radius: 8px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .demo-section h2 {
+        color: #333;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 0.5rem;
+      }
+
+      .demo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .demo-item {
+        background: #f9f9f9;
+        border: 1px solid #eee;
+        border-radius: 4px;
+        padding: 1.5rem;
+      }
+
+      .demo-item h3 {
+        color: #667eea;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+      }
+
+      .component-wrapper {
+        margin-bottom: 1.5rem;
+      }
+
+      ck-editable-array {
+        --cea-color: #333;
+      }
+
+      .code-block {
+        background: #f4f4f4;
+        border-left: 4px solid #667eea;
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 4px;
+        overflow-x: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+
+      .output {
+        background: #f0f0f0;
+        border-radius: 4px;
+        padding: 1rem;
+        margin: 1rem 0;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        max-height: 200px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+
+      button {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        margin: 0.5rem 0;
+        transition: background 0.2s;
+      }
+
+      button:hover {
+        background: #5568d3;
+      }
+
+      button:active {
+        transform: scale(0.98);
+      }
+
+      .section-description {
+        color: #666;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+      }
+
+      .feature-list {
+        list-style: none;
+        margin: 1rem 0;
+      }
+
+      .feature-list li {
+        padding: 0.5rem 0;
+        color: #666;
+      }
+
+      .feature-list li:before {
+        content: '✓ ';
+        color: #667eea;
+        font-weight: bold;
+        margin-right: 0.5rem;
+      }
+
+      .mutation-demo {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin: 1rem 0;
+      }
+
+      @media (max-width: 768px) {
+        .mutation-demo {
+          grid-template-columns: 1fr;
+        }
+
+        h1 {
+          font-size: 1.8rem;
+        }
+
+        .demo-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎉 CkEditableArray Component Demo</h1>
+      <p class="subtitle">Explore the power of web components with automatic data cloning</p>
+
+      <!-- Basic Usage Demo -->
+      <div class="demo-section">
+        <h2>1. Basic Usage</h2>
+        <p class="section-description">
+          The CkEditableArray component renders a greeting with customizable name and color.
+        </p>
+
+        <div class="demo-grid">
+          <!-- Default Component -->
+          <div class="demo-item">
+            <h3>Default (No Attributes)</h3>
+            <div class="component-wrapper">
+              <ck-editable-array id="demo1"></ck-editable-array>
+            </div>
+            <div class="code-block">
+&lt;ck-editable-array&gt;&lt;/ck-editable-array&gt;
+            </div>
+          </div>
+
+          <!-- With Name -->
+          <div class="demo-item">
+            <h3>With Custom Name</h3>
+            <div class="component-wrapper">
+              <ck-editable-array id="demo2" name="Developer"></ck-editable-array>
+            </div>
+            <div class="code-block">
+&lt;ck-editable-array name="Developer"&gt;&lt;/ck-editable-array&gt;
+            </div>
+          </div>
+
+          <!-- With Color -->
+          <div class="demo-item">
+            <h3>With Custom Color</h3>
+            <div class="component-wrapper">
+              <ck-editable-array id="demo3" name="Styled" color="#ff6b6b"></ck-editable-array>
+            </div>
+            <div class="code-block">
+&lt;ck-editable-array
+  name="Styled"
+  color="#ff6b6b"&gt;
+&lt;/ck-editable-array&gt;
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Property Demo -->
+      <div class="demo-section">
+        <h2>2. Data Property Management</h2>
+        <p class="section-description">
+          The component manages data arrays with automatic normalization and deep cloning.
+        </p>
+
+        <div class="demo-item">
+          <h3>Setting and Getting Data</h3>
+
+          <p style="margin: 1rem 0; color: #666;">
+            <strong>Status:</strong> <span id="dataStatus">No data set yet</span>
+          </p>
+
+          <button onclick="setBasicData()">Set Basic Array Data</button>
+          <button onclick="setComplexData()">Set Complex Nested Data</button>
+          <button onclick="displayData()">Display Current Data</button>
+          <button onclick="clearData()">Clear Data</button>
+
+          <div class="output" id="output">Output will appear here...</div>
+
+          <div class="code-block">
+// Set data
+const element = document.querySelector('ck-editable-array');
+element.data = [
+  { id: 1, name: 'Item 1' },
+  { id: 2, name: 'Item 2' }
+];
+
+// Get data (returns a deep clone)
+const currentData = element.data;
+console.log(currentData);
+          </div>
+        </div>
+      </div>
+
+      <!-- Normalization Demo -->
+      <div class="demo-section">
+        <h2>3. Data Normalization</h2>
+        <p class="section-description">
+          Non-array values are automatically normalized to empty arrays.
+        </p>
+
+        <div class="demo-item">
+          <h3>Try Setting Non-Array Values</h3>
+
+          <button onclick="normalizeNull()">Set data = null</button>
+          <button onclick="normalizeUndefined()">Set data = undefined</button>
+          <button onclick="normalizeString()">Set data = "string"</button>
+          <button onclick="normalizeNumber()">Set data = 123</button>
+          <button onclick="normalizeObject()">Set data = {}</button>
+
+          <div class="output" id="normalizeOutput">
+All non-arrays will be normalized to []
+          </div>
+
+          <div class="code-block">
+// Any non-array normalizes to []
+element.data = null;         // → []
+element.data = undefined;    // → []
+element.data = "string";     // → []
+element.data = 123;          // → []
+element.data = {};           // → []
+          </div>
+        </div>
+      </div>
+
+      <!-- Deep Cloning Demo -->
+      <div class="demo-section">
+        <h2>4. Deep Cloning & Immutability</h2>
+        <p class="section-description">
+          All data is automatically deep cloned on get and set, preventing mutations from affecting the
+          component's internal state.
+        </p>
+
+        <div class="demo-item">
+          <h3>Mutation Protection on Set</h3>
+
+          <p style="margin: 1rem 0; color: #666;">
+            <strong>Scenario:</strong> We set data, then modify the original array/objects in consumer code.
+            The component's internal state should remain unchanged.
+          </p>
+
+          <button onclick="testSetCloning()">Test Set Cloning</button>
+
+          <div class="output" id="setCloningOutput">
+Click the button to test...
+          </div>
+
+          <div class="code-block">
+const original = [{ id: 1, name: 'Original' }];
+element.data = original;
+
+// Modify the original (shouldn't affect component)
+original[0].name = 'Modified';
+
+console.log(element.data[0].name); // Still 'Original' ✓
+          </div>
+        </div>
+
+        <div class="demo-item">
+          <h3>Mutation Protection on Get</h3>
+
+          <p style="margin: 1rem 0; color: #666;">
+            <strong>Scenario:</strong> We get data and modify it in consumer code. The component's internal
+            state should remain unchanged.
+          </p>
+
+          <button onclick="testGetCloning()">Test Get Cloning</button>
+
+          <div class="output" id="getCloningOutput">
+Click the button to test...
+          </div>
+
+          <div class="code-block">
+// Get data and modify it
+const retrieved = element.data;
+retrieved[0].name = 'Modified';
+
+// Component data is unchanged
+console.log(element.data[0].name); // Still 'Original' ✓
+          </div>
+        </div>
+      </div>
+
+      <!-- API Reference -->
+      <div class="demo-section">
+        <h2>5. API Reference</h2>
+
+        <div class="demo-item">
+          <h3>Properties</h3>
+          <ul class="feature-list">
+            <li><code>data: unknown[]</code> - Getter/setter for data array (with deep cloning)</li>
+            <li><code>name: string</code> - Greeting name (default: "World")</li>
+            <li><code>color: string</code> - Text color (default: "#333")</li>
+          </ul>
+
+          <h3 style="margin-top: 1.5rem;">Attributes</h3>
+          <ul class="feature-list">
+            <li><code>name</code> - Synced with name property</li>
+            <li><code>color</code> - Synced with color property</li>
+          </ul>
+
+          <h3 style="margin-top: 1.5rem;">Features</h3>
+          <ul class="feature-list">
+            <li>Automatic data normalization (non-arrays → [])</li>
+            <li>Deep cloning on get and set (immutability)</li>
+            <li>structuredClone() primary strategy with JSON fallback</li>
+            <li>Shadow DOM encapsulation</li>
+            <li>Constructable Stylesheets with fallback</li>
+            <li>TypeScript support</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Usage Tips -->
+      <div class="demo-section">
+        <h2>6. Usage Tips</h2>
+
+        <div class="demo-item">
+          <h3>🎯 Best Practices</h3>
+          <ul class="feature-list">
+            <li>Always assign to <code>element.data</code>, not attributes</li>
+            <li>Remember that <code>get data()</code> returns a clone, not a reference</li>
+            <li>To update data, get it, modify, then set it back</li>
+            <li>Use with any serializable/cloneable objects</li>
+            <li>Component works with deeply nested data structures</li>
+          </ul>
+
+          <h3 style="margin-top: 1.5rem;">⚠️ Common Pitfalls</h3>
+          <ul style="list-style: none; margin: 1rem 0;">
+            <li style="padding: 0.5rem 0; color: #d32f2f;">
+              ✗ <code>element.setAttribute('data', JSON.stringify(arr))</code> - Won't work
+            </li>
+            <li style="padding: 0.5rem 0; color: #388e3c;">
+              ✓ <code>element.data = arr</code> - Correct
+            </li>
+          </ul>
+
+          <h3 style="margin-top: 1.5rem;">📊 Performance Notes</h3>
+          <ul class="feature-list">
+            <li>Deep cloning is O(n) where n = data size</li>
+            <li>Small datasets (< 1000 items): negligible overhead</li>
+            <li>Large datasets: batch updates to minimize cloning calls</li>
+            <li>Constructable Stylesheets: optimal performance across instances</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Component Import -->
+    <script type="module">
+      import '@colmkenna/ck-webcomponents';
+
+      // Demo Helper: Output display
+      function showOutput(elementId, message) {
+        document.getElementById(elementId).textContent = message;
+      }
+
+      // Demo 1: Set Basic Data
+      window.setBasicData = function () {
+        const element = document.querySelector('ck-editable-array');
+        const data = [
+          { id: 1, name: 'Item 1', active: true },
+          { id: 2, name: 'Item 2', active: false },
+          { id: 3, name: 'Item 3', active: true },
+        ];
+        element.data = data;
+        document.getElementById('dataStatus').textContent = `Array with ${data.length} items set`;
+        showOutput('output', 'Data set successfully!\n\n' + JSON.stringify(data, null, 2));
+      };
+
+      // Demo 2: Set Complex Data
+      window.setComplexData = function () {
+        const element = document.querySelector('ck-editable-array');
+        const data = [
+          {
+            id: 1,
+            name: 'Project A',
+            metadata: {
+              created: '2024-01-15',
+              owner: 'Alice',
+              tags: ['web', 'frontend'],
+            },
+          },
+          {
+            id: 2,
+            name: 'Project B',
+            metadata: {
+              created: '2024-02-20',
+              owner: 'Bob',
+              tags: ['backend', 'database'],
+            },
+          },
+        ];
+        element.data = data;
+        document.getElementById('dataStatus').textContent = `Complex nested data with ${data.length} items set`;
+        showOutput('output', 'Complex data set successfully!\n\n' + JSON.stringify(data, null, 2));
+      };
+
+      // Demo 3: Display Current Data
+      window.displayData = function () {
+        const element = document.querySelector('ck-editable-array');
+        const data = element.data;
+        showOutput(
+          'output',
+          `Current data (${data.length} items):\n\n` + JSON.stringify(data, null, 2)
+        );
+      };
+
+      // Demo 4: Clear Data
+      window.clearData = function () {
+        const element = document.querySelector('ck-editable-array');
+        element.data = [];
+        document.getElementById('dataStatus').textContent = 'Data cleared';
+        showOutput('output', 'Data cleared!\n\nelement.data is now: []');
+      };
+
+      // Demo 5: Normalization Tests
+      window.normalizeNull = function () {
+        const element = document.querySelector('ck-editable-array');
+        element.data = null;
+        showOutput('normalizeOutput', `Set data = null\nResult: ${JSON.stringify(element.data)}`);
+      };
+
+      window.normalizeUndefined = function () {
+        const element = document.querySelector('ck-editable-array');
+        element.data = undefined;
+        showOutput('normalizeOutput', `Set data = undefined\nResult: ${JSON.stringify(element.data)}`);
+      };
+
+      window.normalizeString = function () {
+        const element = document.querySelector('ck-editable-array');
+        element.data = 'string';
+        showOutput('normalizeOutput', `Set data = "string"\nResult: ${JSON.stringify(element.data)}`);
+      };
+
+      window.normalizeNumber = function () {
+        const element = document.querySelector('ck-editable-array');
+        element.data = 123;
+        showOutput('normalizeOutput', `Set data = 123\nResult: ${JSON.stringify(element.data)}`);
+      };
+
+      window.normalizeObject = function () {
+        const element = document.querySelector('ck-editable-array');
+        element.data = { obj: 1 };
+        showOutput('normalizeOutput', `Set data = {}\nResult: ${JSON.stringify(element.data)}`);
+      };
+
+      // Demo 6: Set Cloning Test
+      window.testSetCloning = function () {
+        const element = document.querySelector('ck-editable-array');
+        const original = [{ id: 1, name: 'Original', nested: { value: 'test' } }];
+
+        element.data = original;
+        const storedName = element.data[0].name;
+        const storedNested = element.data[0].nested.value;
+
+        // Modify original
+        original[0].name = 'Modified';
+        original[0].nested.value = 'changed';
+
+        const stillOriginal = element.data[0].name === storedName;
+        const nestedStillSame = element.data[0].nested.value === storedNested;
+
+        showOutput(
+          'setCloningOutput',
+          `1. Set data with: { name: 'Original' }\n` +
+            `2. Modify original: { name: 'Modified' }\n` +
+            `3. Check component data:\n\n` +
+            `   Component name: "${element.data[0].name}" (stored: "${storedName}")\n` +
+            `   Nested value: "${element.data[0].nested.value}" (stored: "${storedNested}")\n\n` +
+            `   ✓ Set cloning works: ${stillOriginal && nestedStillSame}`
+        );
+      };
+
+      // Demo 7: Get Cloning Test
+      window.testGetCloning = function () {
+        const element = document.querySelector('ck-editable-array');
+        const data = [{ id: 1, name: 'Original', nested: { value: 'test' } }];
+
+        element.data = data;
+        const retrieved1 = element.data;
+        const storedName = element.data[0].name;
+
+        // Modify retrieved
+        retrieved1[0].name = 'Modified';
+
+        const retrieved2 = element.data;
+        const stillOriginal = retrieved2[0].name === storedName;
+
+        showOutput(
+          'getCloningOutput',
+          `1. Set data with: { name: 'Original' }\n` +
+            `2. Get data and modify: { name: 'Modified' }\n` +
+            `3. Get data again:\n\n` +
+            `   Component name: "${retrieved2[0].name}" (original: "${storedName}")\n\n` +
+            `   ✓ Get cloning works: ${stillOriginal}`
+        );
+      };
+
+      // Initialize demo
+      console.log('CkEditableArray Demo Loaded');
+    </script>
+  </body>
+</html>
