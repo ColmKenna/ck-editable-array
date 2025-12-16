@@ -73,6 +73,7 @@ export class CkEditableArray extends HTMLElement {
 
   set data(value: unknown) {
     this._data = Array.isArray(value) ? this._deepClone(value) : [];
+    if (this.isConnected) this.render();
   }
 
   private _deepClone(obj: unknown): unknown[] {
@@ -115,14 +116,14 @@ export class CkEditableArray extends HTMLElement {
       <div class="ck-editable-array">
         <h1 class="message">Hello, ${this.name}!</h1>
         <p class="subtitle">Welcome to our Web Component Library</p>
-        <div class="display" data-ck-editable-array-display></div>
+        <div class="rows" part="rows" data-ck-editable-array-rows></div>
       </div>
     `;
 
-    const displayHost = this._rootEl.querySelector(
-      '[data-ck-editable-array-display]'
+    const rowsHost = this._rootEl.querySelector(
+      '[data-ck-editable-array-rows]'
     ) as HTMLElement | null;
-    if (displayHost) this._renderDisplay(displayHost);
+    if (rowsHost) this._renderRows(rowsHost);
 
     const msg = this._rootEl.querySelector('.message') as HTMLElement | null;
     if (msg) msg.style.color = this.color;
@@ -151,12 +152,21 @@ export class CkEditableArray extends HTMLElement {
     return template instanceof HTMLTemplateElement ? template : null;
   }
 
-  private _renderDisplay(host: HTMLElement) {
-    host.replaceChildren();
+  private _renderRows(rowsHost: HTMLElement) {
+    rowsHost.replaceChildren();
 
     const template = this._getDisplayTemplate();
     if (template) {
-      host.appendChild(template.content.cloneNode(true));
+      this._data.forEach((rowData, index) => {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'row';
+        rowEl.setAttribute('data-row', String(index));
+
+        rowEl.appendChild(template.content.cloneNode(true));
+        this._applyBindings(rowEl, rowData);
+
+        rowsHost.appendChild(rowEl);
+      });
       return;
     }
 
@@ -164,7 +174,38 @@ export class CkEditableArray extends HTMLElement {
     empty.className = 'empty-state';
     empty.textContent =
       'No display template found. Add <template slot="display">...</template> to provide custom display content.';
-    host.appendChild(empty);
+    rowsHost.appendChild(empty);
+  }
+
+  private _applyBindings(root: ParentNode, rowData: unknown) {
+    const boundEls = root.querySelectorAll('[data-bind]');
+    boundEls.forEach(el => {
+      if (!(el instanceof HTMLElement)) return;
+      const path = el.getAttribute('data-bind');
+      if (!path) {
+        el.textContent = '';
+        return;
+      }
+
+      const value = this._resolvePath(rowData, path);
+      if (Array.isArray(value)) {
+        el.textContent = value.map(v => String(v)).join(', ');
+        return;
+      }
+      if (value === null || value === undefined) {
+        el.textContent = '';
+        return;
+      }
+      el.textContent = String(value);
+    });
+  }
+
+  private _resolvePath(obj: unknown, path: string): unknown {
+    return path.split('.').reduce<unknown>((current, key) => {
+      if (current === null || current === undefined) return undefined;
+      if (typeof current !== 'object') return undefined;
+      return (current as Record<string, unknown>)[key];
+    }, obj);
   }
 }
 

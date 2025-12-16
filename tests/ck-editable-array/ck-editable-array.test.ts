@@ -149,6 +149,7 @@ describe('CkEditableArray Component', () => {
 
   // Light DOM display template tests (TDD: RED phase)
   test('should render a helpful empty state when no display template is provided', () => {
+    element.data = [{ id: 1 }];
     element.connectedCallback();
     expect(element.shadowRoot?.textContent).toContain(
       'No display template found'
@@ -161,6 +162,7 @@ describe('CkEditableArray Component', () => {
     template.innerHTML = `<div id="fromTemplate">From template</div>`;
     element.appendChild(template);
 
+    element.data = [{ id: 1 }];
     element.connectedCallback();
 
     expect(element.shadowRoot?.querySelector('#fromTemplate')).toBeTruthy();
@@ -168,6 +170,7 @@ describe('CkEditableArray Component', () => {
   });
 
   test('should re-render when a display template is added after connection', async () => {
+    element.data = [{ id: 1 }];
     element.connectedCallback();
     expect(element.shadowRoot?.textContent).toContain(
       'No display template found'
@@ -183,5 +186,85 @@ describe('CkEditableArray Component', () => {
 
     expect(element.shadowRoot?.querySelector('#lateTemplate')).toBeTruthy();
     expect(element.shadowRoot?.textContent).toContain('Late template');
+  });
+
+  // Rows rendering + data-bind tests (TDD: RED phase)
+  test('should render one row per data item into part="rows"', () => {
+    const template = document.createElement('template');
+    template.setAttribute('slot', 'display');
+    template.innerHTML = `<span data-bind="name"></span>`;
+    element.appendChild(template);
+
+    element.data = [{ name: 'A' }, { name: 'B' }];
+    element.connectedCallback();
+
+    const rowsHost = element.shadowRoot?.querySelector('[part="rows"]') ?? null;
+    expect(rowsHost).toBeTruthy();
+    expect(rowsHost?.querySelectorAll('[data-row]').length).toBe(2);
+    expect(rowsHost?.textContent).toContain('A');
+    expect(rowsHost?.textContent).toContain('B');
+  });
+
+  test('should set data-row attribute to the row index', () => {
+    const template = document.createElement('template');
+    template.setAttribute('slot', 'display');
+    template.innerHTML = `<span data-bind="name"></span>`;
+    element.appendChild(template);
+
+    element.data = [{ name: 'First' }, { name: 'Second' }];
+    element.connectedCallback();
+
+    const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+    const rows = rowsHost?.querySelectorAll('[data-row]') ?? [];
+    expect((rows[0] as HTMLElement).getAttribute('data-row')).toBe('0');
+    expect((rows[1] as HTMLElement).getAttribute('data-row')).toBe('1');
+  });
+
+  test('should bind dot-path values via [data-bind]', () => {
+    const template = document.createElement('template');
+    template.setAttribute('slot', 'display');
+    template.innerHTML = `<span data-bind="person.address.city"></span>`;
+    element.appendChild(template);
+
+    element.data = [{ person: { address: { city: 'Dublin' } } }];
+    element.connectedCallback();
+
+    const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+    expect(rowsHost?.textContent).toContain('Dublin');
+  });
+
+  test('should join bound arrays with comma+space', () => {
+    const template = document.createElement('template');
+    template.setAttribute('slot', 'display');
+    template.innerHTML = `<span data-bind="tags"></span>`;
+    element.appendChild(template);
+
+    element.data = [{ tags: ['a', 'b', 'c'] }];
+    element.connectedCallback();
+
+    const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+    expect(rowsHost?.textContent).toContain('a, b, c');
+  });
+
+  test('should set bound text via textContent (not interpret HTML)', () => {
+    const template = document.createElement('template');
+    template.setAttribute('slot', 'display');
+    template.innerHTML = `<span data-bind="name"></span>`;
+    element.appendChild(template);
+
+    element.data = [{ name: '<img src=x onerror=alert(1)>' }];
+    element.connectedCallback();
+
+    const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+    expect(rowsHost?.querySelector('img')).toBeFalsy();
+    expect(rowsHost?.textContent).toContain('<img src=x onerror=alert(1)>');
+  });
+
+  test('should show an empty state in rows when no template is present', () => {
+    element.data = [{ any: 'value' }];
+    element.connectedCallback();
+
+    const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+    expect(rowsHost?.textContent).toContain('No display template found');
   });
 });
