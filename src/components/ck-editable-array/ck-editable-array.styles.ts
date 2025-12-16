@@ -32,6 +32,18 @@ export const ckEditableArrayCSS = `
   margin: 0.5rem 0 0 0;
   opacity: 0.8;
 }
+
+.display {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.empty-state {
+  margin: 0;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
 `;
 
 // Try to create a constructable stylesheet where supported. Fall back to null.

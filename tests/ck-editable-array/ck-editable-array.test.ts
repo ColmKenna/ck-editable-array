@@ -146,4 +146,42 @@ describe('CkEditableArray Component', () => {
     expect(element.data).toEqual(complexData);
     expect(element.data).not.toBe(complexData); // Should be a different reference
   });
+
+  // Light DOM display template tests (TDD: RED phase)
+  test('should render a helpful empty state when no display template is provided', () => {
+    element.connectedCallback();
+    expect(element.shadowRoot?.textContent).toContain(
+      'No display template found'
+    );
+  });
+
+  test('should render the light DOM <template slot="display"> content into shadow DOM', () => {
+    const template = document.createElement('template');
+    template.setAttribute('slot', 'display');
+    template.innerHTML = `<div id="fromTemplate">From template</div>`;
+    element.appendChild(template);
+
+    element.connectedCallback();
+
+    expect(element.shadowRoot?.querySelector('#fromTemplate')).toBeTruthy();
+    expect(element.shadowRoot?.textContent).toContain('From template');
+  });
+
+  test('should re-render when a display template is added after connection', async () => {
+    element.connectedCallback();
+    expect(element.shadowRoot?.textContent).toContain(
+      'No display template found'
+    );
+
+    const template = document.createElement('template');
+    template.setAttribute('slot', 'display');
+    template.innerHTML = `<div id="lateTemplate">Late template</div>`;
+    element.appendChild(template);
+
+    // MutationObserver callbacks run on a microtask.
+    await Promise.resolve();
+
+    expect(element.shadowRoot?.querySelector('#lateTemplate')).toBeTruthy();
+    expect(element.shadowRoot?.textContent).toContain('Late template');
+  });
 });

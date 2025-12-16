@@ -142,6 +142,23 @@ console.log(element.color); // '#ff6b6b'
 
 **Note**: The `data` property is not exposed as an attribute since arrays cannot be represented in HTML attributes.
 
+## Display Template (Light DOM)
+
+Provide a light DOM template to render custom display content inside the component’s shadow DOM:
+
+```html
+<ck-editable-array>
+  <template slot="display">
+    <div>
+      <strong>Custom display</strong>
+      <p>This content is cloned into the shadow DOM.</p>
+    </div>
+  </template>
+</ck-editable-array>
+```
+
+If no `<template slot="display">` is present, the component renders a small empty-state message in its shadow DOM explaining how to add one.
+
 ## Practical Examples
 
 ### Example 1: Task Manager
@@ -336,4 +353,3 @@ Found a bug or have a suggestion? Please open an issue on [GitHub](https://githu
 ## License
 
 MIT - See LICENSE file for details.
-

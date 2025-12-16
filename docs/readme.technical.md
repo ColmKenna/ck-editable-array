@@ -10,6 +10,8 @@
 export class CkEditableArray extends HTMLElement {
   private shadow: ShadowRoot;          // Shadow DOM root
   private _data: unknown[] = [];       // Internal data storage
+  private _rootEl: HTMLDivElement;     // Shadow content root (preserves fallback styles)
+  private _displayObserver: MutationObserver | null = null; // Watches for display template add/remove
 
   // Public API
   get data(): unknown[];
@@ -21,6 +23,7 @@ export class CkEditableArray extends HTMLElement {
 
   // Lifecycle hooks
   connectedCallback();
+  disconnectedCallback();
   attributeChangedCallback();
 
   // Static observers
@@ -29,6 +32,9 @@ export class CkEditableArray extends HTMLElement {
   // Private methods
   private _deepClone(obj: unknown): unknown[];
   private _jsonClone(obj: unknown): unknown[];
+  private _ensureDisplayObserver();
+  private _getDisplayTemplate(): HTMLTemplateElement | null;
+  private _renderDisplay(host: HTMLElement);
   private render();
 }
 ```
@@ -236,7 +242,21 @@ Triggered when element inserted into DOM:
 
 ```typescript
 connectedCallback() {
+  this._ensureDisplayObserver();
   this.render();
+}
+```
+
+### disconnectedCallback
+
+Triggered when element removed from DOM:
+
+```typescript
+disconnectedCallback() {
+  if (this._displayObserver) {
+    this._displayObserver.disconnect();
+    this._displayObserver = null;
+  }
 }
 ```
 
@@ -258,7 +278,8 @@ Updates shadow DOM:
 
 1. Ensure `<style>` fallback (if Constructable Stylesheets unavailable)
 2. Set CSS custom property for color
-3. Update shadow DOM innerHTML with greeting message
+3. Render base markup into an internal shadow root container (preserves fallback `<style>`)
+4. Populate the display region from light DOM `<template slot="display">` (or empty state)
 
 ```typescript
 private render() {
@@ -268,7 +289,7 @@ private render() {
       const style = document.createElement('style');
       style.setAttribute('data-ck-editable-array-fallback', '');
       style.textContent = ckEditableArrayCSS;
-      this.shadow.appendChild(style);
+      this.shadow.insertBefore(style, this._rootEl);
     }
   }
 
@@ -276,15 +297,22 @@ private render() {
   this.style.setProperty('--cea-color', this.color);
 
   // 3. Update content
-  this.shadow.innerHTML = `
+  this._rootEl.innerHTML = `
     <div class="ck-editable-array">
       <h1 class="message">Hello, ${this.name}!</h1>
       <p class="subtitle">Welcome to our Web Component Library</p>
+      <div class="display" data-ck-editable-array-display></div>
     </div>
   `;
 
-  // 4. Inline color for testability
-  const msg = this.shadow.querySelector('.message') as HTMLElement | null;
+  // 4. Populate display region
+  const displayHost = this._rootEl.querySelector(
+    '[data-ck-editable-array-display]'
+  ) as HTMLElement | null;
+  if (displayHost) this._renderDisplay(displayHost);
+
+  // 5. Inline color for testability
+  const msg = this._rootEl.querySelector('.message') as HTMLElement | null;
   if (msg) msg.style.color = this.color;
 }
 ```
@@ -305,6 +333,11 @@ private render() {
   - Deep cloning on set (preventing external mutations)
   - Deep cloning on get (preventing consumer mutations)
   - Complex nested data structures
+
+- **Display Template Tests** (3 tests):
+  - Empty state when no `template[slot="display"]`
+  - Rendering template content into shadow DOM
+  - Re-rendering when template is added after connection (MutationObserver)
 
 ### Test Execution
 
@@ -540,4 +573,3 @@ npm run format:check
 - [MDN: Constructable StyleSheet](https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleSheet/CSSStyleSheet)
 - [structuredClone() Specification](https://html.spec.whatwg.org/multipage/structured-data.html#structured-clone)
 - [Web Components Best Practices](https://www.webcomponents.org/articles/web-components-best-practices/)
-

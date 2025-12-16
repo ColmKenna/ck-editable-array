@@ -371,6 +371,7 @@ console.log(element.data[0].name); // Still 'Original' ✓
             <li>Automatic data normalization (non-arrays → [])</li>
             <li>Deep cloning on get and set (immutability)</li>
             <li>structuredClone() primary strategy with JSON fallback</li>
+            <li>Light DOM display templates via <code>&lt;template slot="display"&gt;</code></li>
             <li>Shadow DOM encapsulation</li>
             <li>Constructable Stylesheets with fallback</li>
             <li>TypeScript support</li>
@@ -409,6 +410,55 @@ console.log(element.data[0].name); // Still 'Original' ✓
             <li>Large datasets: batch updates to minimize cloning calls</li>
             <li>Constructable Stylesheets: optimal performance across instances</li>
           </ul>
+        </div>
+      </div>
+
+      <!-- Display Template -->
+      <div class="demo-section">
+        <h2>7. Display Template (Light DOM)</h2>
+        <p class="section-description">
+          Provide a <code>&lt;template slot="display"&gt;</code> inside the element to render custom content in the
+          component's shadow DOM.
+        </p>
+
+        <div class="demo-grid">
+          <div class="demo-item">
+            <h3>With Display Template</h3>
+            <div class="component-wrapper">
+              <ck-editable-array id="templateDemo" name="Templated">
+                <template slot="display">
+                  <div
+                    style="
+                      margin-top: 0.75rem;
+                      padding: 0.75rem;
+                      background: rgba(255, 255, 255, 0.15);
+                      border-radius: 6px;
+                    "
+                  >
+                    <strong>Custom display content</strong>
+                    <p style="margin-top: 0.5rem;">This is cloned from light DOM.</p>
+                  </div>
+                </template>
+              </ck-editable-array>
+            </div>
+            <div class="code-block">
+&lt;ck-editable-array&gt;
+  &lt;template slot="display"&gt;
+    ...
+  &lt;/template&gt;
+&lt;/ck-editable-array&gt;
+            </div>
+          </div>
+
+          <div class="demo-item">
+            <h3>Empty State (No Template)</h3>
+            <div class="component-wrapper">
+              <ck-editable-array id="emptyStateDemo" name="Empty State"></ck-editable-array>
+            </div>
+            <p class="section-description" style="margin-top: 1rem;">
+              When no display template is present, the component shows a helpful message in its display region.
+            </p>
+          </div>
         </div>
       </div>
     </div>
