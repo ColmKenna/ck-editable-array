@@ -11,15 +11,18 @@ export class CkEditableArray extends HTMLElement {
   private shadow: ShadowRoot;          // Shadow DOM root
   private _data: unknown[] = [];       // Internal data storage
   private _rootEl: HTMLDivElement;     // Shadow content root (preserves fallback styles)
-  private _displayObserver: MutationObserver | null = null; // Watches for display template add/remove
 
   // Public API
   get data(): unknown[];
   set data(value: unknown);
   get name(): string;
   set name(value: string);
-  get color(): string;
-  set color(value: string);
+  get rootClass(): string;
+  set rootClass(value: string);
+  get rowsClass(): string;
+  set rowsClass(value: string);
+  get rowClass(): string;
+  set rowClass(value: string);
 
   // Lifecycle hooks
   connectedCallback();
@@ -32,7 +35,6 @@ export class CkEditableArray extends HTMLElement {
   // Private methods
   private _deepClone(obj: unknown): unknown[];
   private _jsonClone(obj: unknown): unknown[];
-  private _ensureDisplayObserver();
   private _getDisplayTemplate(): HTMLTemplateElement | null;
   private _renderRows(rowsHost: HTMLElement);
   private _applyBindings(root: ParentNode, rowData: unknown);
@@ -54,7 +56,6 @@ export class CkEditableArray extends HTMLElement {
 
 - **`data` property**: Reactive property with automatic deep cloning
 - **`name` property**: Synced with `name` attribute via getter/setter
-- **`color` property**: Synced with `color` attribute via getter/setter
 - **`datachanged` event**: Dispatched when `data` is set (`detail: { data }`, bubbles + composed)
 
 ## Cloning Strategy
@@ -218,24 +219,7 @@ The component uses the Constructable Stylesheet pattern for optimal performance:
 
 ### CSS Custom Properties
 
-Per-instance color styling via CSS variables:
-
-```typescript
-this.style.setProperty('--cea-color', this.color);
-```
-
-Rendered in CSS:
-
-```css
-.message {
-  color: var(--cea-color, #333);
-}
-```
-
-This allows:
-- Efficient per-instance styling without duplicating sheets
-- Fallback color if variable not set
-- Dynamic color updates via `element.color = '#...'`
+Styling is handled via CSS custom properties and internal classes defined in `src/components/ck-editable-array/ck-editable-array.styles.ts`.
 
 ## Rendering Pipeline
 
@@ -245,7 +229,6 @@ Triggered when element inserted into DOM:
 
 ```typescript
 connectedCallback() {
-  this._ensureDisplayObserver();
   this.render();
 }
 ```
@@ -255,12 +238,7 @@ connectedCallback() {
 Triggered when element removed from DOM:
 
 ```typescript
-disconnectedCallback() {
-  if (this._displayObserver) {
-    this._displayObserver.disconnect();
-    this._displayObserver = null;
-  }
-}
+disconnectedCallback() {}
 ```
 
 ### attributeChangedCallback
@@ -268,9 +246,18 @@ disconnectedCallback() {
 Triggered when observed attributes change:
 
 ```typescript
-attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+attributeChangedCallback(
+  name: string,
+  oldValue: string | null,
+  newValue: string | null
+) {
   if (oldValue !== newValue) {
-    this.render();
+    if (name === 'name') this._updateNameOnly();
+    else if (name === 'root-class' || name === 'rows-class' || name === 'row-class') {
+      this._updateWrapperClassesOnly();
+    } else {
+      this.render();
+    }
   }
 }
 ```
@@ -280,43 +267,16 @@ attributeChangedCallback(name: string, oldValue: string, newValue: string) {
 Updates shadow DOM:
 
 1. Ensure `<style>` fallback (if Constructable Stylesheets unavailable)
-2. Set CSS custom property for color
-3. Render base markup into an internal shadow root container (preserves fallback `<style>`)
-4. Render rows into `part="rows"` by cloning `<template slot="display">` per `data` item and applying `data-bind` text binding
+2. Create the shadow DOM structure once (root container, heading, subtitle, rows host, status region)
+3. Apply wrapper classes (`root-class`, `rows-class`, `row-class`) without modifying template markup
+4. Update message text + per-instance CSS variables
+5. Render rows into `part="rows"` by cloning `<template slot="display">` per `data` item and applying `data-bind` text binding (keyed updates + template caching)
 
 ```typescript
 private render() {
-  // 1. Fallback style handling
-  if (!ckEditableArraySheet) {
-    if (!this.shadow.querySelector('style[data-ck-editable-array-fallback]')) {
-      const style = document.createElement('style');
-      style.setAttribute('data-ck-editable-array-fallback', '');
-      style.textContent = ckEditableArrayCSS;
-      this.shadow.insertBefore(style, this._rootEl);
-    }
-  }
-
-  // 2. Set color variable
-  this.style.setProperty('--cea-color', this.color);
-
-  // 3. Update content
-  this._rootEl.innerHTML = `
-    <div class="ck-editable-array">
-      <h1 class="message">Hello, ${this.name}!</h1>
-      <p class="subtitle">Welcome to our Web Component Library</p>
-      <div class="rows" part="rows" data-ck-editable-array-rows></div>
-    </div>
-  `;
-
-  // 4. Render rows from template + data
-  const rowsHost = this._rootEl.querySelector(
-    '[data-ck-editable-array-rows]'
-  ) as HTMLElement | null;
-  if (rowsHost) this._renderRows(rowsHost);
-
-  // 5. Inline color for testability
-  const msg = this._rootEl.querySelector('.message') as HTMLElement | null;
-  if (msg) msg.style.color = this.color;
+  this._applyWrapperClasses();
+  if (this._messageEl) this._messageEl.textContent = `Hello, ${this.name}!`;
+  if (this._rowsHostEl) this._renderRows(this._rowsHostEl);
 }
 ```
 
@@ -324,31 +284,8 @@ private render() {
 
 ### Test Coverage
 
-- **Existing Tests** (8 tests):
-  - Instance creation and shadow DOM
-  - Name and color properties/attributes
-  - Observable attributes behavior
-
-- **Data Property Tests** (10 tests):
-  - Default empty array
-  - Setting/getting data arrays
-  - Normalization of non-arrays (null, undefined, string, number, object)
-  - Deep cloning on set (preventing external mutations)
-  - Deep cloning on get (preventing consumer mutations)
-  - Complex nested data structures
-
-- **Display Template Tests** (3 tests):
-  - Empty state when no `template[slot="display"]`
-  - Rendering template content into shadow DOM
-  - Re-rendering when template is added after connection (MutationObserver)
-
-- **Rows + Binding Tests** (6 tests):
-  - One `part="rows"` row per data item
-  - `data-row` index attribute
-  - Dot-path binding (`data-bind="a.b.c"`)
-  - Array join binding (`tags` → `a, b, c`)
-  - Binding uses `textContent` (no HTML interpretation)
-  - Empty state shown when template missing (rows region)
+- The test suite covers component instantiation, attribute/property reflection, `data` normalization + cloning, `datachanged` event dispatch, template rendering + bindings, wrapper class configuration, accessibility (ARIA + keyboard navigation), and basic performance benchmarks.
+- Current suite size: **52 tests** across **2 test suites**.
 
 ### Test Execution
 

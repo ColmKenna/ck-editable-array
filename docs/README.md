@@ -115,19 +115,6 @@ element.name = 'Developer';
 console.log(element.name); // 'Developer'
 ```
 
-### `color: string`
-
-**Type**: String
-**Default**: "#333"
-**Description**: The text color for the message
-**Synced with Attribute**: Yes
-
-```javascript
-const element = document.querySelector('ck-editable-array');
-element.color = '#ff6b6b';
-console.log(element.color); // '#ff6b6b'
-```
-
 ## Attributes
 
 ### `name`
@@ -135,10 +122,23 @@ console.log(element.color); // '#ff6b6b'
 - **Default**: "World"
 - **HTML**: `<ck-editable-array name="Developer"></ck-editable-array>`
 
-### `color`
+### `root-class`
 - **Type**: String
-- **Default**: "#333"
-- **HTML**: `<ck-editable-array color="#ff6b6b"></ck-editable-array>`
+- **Default**: `""`
+- **HTML**: `<ck-editable-array root-class="my-root"></ck-editable-array>`
+- **Description**: Space-separated classes added to the generated root wrapper inside the shadow DOM
+
+### `rows-class`
+- **Type**: String
+- **Default**: `""`
+- **HTML**: `<ck-editable-array rows-class="my-rows"></ck-editable-array>`
+- **Description**: Space-separated classes added to the generated rows wrapper inside the shadow DOM
+
+### `row-class`
+- **Type**: String
+- **Default**: `""`
+- **HTML**: `<ck-editable-array row-class="my-row"></ck-editable-array>`
+- **Description**: Space-separated classes added to each generated row wrapper inside the shadow DOM
 
 **Note**: The `data` property is not exposed as an attribute since arrays cannot be represented in HTML attributes.
 
@@ -158,6 +158,35 @@ Provide a light DOM template to render custom display content inside the compone
 ```
 
 The template is treated as a **row template** and is cloned once for each item in `element.data`, into a `part="rows"` container.
+
+### Wrapper Class Customization
+
+To add consumer-controlled class hooks to the generated wrappers, set the wrapper class attributes:
+
+```html
+<ck-editable-array root-class="my-root" rows-class="my-rows" row-class="my-row">
+  <template slot="display">
+    <span data-bind="name"></span>
+  </template>
+</ck-editable-array>
+```
+
+- These classes are added in addition to the built-in `.ck-editable-array`, `.rows`, and `.row` classes.
+- The template markup is not modified (NFR-U-001).
+- Because these wrappers are inside Shadow DOM, page-level CSS can’t directly target them; use CSS custom properties / `::part(rows)` for general styling, or include a `<style>` inside your `display` template when you need selectors targeting the wrapper classes.
+
+Example (styling wrapper classes from inside the template):
+
+```html
+<ck-editable-array row-class="my-row">
+  <template slot="display">
+    <style>
+      .row.my-row { border: 1px solid #ddd; border-radius: 8px; }
+    </style>
+    <span data-bind="name"></span>
+  </template>
+</ck-editable-array>
+```
 
 ### Data Binding with `data-bind`
 
@@ -356,9 +385,6 @@ class CkEditableArray extends HTMLElement {
   // Greeting display
   get name(): string;
   set name(value: string);
-
-  get color(): string;
-  set color(value: string);
 }
 ```
 

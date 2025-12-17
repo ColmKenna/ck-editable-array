@@ -7,13 +7,11 @@ export class CkEditableArray extends HTMLElement {
   private shadow: ShadowRoot;
   private _data: unknown[] = [];
   private _rootEl: HTMLDivElement;
-  private _displayObserver: MutationObserver | null = null;
   private _containerEl: HTMLDivElement | null = null;
   private _messageEl: HTMLHeadingElement | null = null;
   private _rowsHostEl: HTMLDivElement | null = null;
   private _statusRegionEl: HTMLDivElement | null = null;
   private _displayTemplate: HTMLTemplateElement | null = null;
-  private _templateCached = false;
 
   constructor() {
     super();
@@ -36,16 +34,10 @@ export class CkEditableArray extends HTMLElement {
   }
 
   connectedCallback() {
-    this._ensureDisplayObserver();
     this.render();
   }
 
-  disconnectedCallback() {
-    if (this._displayObserver) {
-      this._displayObserver.disconnect();
-      this._displayObserver = null;
-    }
-  }
+  disconnectedCallback() {}
 
   static get observedAttributes() {
     return ['name', 'root-class', 'rows-class', 'row-class'];
@@ -142,9 +134,6 @@ export class CkEditableArray extends HTMLElement {
   }
 
   private render() {
-    // Invalidate template cache on each full render
-    this._templateCached = false;
-
     if (!ckEditableArraySheet) {
       if (
         !this.shadow.querySelector('style[data-ck-editable-array-fallback]')
@@ -247,38 +236,14 @@ export class CkEditableArray extends HTMLElement {
     this._applyWrapperClasses();
   }
 
-  private _ensureDisplayObserver() {
-    if (this._displayObserver) return;
-    this._displayObserver = new MutationObserver(mutations => {
-      const hasRelevantChange = mutations.some(mutation => {
-        const nodes = [...mutation.addedNodes, ...mutation.removedNodes];
-        return nodes.some(node => {
-          if (!(node instanceof Element)) return false;
-          if (node instanceof HTMLTemplateElement) {
-            return node.getAttribute('slot') === 'display';
-          }
-          return !!node.querySelector?.('template[slot="display"]');
-        });
-      });
-      if (hasRelevantChange) {
-        // Invalidate template cache
-        this._templateCached = false;
-        this.render();
-      }
-    });
-    this._displayObserver.observe(this, { childList: true, subtree: false });
-  }
-
   private _getDisplayTemplate(): HTMLTemplateElement | null {
-    // Return cached template or query if not yet cached
-    if (this._templateCached) {
-      return this._displayTemplate;
-    }
+    if (this._displayTemplate) return this._displayTemplate;
     const template = this.querySelector('template[slot="display"]');
-    this._displayTemplate =
-      template instanceof HTMLTemplateElement ? template : null;
-    this._templateCached = true;
-    return this._displayTemplate;
+    if (template instanceof HTMLTemplateElement) {
+      this._displayTemplate = template;
+      return template;
+    }
+    return null;
   }
 
   private _renderRows(rowsHost: HTMLElement) {

@@ -194,7 +194,7 @@ describe('CkEditableArray Component', () => {
     expect(element.shadowRoot?.textContent).toContain('From template');
   });
 
-  test('should re-render when a display template is added after connection', async () => {
+  test('should render display template after connection when data changes', () => {
     element.data = [{ id: 1 }];
     element.connectedCallback();
     expect(element.shadowRoot?.textContent).toContain(
@@ -206,8 +206,8 @@ describe('CkEditableArray Component', () => {
     template.innerHTML = `<div id="lateTemplate">Late template</div>`;
     element.appendChild(template);
 
-    // MutationObserver callbacks run on a microtask.
-    await Promise.resolve();
+    // Template changes are not observed; a subsequent render is required.
+    element.data = [{ id: 1 }];
 
     expect(element.shadowRoot?.querySelector('#lateTemplate')).toBeTruthy();
     expect(element.shadowRoot?.textContent).toContain('Late template');
