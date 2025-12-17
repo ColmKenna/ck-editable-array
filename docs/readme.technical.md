@@ -34,7 +34,9 @@ export class CkEditableArray extends HTMLElement {
   private _jsonClone(obj: unknown): unknown[];
   private _ensureDisplayObserver();
   private _getDisplayTemplate(): HTMLTemplateElement | null;
-  private _renderDisplay(host: HTMLElement);
+  private _renderRows(rowsHost: HTMLElement);
+  private _applyBindings(root: ParentNode, rowData: unknown);
+  private _resolvePath(obj: unknown, path: string): unknown;
   private render();
 }
 ```
@@ -53,6 +55,7 @@ export class CkEditableArray extends HTMLElement {
 - **`data` property**: Reactive property with automatic deep cloning
 - **`name` property**: Synced with `name` attribute via getter/setter
 - **`color` property**: Synced with `color` attribute via getter/setter
+- **`datachanged` event**: Dispatched when `data` is set (`detail: { data }`, bubbles + composed)
 
 ## Cloning Strategy
 
@@ -279,7 +282,7 @@ Updates shadow DOM:
 1. Ensure `<style>` fallback (if Constructable Stylesheets unavailable)
 2. Set CSS custom property for color
 3. Render base markup into an internal shadow root container (preserves fallback `<style>`)
-4. Populate the display region from light DOM `<template slot="display">` (or empty state)
+4. Render rows into `part="rows"` by cloning `<template slot="display">` per `data` item and applying `data-bind` text binding
 
 ```typescript
 private render() {
@@ -301,15 +304,15 @@ private render() {
     <div class="ck-editable-array">
       <h1 class="message">Hello, ${this.name}!</h1>
       <p class="subtitle">Welcome to our Web Component Library</p>
-      <div class="display" data-ck-editable-array-display></div>
+      <div class="rows" part="rows" data-ck-editable-array-rows></div>
     </div>
   `;
 
-  // 4. Populate display region
-  const displayHost = this._rootEl.querySelector(
-    '[data-ck-editable-array-display]'
+  // 4. Render rows from template + data
+  const rowsHost = this._rootEl.querySelector(
+    '[data-ck-editable-array-rows]'
   ) as HTMLElement | null;
-  if (displayHost) this._renderDisplay(displayHost);
+  if (rowsHost) this._renderRows(rowsHost);
 
   // 5. Inline color for testability
   const msg = this._rootEl.querySelector('.message') as HTMLElement | null;
@@ -338,6 +341,14 @@ private render() {
   - Empty state when no `template[slot="display"]`
   - Rendering template content into shadow DOM
   - Re-rendering when template is added after connection (MutationObserver)
+
+- **Rows + Binding Tests** (6 tests):
+  - One `part="rows"` row per data item
+  - `data-row` index attribute
+  - Dot-path binding (`data-bind="a.b.c"`)
+  - Array join binding (`tags` → `a, b, c`)
+  - Binding uses `textContent` (no HTML interpretation)
+  - Empty state shown when template missing (rows region)
 
 ### Test Execution
 
@@ -493,8 +504,8 @@ const tasks = element.data as Task[]; // Consumer asserts type
 Potential improvements for future versions:
 
 1. **Events**:
-   - `data-change` event on data updates
    - `data-accessed` event on data retrieval
+   - Additional events for edit/selection workflows (see `docs/prompts/req.md`)
 
 2. **Methods**:
    - `addItem(item)` - Helper for adding single items

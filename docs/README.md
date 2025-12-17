@@ -157,6 +157,32 @@ Provide a light DOM template to render custom display content inside the compone
 </ck-editable-array>
 ```
 
+The template is treated as a **row template** and is cloned once for each item in `element.data`, into a `part="rows"` container.
+
+### Data Binding with `data-bind`
+
+Use `data-bind` to bind text from each row object into the cloned template:
+
+```html
+<ck-editable-array id="users">
+  <template slot="display">
+    <div>
+      <strong data-bind="name"></strong>
+      <span data-bind="address.city"></span>
+      <small data-bind="tags"></small>
+    </div>
+  </template>
+</ck-editable-array>
+<script type="module">
+  const el = document.querySelector('#users');
+  el.data = [{ name: 'Ada', address: { city: 'Dublin' }, tags: ['a', 'b'] }];
+</script>
+```
+
+- Dot-paths like `address.city` are supported.
+- Arrays are joined with `", "`.
+- Values are assigned via `textContent` (not `innerHTML`).
+
 If no `<template slot="display">` is present, the component renders a small empty-state message in its shadow DOM explaining how to add one.
 
 ## Practical Examples
@@ -342,9 +368,18 @@ Currently no custom methods beyond standard HTMLElement interface.
 
 ### Events
 
-Currently no custom events. Future versions may emit:
-- `datachange` - When data is updated
-- `dataretrieved` - When data is accessed
+The component emits a `datachanged` event whenever the `data` property is set.
+
+- **Event**: `datachanged`
+- **Bubbles / Composed**: Yes / Yes
+- **Payload**: `event.detail.data` (deep-cloned `unknown[]`)
+
+```js
+const el = document.querySelector('ck-editable-array');
+el.addEventListener('datachanged', (e) => {
+  console.log('datachanged', e.detail.data);
+});
+```
 
 ## Contributing
 
