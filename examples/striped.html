@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ck-editable-array - Striped Rows Example</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        margin: 2rem;
+        color: #1f2937;
+        background: #f8fafc;
+      }
+
+      .page {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.6rem;
+      }
+
+      p {
+        margin: 0 0 1.5rem 0;
+        color: #475569;
+      }
+
+      .note code {
+        background: #e2e8f0;
+        padding: 0.1rem 0.3rem;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1>ck-editable-array: striped output via wrapper classes</h1>
+      <p class="note">
+        This uses <code>root-class</code>, <code>rows-class</code>, and
+        <code>row-class</code> to add class hooks to generated wrappers, then
+        applies striping with <code>:nth-child(even)</code>.
+      </p>
+
+      <ck-editable-array
+        id="striped"
+        name="Striped Demo"
+        root-class="striped-root"
+        rows-class="striped-rows"
+        row-class="striped-row"
+      >
+        <template slot="display">
+          <style>
+            .ck-editable-array.striped-root {
+              background: #ffffff;
+              border: 1px solid #e2e8f0;
+              border-radius: 12px;
+              padding: 1rem;
+            }
+
+            .rows.striped-rows {
+              margin-top: 1rem;
+              border-radius: 10px;
+              overflow: hidden;
+            }
+
+            .rows.striped-rows > .row.striped-row {
+              padding: 0.75rem 1rem;
+              border-radius: 0;
+              border: none;
+            }
+
+            .rows.striped-rows > .row.striped-row:nth-child(odd) {
+              background: #ffffff;
+            }
+
+            .rows.striped-rows > .row.striped-row:nth-child(even) {
+              background: #f1f5f9;
+            }
+
+            .item {
+              display: grid;
+              grid-template-columns: 4rem 1fr 10rem;
+              gap: 1rem;
+              align-items: center;
+            }
+
+            .id {
+              font-variant-numeric: tabular-nums;
+              color: #64748b;
+            }
+
+            .name {
+              font-weight: 600;
+            }
+
+            .status {
+              text-transform: capitalize;
+              color: #0f172a;
+              opacity: 0.85;
+              text-align: right;
+            }
+          </style>
+
+          <div class="item">
+            <span class="id" data-bind="id"></span>
+            <span class="name" data-bind="name"></span>
+            <span class="status" data-bind="status"></span>
+          </div>
+        </template>
+      </ck-editable-array>
+    </div>
+
+    <script type="module">
+      // Keep this consistent with the existing demo setup (no bundler/import map).
+      import '../dist/hello-world/hello-world.esm.js';
+
+      const el = document.getElementById('striped');
+      el.data = [
+        { id: '001', name: 'Alpha', status: 'ready' },
+        { id: '002', name: 'Beta', status: 'in progress' },
+        { id: '003', name: 'Gamma', status: 'done' },
+        { id: '004', name: 'Delta', status: 'ready' },
+        { id: '005', name: 'Epsilon', status: 'blocked' },
+        { id: '006', name: 'Zeta', status: 'done' },
+      ];
+    </script>
+  </body>
+</html>
+
