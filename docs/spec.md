@@ -22,18 +22,29 @@
   console.log(element.name);   // Getter → "Developer"
   ```
 
-#### `color: string`
+#### `rootClass: string`
 - **Type**: String
-- **Default**: "#333"
-- **Description**: The text color for the message
-- **Getter**: Returns the current color
-- **Setter**: Updates the color via attribute
-- **Synced with Attribute**: Yes (`color` attribute)
-- **Example**:
-  ```javascript
-  element.color = '#ff6b6b';
-  console.log(element.color); // → "#ff6b6b"
-  ```
+- **Default**: `""`
+- **Description**: Space-separated classes added to the generated root wrapper element inside the shadow DOM
+- **Getter**: Returns the current `root-class` value
+- **Setter**: Updates the `root-class` attribute
+- **Synced with Attribute**: Yes (`root-class` attribute)
+
+#### `rowsClass: string`
+- **Type**: String
+- **Default**: `""`
+- **Description**: Space-separated classes added to the generated rows wrapper element inside the shadow DOM
+- **Getter**: Returns the current `rows-class` value
+- **Setter**: Updates the `rows-class` attribute
+- **Synced with Attribute**: Yes (`rows-class` attribute)
+
+#### `rowClass: string`
+- **Type**: String
+- **Default**: `""`
+- **Description**: Space-separated classes added to each generated row wrapper element inside the shadow DOM
+- **Getter**: Returns the current `row-class` value
+- **Setter**: Updates the `row-class` attribute
+- **Synced with Attribute**: Yes (`row-class` attribute)
 
 #### `data: unknown[]`
 - **Type**: Array (any elements)
@@ -90,7 +101,9 @@
 | Attribute | Type   | Default | Synced with Property | Description                    |
 |-----------|--------|---------|----------------------|--------------------------------|
 | `name`    | string | "World" | Yes (`name` prop)    | The name displayed in greeting |
-| `color`   | string | "#333"  | Yes (`color` prop)   | Text color for the message     |
+| `root-class` | string | "" | Yes (`rootClass` prop) | Classes added to the generated root wrapper |
+| `rows-class` | string | "" | Yes (`rowsClass` prop) | Classes added to the generated rows wrapper |
+| `row-class`  | string | "" | Yes (`rowClass` prop)  | Classes added to each generated row wrapper |
 
 **Note**: The `data` property is not exposed as an attribute (arrays cannot be directly expressed in HTML attributes).
 
@@ -100,7 +113,22 @@ Currently, the component does not expose additional methods beyond the standard 
 
 ## Events
 
-Currently, the component does not emit custom events. Future versions may emit events on data changes.
+### `datachanged`
+
+Dispatched whenever the `data` property is set.
+
+- **Type**: `CustomEvent`
+- **Name**: `datachanged`
+- **Bubbles**: Yes
+- **Composed**: Yes
+- **Detail**: `{ data: unknown[] }` (a deep clone of the internal data)
+
+Example:
+```js
+el.addEventListener('datachanged', (e) => {
+  console.log(e.detail.data);
+});
+```
 
 ## Styling
 
@@ -110,13 +138,16 @@ The component uses the Constructable Stylesheet pattern for styling (with a fall
 
 #### CSS Custom Properties
 
-- `--cea-color`: Controls text color (set via the `color` property)
+The component exposes styling hooks via CSS custom properties (see `src/components/ck-editable-array/ck-editable-array.styles.ts`).
 
 #### Classes
 
 - `.ck-editable-array`: Main container
 - `.message`: The greeting message heading
 - `.subtitle`: The subtitle text
+- `.rows`: Rows container (holds generated row wrappers)
+- `.row`: Generated row wrapper (holds cloned template content)
+- `.empty-state`: Empty state message (rendered when no display template exists)
 
 #### Example Custom Styling
 
@@ -126,13 +157,39 @@ ck-editable-array::part(...) {
 }
 
 ck-editable-array {
-  --cea-color: #ff6b6b;
+  --cea-message-color: #ff6b6b;
 }
 ```
 
 ## Accessibility
 
 The component renders semantic HTML (`<h1>`, `<p>`) for better screen reader support. Future versions may add ARIA attributes and keyboard navigation for interactive features.
+
+## Light DOM Display Template
+
+Consumers can provide a light DOM template to control what the component renders in its “display” region.
+
+### Template Contract
+
+- The component looks for a descendant `HTMLTemplateElement` matching: `<template slot="display">...</template>`.
+- The template is treated as a **row template**: it is cloned once for each item in the `data` array.
+- The component renders rows into a container with `part="rows"`, clearing it on each render.
+- If the template is missing, the component renders a helpful empty state in the shadow DOM rows region (instructions for adding the template).
+
+### Data Binding (`data-bind`)
+
+Within the template, any element with a `data-bind` attribute will have its `textContent` set from the current row’s data.
+
+- `data-bind="person.address.city"` resolves a dot-path against the row object.
+- If the resolved value is an array, it is joined with `", "`.
+- If the resolved value is `null`/`undefined`/missing, an empty string is rendered.
+- Binding sets `textContent` (never `innerHTML`).
+
+### Notes
+
+- The template is treated as trusted markup supplied by the page author; avoid including `<script>` in the template.
+- Wrapper class attributes (`root-class`, `rows-class`, `row-class`) apply to generated wrapper elements only; the template markup is not modified.
+- Wrapper class selectors only apply within the component’s Shadow DOM; style via CSS custom properties / `::part(rows)`, or include a `<style>` inside the `display` template when targeting wrapper classes is required.
 
 ## Browser Support
 
@@ -151,8 +208,7 @@ The component renders semantic HTML (`<h1>`, `<p>`) for better screen reader sup
    - Calls `render()` if value differs from old value
 
 3. **render()**: Updates shadow DOM content
-   - Applies per-instance color via CSS custom property
-   - Renders greeting message with current name and color
+   - Renders greeting message with current name
 
 ### State Management
 
@@ -164,4 +220,3 @@ The component renders semantic HTML (`<h1>`, `<p>`) for better screen reader sup
 - Deep cloning on every get/set may impact performance with large datasets
 - Constructable Stylesheets are parsed once at module load time (efficient)
 - Shadow DOM encapsulation prevents style leakage
-
