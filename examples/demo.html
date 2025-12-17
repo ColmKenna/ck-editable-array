@@ -79,7 +79,7 @@
       }
 
       ck-editable-array {
-        --cea-color: #333;
+        --cea-message-color: #333;
       }
 
       .code-block {
@@ -181,7 +181,7 @@
       <div class="demo-section">
         <h2>1. Basic Usage</h2>
         <p class="section-description">
-          The CkEditableArray component renders a greeting with customizable name and color.
+          The CkEditableArray component renders a greeting with a customizable name.
         </p>
 
         <div class="demo-grid">
@@ -207,19 +207,6 @@
             </div>
           </div>
 
-          <!-- With Color -->
-          <div class="demo-item">
-            <h3>With Custom Color</h3>
-            <div class="component-wrapper">
-              <ck-editable-array id="demo3" name="Styled" color="#ff6b6b"></ck-editable-array>
-            </div>
-            <div class="code-block">
-&lt;ck-editable-array
-  name="Styled"
-  color="#ff6b6b"&gt;
-&lt;/ck-editable-array&gt;
-            </div>
-          </div>
         </div>
       </div>
 
@@ -359,13 +346,12 @@ console.log(element.data[0].name); // Still 'Original' ✓
           <ul class="feature-list">
             <li><code>data: unknown[]</code> - Getter/setter for data array (with deep cloning)</li>
             <li><code>name: string</code> - Greeting name (default: "World")</li>
-            <li><code>color: string</code> - Text color (default: "#333")</li>
           </ul>
 
           <h3 style="margin-top: 1.5rem;">Attributes</h3>
           <ul class="feature-list">
             <li><code>name</code> - Synced with name property</li>
-            <li><code>color</code> - Synced with color property</li>
+            <li><code>root-class</code>, <code>rows-class</code>, <code>row-class</code> - Optional wrapper classes</li>
           </ul>
 
           <h3 style="margin-top: 1.5rem;">Features</h3>
@@ -462,6 +448,56 @@ console.log(element.data[0].name); // Still 'Original' ✓
           </div>
         </div>
       </div>
+
+      <!-- Wrapper Class Hooks -->
+      <div class="demo-section">
+        <h2>8. Wrapper Class Hooks (Display Phase)</h2>
+        <p class="section-description">
+          Set <code>root-class</code>, <code>rows-class</code>, and <code>row-class</code> to add extra classes to the
+          generated wrappers (root, rows host, and each row wrapper). Because those wrappers are inside Shadow DOM, this
+          demo styles them using a <code>&lt;style&gt;</code> inside the display template.
+        </p>
+
+        <div class="demo-grid">
+          <div class="demo-item">
+            <h3>Custom Wrapper Classes</h3>
+            <div class="component-wrapper">
+              <ck-editable-array
+                id="wrapperClassDemo"
+                name="Wrapper Classes"
+                root-class="demo-root"
+                rows-class="demo-rows"
+                row-class="demo-row"
+              >
+                <template slot="display">
+                  <style>
+                    .ck-editable-array.demo-root {
+                      background: #f6f8ff;
+                      padding: 0.75rem;
+                      border-radius: 12px;
+                    }
+
+                    .rows.demo-rows {
+                      display: grid;
+                      gap: 0.5rem;
+                    }
+
+                    .row.demo-row {
+                      background: #fff;
+                      border: 1px solid #dde3ff;
+                      border-radius: 10px;
+                    }
+                  </style>
+                  <div>
+                    <strong data-bind="title"></strong>
+                    <span style="margin-left: 0.5rem; opacity: 0.8" data-bind="status"></span>
+                  </div>
+                </template>
+              </ck-editable-array>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Component Import -->
@@ -481,6 +517,15 @@ console.log(element.data[0].name); // Still 'Original' ✓
       const emptyStateDemo = document.getElementById('emptyStateDemo');
       if (emptyStateDemo) {
         emptyStateDemo.data = [{ name: 'This will not render without a template' }];
+      }
+
+      const wrapperClassDemo = document.getElementById('wrapperClassDemo');
+      if (wrapperClassDemo) {
+        wrapperClassDemo.data = [
+          { title: 'Alpha', status: 'ready' },
+          { title: 'Beta', status: 'in progress' },
+          { title: 'Gamma', status: 'done' },
+        ];
       }
 
       // Demo Helper: Output display

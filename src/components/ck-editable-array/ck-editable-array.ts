@@ -48,15 +48,19 @@ export class CkEditableArray extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return ['name', 'color'];
+    return ['name', 'root-class', 'rows-class', 'row-class'];
   }
 
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
     if (oldValue !== newValue) {
-      if (name === 'color') {
-        this._updateColorOnly();
-      } else if (name === 'name') {
+      if (name === 'name') {
         this._updateNameOnly();
+      } else if (
+        name === 'root-class' ||
+        name === 'rows-class' ||
+        name === 'row-class'
+      ) {
+        this._updateWrapperClassesOnly();
       } else {
         this.render();
       }
@@ -71,12 +75,28 @@ export class CkEditableArray extends HTMLElement {
     this.setAttribute('name', value);
   }
 
-  get color() {
-    return this.getAttribute('color') || '#333';
+  get rootClass() {
+    return this.getAttribute('root-class') || '';
   }
 
-  set color(value: string) {
-    this.setAttribute('color', value);
+  set rootClass(value: string) {
+    this.setAttribute('root-class', value);
+  }
+
+  get rowsClass() {
+    return this.getAttribute('rows-class') || '';
+  }
+
+  set rowsClass(value: string) {
+    this.setAttribute('rows-class', value);
+  }
+
+  get rowClass() {
+    return this.getAttribute('row-class') || '';
+  }
+
+  set rowClass(value: string) {
+    this.setAttribute('row-class', value);
   }
 
   get data(): unknown[] {
@@ -136,8 +156,6 @@ export class CkEditableArray extends HTMLElement {
       }
     }
 
-    this.style.setProperty('--cea-color', this.color);
-
     // Create structure on first render only
     if (!this._containerEl) {
       this._containerEl = document.createElement('div');
@@ -173,10 +191,11 @@ export class CkEditableArray extends HTMLElement {
       this._rootEl.appendChild(this._containerEl);
     }
 
+    this._applyWrapperClasses();
+
     // Update only text content
     if (this._messageEl) {
       this._messageEl.textContent = `Hello, ${this.name}!`;
-      this._messageEl.style.color = this.color;
     }
 
     // Render rows
@@ -185,20 +204,47 @@ export class CkEditableArray extends HTMLElement {
     }
   }
 
-  private _updateColorOnly() {
-    // Fast path: update color without full re-render
-    this.style.setProperty('--cea-color', this.color);
-    if (this._messageEl) {
-      this._messageEl.style.color = this.color;
-    }
-  }
-
   private _updateNameOnly() {
     // Fast path: update name text without full re-render
     if (this._messageEl) {
       this._messageEl.textContent = `Hello, ${this.name}!`;
-      this._messageEl.style.color = this.color;
     }
+  }
+
+  private _parseClassTokens(value: string | null): string[] {
+    if (!value) return [];
+    return value
+      .split(/\s+/g)
+      .map(t => t.trim())
+      .filter(Boolean);
+  }
+
+  private _applyWrapperClasses() {
+    const rootTokens = this._parseClassTokens(this.getAttribute('root-class'));
+    const rowsTokens = this._parseClassTokens(this.getAttribute('rows-class'));
+    const rowTokens = this._parseClassTokens(this.getAttribute('row-class'));
+
+    if (this._containerEl) {
+      this._containerEl.className = 'ck-editable-array';
+      rootTokens.forEach(t => this._containerEl?.classList.add(t));
+    }
+
+    if (this._rowsHostEl) {
+      this._rowsHostEl.className = 'rows';
+      rowsTokens.forEach(t => this._rowsHostEl?.classList.add(t));
+
+      const existingRows = Array.from(
+        this._rowsHostEl.querySelectorAll('[data-row]')
+      ) as HTMLElement[];
+      existingRows.forEach(rowEl => {
+        rowEl.className = 'row';
+        rowTokens.forEach(t => rowEl.classList.add(t));
+      });
+    }
+  }
+
+  private _updateWrapperClassesOnly() {
+    this._applyWrapperClasses();
   }
 
   private _ensureDisplayObserver() {
@@ -238,6 +284,8 @@ export class CkEditableArray extends HTMLElement {
   private _renderRows(rowsHost: HTMLElement) {
     const template = this._getDisplayTemplate();
     if (template) {
+      const rowTokens = this._parseClassTokens(this.getAttribute('row-class'));
+
       // Keyed rendering: reuse existing row elements or create new ones
       const existingRows = Array.from(
         rowsHost.querySelectorAll('[data-row]')
@@ -258,6 +306,7 @@ export class CkEditableArray extends HTMLElement {
           // Create new row if it doesn't exist
           rowEl = document.createElement('div');
           rowEl.className = 'row';
+          rowTokens.forEach(t => rowEl.classList.add(t));
           rowEl.setAttribute('tabindex', '0');
           rowEl.setAttribute('role', 'listitem');
           rowEl.addEventListener('keydown', event =>
@@ -279,6 +328,10 @@ export class CkEditableArray extends HTMLElement {
           boundEls =
             (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls || [];
         }
+
+        // Ensure row wrapper classes reflect current configuration (handles updates)
+        rowEl.className = 'row';
+        rowTokens.forEach(t => rowEl.classList.add(t));
 
         // Always update attributes and bindings for current index/data
         rowEl.setAttribute('data-row', String(index));

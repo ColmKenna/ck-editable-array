@@ -62,18 +62,9 @@ describe('CkEditableArray Component', () => {
     expect(shadowContent).toContain('Testing');
   });
 
-  test('should observe name and color attributes', () => {
+  test('should observe name attribute', () => {
     const observedAttributes = CkEditableArray.observedAttributes;
     expect(observedAttributes).toContain('name');
-    expect(observedAttributes).toContain('color');
-  });
-
-  test('should handle color attribute', () => {
-    element.setAttribute('color', 'blue');
-    element.connectedCallback();
-
-    const shadowContent = element.shadowRoot?.innerHTML;
-    expect(shadowContent).toContain('blue');
   });
 
   // Data property tests (TDD: RED phase)
@@ -300,6 +291,156 @@ describe('CkEditableArray Component', () => {
 
     const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
     expect(rowsHost?.textContent).toContain('No display template found');
+  });
+
+  describe('Display - Wrapper Class Configuration (Phase 2)', () => {
+    test('should observe root-class, rows-class, and row-class attributes', () => {
+      const observedAttributes = CkEditableArray.observedAttributes;
+      expect(observedAttributes).toContain('root-class');
+      expect(observedAttributes).toContain('rows-class');
+      expect(observedAttributes).toContain('row-class');
+    });
+
+    test('should expose rootClass/rowsClass/rowClass properties', () => {
+      const proto = Object.getPrototypeOf(element) as object;
+      expect(Object.getOwnPropertyDescriptor(proto, 'rootClass')).toBeTruthy();
+      expect(Object.getOwnPropertyDescriptor(proto, 'rowsClass')).toBeTruthy();
+      expect(Object.getOwnPropertyDescriptor(proto, 'rowClass')).toBeTruthy();
+    });
+
+    test('should apply root-class, rows-class, and row-class to generated wrappers', () => {
+      element.setAttribute('root-class', 'custom-root');
+      element.setAttribute('rows-class', 'custom-rows');
+      element.setAttribute('row-class', 'custom-row');
+
+      const template = document.createElement('template');
+      template.setAttribute('slot', 'display');
+      template.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(template);
+
+      element.data = [{ name: 'A' }, { name: 'B' }];
+      element.connectedCallback();
+
+      const rootContainer = element.shadowRoot?.querySelector(
+        '.ck-editable-array'
+      ) as HTMLElement;
+      expect(rootContainer).toBeTruthy();
+      expect(rootContainer.classList.contains('ck-editable-array')).toBe(true);
+      expect(rootContainer.classList.contains('custom-root')).toBe(true);
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      expect(rowsHost).toBeTruthy();
+      expect((rowsHost as HTMLElement).classList.contains('rows')).toBe(true);
+      expect((rowsHost as HTMLElement).classList.contains('custom-rows')).toBe(
+        true
+      );
+
+      const rows = element.shadowRoot?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
+      expect(rows.length).toBe(2);
+      expect(rows[0].classList.contains('row')).toBe(true);
+      expect(rows[0].classList.contains('custom-row')).toBe(true);
+      expect(rows[1].classList.contains('custom-row')).toBe(true);
+    });
+
+    test('should update wrapper classes when attributes change', () => {
+      element.setAttribute('row-class', 'row-v1');
+
+      const template = document.createElement('template');
+      template.setAttribute('slot', 'display');
+      template.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(template);
+
+      element.data = [{ name: 'A' }, { name: 'B' }];
+      element.connectedCallback();
+
+      // Change row-class after initial render
+      element.setAttribute('row-class', 'row-v2');
+      element.attributeChangedCallback('row-class', 'row-v1', 'row-v2');
+
+      const rows = element.shadowRoot?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
+      expect(rows[0].classList.contains('row-v1')).toBe(false);
+      expect(rows[0].classList.contains('row-v2')).toBe(true);
+      expect(rows[1].classList.contains('row-v2')).toBe(true);
+    });
+
+    test('should update root-class and rows-class when attributes change', () => {
+      element.setAttribute('root-class', 'root-v1');
+      element.setAttribute('rows-class', 'rows-v1');
+
+      const template = document.createElement('template');
+      template.setAttribute('slot', 'display');
+      template.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(template);
+
+      element.data = [{ name: 'A' }];
+      element.connectedCallback();
+
+      element.setAttribute('root-class', 'root-v2');
+      element.attributeChangedCallback('root-class', 'root-v1', 'root-v2');
+
+      element.setAttribute('rows-class', 'rows-v2');
+      element.attributeChangedCallback('rows-class', 'rows-v1', 'rows-v2');
+
+      const rootContainer = element.shadowRoot?.querySelector(
+        '.ck-editable-array'
+      ) as HTMLElement;
+      expect(rootContainer.classList.contains('root-v1')).toBe(false);
+      expect(rootContainer.classList.contains('root-v2')).toBe(true);
+
+      const rowsHost = element.shadowRoot?.querySelector(
+        '[part="rows"]'
+      ) as HTMLElement;
+      expect(rowsHost.classList.contains('rows-v1')).toBe(false);
+      expect(rowsHost.classList.contains('rows-v2')).toBe(true);
+    });
+
+    test('should remove wrapper classes when attribute is cleared', () => {
+      element.setAttribute('row-class', 'row-v1');
+
+      const template = document.createElement('template');
+      template.setAttribute('slot', 'display');
+      template.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(template);
+
+      element.data = [{ name: 'A' }];
+      element.connectedCallback();
+
+      element.removeAttribute('row-class');
+      element.attributeChangedCallback(
+        'row-class',
+        'row-v1',
+        null as unknown as string
+      );
+
+      const row = element.shadowRoot?.querySelector(
+        '[data-row]'
+      ) as HTMLElement;
+      expect(row.classList.contains('row')).toBe(true);
+      expect(row.classList.contains('row-v1')).toBe(false);
+    });
+
+    test('should not apply wrapper classes to elements inside the template', () => {
+      element.setAttribute('row-class', 'row-wrapper-class');
+
+      const template = document.createElement('template');
+      template.setAttribute('slot', 'display');
+      template.innerHTML = `<div id="inside" class="inside"></div>`;
+      element.appendChild(template);
+
+      element.data = [{ name: 'A' }];
+      element.connectedCallback();
+
+      const inside = element.shadowRoot?.querySelector(
+        '#inside'
+      ) as HTMLElement;
+      expect(inside).toBeTruthy();
+      expect(inside.classList.contains('inside')).toBe(true);
+      expect(inside.classList.contains('row-wrapper-class')).toBe(false);
+    });
   });
 
   // Accessibility tests (Phase 1 - Task 1.1)

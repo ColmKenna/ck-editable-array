@@ -69,17 +69,6 @@ describe('CkEditableArray Performance Benchmarks', () => {
     expect(updateTime).toBeLessThan(100); // Should update in less than 100ms
   });
 
-  test('should update attribute efficiently without full re-render', () => {
-    element.connectedCallback();
-
-    const startTime = performance.now();
-    element.color = '#ff0000';
-    const endTime = performance.now();
-
-    const updateTime = endTime - startTime;
-    expect(updateTime).toBeLessThan(10); // Fast path: <10ms
-  });
-
   test('should update name efficiently without full re-render', () => {
     element.connectedCallback();
 
@@ -136,23 +125,5 @@ describe('CkEditableArray Performance Benchmarks', () => {
 
     const cachedRenderTime = endTime - startTime;
     expect(cachedRenderTime).toBeLessThan(50);
-  });
-
-  test('performance: color updates should use fast path', () => {
-    element.connectedCallback();
-    element.name = 'Test Component';
-
-    const colorChanges = 10;
-    const startTime = performance.now();
-
-    for (let i = 0; i < colorChanges; i++) {
-      element.color = `hsl(${(i * 36) % 360}, 100%, 50%)`;
-    }
-
-    const endTime = performance.now();
-    const totalTime = endTime - startTime;
-
-    // Should average less than 1ms per color change
-    expect(totalTime / colorChanges).toBeLessThan(5);
   });
 });
