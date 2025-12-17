@@ -1,3 +1,5 @@
+/// <reference lib="dom" />
+/* eslint-disable no-undef */
 import { CkEditableArray } from '../../src/components/ck-editable-array/ck-editable-array';
 
 // Define the custom element before running tests
@@ -298,5 +300,169 @@ describe('CkEditableArray Component', () => {
 
     const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
     expect(rowsHost?.textContent).toContain('No display template found');
+  });
+
+  // Accessibility tests (Phase 1 - Task 1.1)
+  describe('Accessibility - ARIA Roles and Labels', () => {
+    test('should have role="region" on root container', () => {
+      element.connectedCallback();
+      const rootContainer =
+        element.shadowRoot?.querySelector('.ck-editable-array');
+      expect(rootContainer?.getAttribute('role')).toBe('region');
+    });
+
+    test('should have aria-label on root container', () => {
+      element.connectedCallback();
+      const rootContainer =
+        element.shadowRoot?.querySelector('.ck-editable-array');
+      expect(rootContainer?.getAttribute('aria-label')).toBeTruthy();
+      expect(rootContainer?.getAttribute('aria-label')).toContain('array');
+    });
+
+    test('should have role="list" on rows container', () => {
+      element.connectedCallback();
+      const rowsContainer = element.shadowRoot?.querySelector('[part="rows"]');
+      expect(rowsContainer?.getAttribute('role')).toBe('list');
+    });
+
+    test('should have aria-label on rows container', () => {
+      element.connectedCallback();
+      const rowsContainer = element.shadowRoot?.querySelector('[part="rows"]');
+      expect(rowsContainer?.getAttribute('aria-label')).toBeTruthy();
+    });
+
+    test('should have aria-live status region', () => {
+      element.connectedCallback();
+      const statusRegion = element.shadowRoot?.querySelector('[role="status"]');
+      expect(statusRegion).toBeTruthy();
+      expect(statusRegion?.getAttribute('aria-live')).toBe('polite');
+      expect(statusRegion?.getAttribute('aria-atomic')).toBe('true');
+    });
+  });
+
+  // Accessibility tests (Phase 1 - Task 1.2)
+  describe('Accessibility - Keyboard Navigation', () => {
+    test('should add tabindex="0" to each row', () => {
+      const template = document.createElement('template');
+      template.setAttribute('slot', 'display');
+      template.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(template);
+
+      element.data = [{ name: 'A' }, { name: 'B' }];
+      element.connectedCallback();
+
+      const rows = element.shadowRoot?.querySelectorAll('[data-row]');
+      expect(rows?.length).toBe(2);
+      expect((rows?.[0] as HTMLElement)?.getAttribute('tabindex')).toBe('0');
+      expect((rows?.[1] as HTMLElement)?.getAttribute('tabindex')).toBe('0');
+    });
+
+    test('should allow ArrowDown to move focus to next row', () => {
+      const template = document.createElement('template');
+      template.setAttribute('slot', 'display');
+      template.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(template);
+
+      element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+      element.connectedCallback();
+
+      const rows = element.shadowRoot?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
+
+      // Focus first row
+      rows[0].focus();
+      expect(element.shadowRoot?.activeElement).toBe(rows[0]);
+
+      // Press ArrowDown
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowDown',
+        bubbles: true,
+      });
+      rows[0].dispatchEvent(event);
+
+      // Second row should be focused
+      expect(element.shadowRoot?.activeElement).toBe(rows[1]);
+    });
+
+    test('should allow ArrowUp to move focus to previous row', () => {
+      const template = document.createElement('template');
+      template.setAttribute('slot', 'display');
+      template.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(template);
+
+      element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+      element.connectedCallback();
+
+      const rows = element.shadowRoot?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
+
+      // Focus second row
+      rows[1].focus();
+      expect(element.shadowRoot?.activeElement).toBe(rows[1]);
+
+      // Press ArrowUp
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowUp',
+        bubbles: true,
+      });
+      rows[1].dispatchEvent(event);
+
+      // First row should be focused
+      expect(element.shadowRoot?.activeElement).toBe(rows[0]);
+    });
+
+    test('should not move focus beyond first row with ArrowUp', () => {
+      const template = document.createElement('template');
+      template.setAttribute('slot', 'display');
+      template.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(template);
+
+      element.data = [{ name: 'A' }, { name: 'B' }];
+      element.connectedCallback();
+
+      const rows = element.shadowRoot?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
+
+      // Focus first row
+      rows[0].focus();
+
+      // Press ArrowUp (should stay on first row)
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowUp',
+        bubbles: true,
+      });
+      rows[0].dispatchEvent(event);
+
+      expect(element.shadowRoot?.activeElement).toBe(rows[0]);
+    });
+
+    test('should not move focus beyond last row with ArrowDown', () => {
+      const template = document.createElement('template');
+      template.setAttribute('slot', 'display');
+      template.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(template);
+
+      element.data = [{ name: 'A' }, { name: 'B' }];
+      element.connectedCallback();
+
+      const rows = element.shadowRoot?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
+
+      // Focus last row
+      rows[1].focus();
+
+      // Press ArrowDown (should stay on last row)
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowDown',
+        bubbles: true,
+      });
+      rows[1].dispatchEvent(event);
+
+      expect(element.shadowRoot?.activeElement).toBe(rows[1]);
+    });
   });
 });

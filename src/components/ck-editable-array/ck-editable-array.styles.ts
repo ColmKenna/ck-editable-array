@@ -27,6 +27,14 @@ export const ckEditableArrayCSS = `
 
 .row {
   padding: 0.75rem;
+  border-radius: var(--cea-row-border-radius, 0.25rem);
+  transition: background-color 0.15s ease;
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--cea-focus-color, #4a90e2);
+  outline-offset: 2px;
+  background-color: var(--cea-focus-background, rgba(74, 144, 226, 0.1));
 }
 
 .row + .row {
@@ -36,6 +44,18 @@ export const ckEditableArrayCSS = `
 .empty-state {
   margin: 0;
   font-size: 0.95rem;
+}
+
+.ck-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 `;
 

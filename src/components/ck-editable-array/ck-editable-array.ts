@@ -73,7 +73,10 @@ export class CkEditableArray extends HTMLElement {
 
   set data(value: unknown) {
     this._data = Array.isArray(value) ? this._deepClone(value) : [];
-    if (this.isConnected) this.render();
+    if (this.isConnected) {
+      this.render();
+      this._announceDataChange();
+    }
 
     this.dispatchEvent(
       new CustomEvent('datachanged', {
@@ -121,10 +124,11 @@ export class CkEditableArray extends HTMLElement {
     this.style.setProperty('--cea-color', this.color);
 
     this._rootEl.innerHTML = `
-      <div class="ck-editable-array">
+      <div class="ck-editable-array" role="region" aria-label="Editable array display">
         <h1 class="message">Hello, ${this.name}!</h1>
         <p class="subtitle">Welcome to our Web Component Library</p>
-        <div class="rows" part="rows" data-ck-editable-array-rows></div>
+        <div class="rows" role="list" aria-label="Array items" part="rows" data-ck-editable-array-rows></div>
+        <div role="status" aria-live="polite" aria-atomic="true" class="ck-sr-only" id="aria-status"></div>
       </div>
     `;
 
@@ -169,9 +173,16 @@ export class CkEditableArray extends HTMLElement {
         const rowEl = document.createElement('div');
         rowEl.className = 'row';
         rowEl.setAttribute('data-row', String(index));
+        rowEl.setAttribute('tabindex', '0');
+        rowEl.setAttribute('role', 'listitem');
+        rowEl.setAttribute('aria-rowindex', String(index + 1));
+        rowEl.addEventListener('keydown', event =>
+          this._handleRowKeydown(event as KeyboardEvent, index)
+        );
 
         rowEl.appendChild(template.content.cloneNode(true));
         this._applyBindings(rowEl, rowData);
+        this._applyFormSemantics(rowEl, rowData, index);
 
         rowsHost.appendChild(rowEl);
       });
@@ -208,12 +219,74 @@ export class CkEditableArray extends HTMLElement {
     });
   }
 
+  private _applyFormSemantics(
+    rowEl: HTMLElement,
+    rowData: unknown,
+    rowIndex: number
+  ) {
+    // Mark bound elements as form cells
+    const boundEls = rowEl.querySelectorAll('[data-bind]');
+    boundEls.forEach(el => {
+      if (!(el instanceof HTMLElement)) return;
+      el.setAttribute('role', 'cell');
+    });
+
+    // Store row index for form submission (accessible via data attribute)
+    rowEl.setAttribute('data-form-row-index', String(rowIndex));
+
+    // Store serialized row data for form submission
+    if (typeof rowData === 'object' && rowData !== null) {
+      try {
+        const serialized = JSON.stringify(rowData);
+        rowEl.setAttribute('data-form-row-data', serialized);
+      } catch {
+        // Silently skip serialization if not JSON-serializable
+      }
+    }
+  }
+
   private _resolvePath(obj: unknown, path: string): unknown {
     return path.split('.').reduce<unknown>((current, key) => {
       if (current === null || current === undefined) return undefined;
       if (typeof current !== 'object') return undefined;
       return (current as Record<string, unknown>)[key];
     }, obj);
+  }
+
+  private _handleRowKeydown(event: KeyboardEvent, rowIndex: number) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      const rows = this.shadowRoot?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+      if (rows && rowIndex < rows.length - 1) {
+        rows[rowIndex + 1].focus();
+      }
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const rows = this.shadowRoot?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+      if (rows && rowIndex > 0) {
+        rows[rowIndex - 1].focus();
+      }
+    }
+  }
+
+  private _announceDataChange() {
+    const statusRegion = this.shadowRoot?.querySelector(
+      '[role="status"]'
+    ) as HTMLElement | null;
+    if (statusRegion) {
+      const rowCount = this._data.length;
+      const message =
+        rowCount === 0
+          ? 'Array is now empty'
+          : rowCount === 1
+            ? '1 item in array'
+            : `${rowCount} items in array`;
+      statusRegion.textContent = message;
+    }
   }
 }
 
