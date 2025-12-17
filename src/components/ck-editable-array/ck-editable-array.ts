@@ -8,6 +8,12 @@ export class CkEditableArray extends HTMLElement {
   private _data: unknown[] = [];
   private _rootEl: HTMLDivElement;
   private _displayObserver: MutationObserver | null = null;
+  private _containerEl: HTMLDivElement | null = null;
+  private _messageEl: HTMLHeadingElement | null = null;
+  private _rowsHostEl: HTMLDivElement | null = null;
+  private _statusRegionEl: HTMLDivElement | null = null;
+  private _displayTemplate: HTMLTemplateElement | null = null;
+  private _templateCached = false;
 
   constructor() {
     super();
@@ -47,7 +53,13 @@ export class CkEditableArray extends HTMLElement {
 
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
     if (oldValue !== newValue) {
-      this.render();
+      if (name === 'color') {
+        this._updateColorOnly();
+      } else if (name === 'name') {
+        this._updateNameOnly();
+      } else {
+        this.render();
+      }
     }
   }
 
@@ -110,6 +122,9 @@ export class CkEditableArray extends HTMLElement {
   }
 
   private render() {
+    // Invalidate template cache on each full render
+    this._templateCached = false;
+
     if (!ckEditableArraySheet) {
       if (
         !this.shadow.querySelector('style[data-ck-editable-array-fallback]')
@@ -123,22 +138,67 @@ export class CkEditableArray extends HTMLElement {
 
     this.style.setProperty('--cea-color', this.color);
 
-    this._rootEl.innerHTML = `
-      <div class="ck-editable-array" role="region" aria-label="Editable array display">
-        <h1 class="message">Hello, ${this.name}!</h1>
-        <p class="subtitle">Welcome to our Web Component Library</p>
-        <div class="rows" role="list" aria-label="Array items" part="rows" data-ck-editable-array-rows></div>
-        <div role="status" aria-live="polite" aria-atomic="true" class="ck-sr-only" id="aria-status"></div>
-      </div>
-    `;
+    // Create structure on first render only
+    if (!this._containerEl) {
+      this._containerEl = document.createElement('div');
+      this._containerEl.className = 'ck-editable-array';
+      this._containerEl.setAttribute('role', 'region');
+      this._containerEl.setAttribute('aria-label', 'Editable array display');
 
-    const rowsHost = this._rootEl.querySelector(
-      '[data-ck-editable-array-rows]'
-    ) as HTMLElement | null;
-    if (rowsHost) this._renderRows(rowsHost);
+      this._messageEl = document.createElement('h1');
+      this._messageEl.className = 'message';
 
-    const msg = this._rootEl.querySelector('.message') as HTMLElement | null;
-    if (msg) msg.style.color = this.color;
+      const subtitleEl = document.createElement('p');
+      subtitleEl.className = 'subtitle';
+      subtitleEl.textContent = 'Welcome to our Web Component Library';
+
+      this._rowsHostEl = document.createElement('div');
+      this._rowsHostEl.className = 'rows';
+      this._rowsHostEl.setAttribute('role', 'list');
+      this._rowsHostEl.setAttribute('aria-label', 'Array items');
+      this._rowsHostEl.setAttribute('part', 'rows');
+      this._rowsHostEl.setAttribute('data-ck-editable-array-rows', '');
+
+      this._statusRegionEl = document.createElement('div');
+      this._statusRegionEl.setAttribute('role', 'status');
+      this._statusRegionEl.setAttribute('aria-live', 'polite');
+      this._statusRegionEl.setAttribute('aria-atomic', 'true');
+      this._statusRegionEl.className = 'ck-sr-only';
+      this._statusRegionEl.setAttribute('id', 'aria-status');
+
+      this._containerEl.appendChild(this._messageEl);
+      this._containerEl.appendChild(subtitleEl);
+      this._containerEl.appendChild(this._rowsHostEl);
+      this._containerEl.appendChild(this._statusRegionEl);
+      this._rootEl.appendChild(this._containerEl);
+    }
+
+    // Update only text content
+    if (this._messageEl) {
+      this._messageEl.textContent = `Hello, ${this.name}!`;
+      this._messageEl.style.color = this.color;
+    }
+
+    // Render rows
+    if (this._rowsHostEl) {
+      this._renderRows(this._rowsHostEl);
+    }
+  }
+
+  private _updateColorOnly() {
+    // Fast path: update color without full re-render
+    this.style.setProperty('--cea-color', this.color);
+    if (this._messageEl) {
+      this._messageEl.style.color = this.color;
+    }
+  }
+
+  private _updateNameOnly() {
+    // Fast path: update name text without full re-render
+    if (this._messageEl) {
+      this._messageEl.textContent = `Hello, ${this.name}!`;
+      this._messageEl.style.color = this.color;
+    }
   }
 
   private _ensureDisplayObserver() {
@@ -154,41 +214,85 @@ export class CkEditableArray extends HTMLElement {
           return !!node.querySelector?.('template[slot="display"]');
         });
       });
-      if (hasRelevantChange) this.render();
+      if (hasRelevantChange) {
+        // Invalidate template cache
+        this._templateCached = false;
+        this.render();
+      }
     });
     this._displayObserver.observe(this, { childList: true, subtree: false });
   }
 
   private _getDisplayTemplate(): HTMLTemplateElement | null {
+    // Return cached template or query if not yet cached
+    if (this._templateCached) {
+      return this._displayTemplate;
+    }
     const template = this.querySelector('template[slot="display"]');
-    return template instanceof HTMLTemplateElement ? template : null;
+    this._displayTemplate =
+      template instanceof HTMLTemplateElement ? template : null;
+    this._templateCached = true;
+    return this._displayTemplate;
   }
 
   private _renderRows(rowsHost: HTMLElement) {
-    rowsHost.replaceChildren();
-
     const template = this._getDisplayTemplate();
     if (template) {
+      // Keyed rendering: reuse existing row elements or create new ones
+      const existingRows = Array.from(
+        rowsHost.querySelectorAll('[data-row]')
+      ) as HTMLElement[];
+
+      // Remove extra rows if data size decreased
+      while (existingRows.length > this._data.length) {
+        const extra = existingRows.pop();
+        if (extra) extra.remove();
+      }
+
+      // Update or create rows
       this._data.forEach((rowData, index) => {
-        const rowEl = document.createElement('div');
-        rowEl.className = 'row';
+        let rowEl = existingRows[index];
+        let boundEls: HTMLElement[] = [];
+
+        if (!rowEl) {
+          // Create new row if it doesn't exist
+          rowEl = document.createElement('div');
+          rowEl.className = 'row';
+          rowEl.setAttribute('tabindex', '0');
+          rowEl.setAttribute('role', 'listitem');
+          rowEl.addEventListener('keydown', event =>
+            this._handleRowKeydown(event as KeyboardEvent, index)
+          );
+          rowsHost.appendChild(rowEl);
+
+          // Clone template content into new row
+          rowEl.appendChild(template.content.cloneNode(true));
+
+          // Cache bound elements on first creation
+          boundEls = Array.from(
+            rowEl.querySelectorAll('[data-bind]')
+          ) as HTMLElement[];
+          (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls =
+            boundEls;
+        } else {
+          // Retrieve cached bound elements
+          boundEls =
+            (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls || [];
+        }
+
+        // Always update attributes and bindings for current index/data
         rowEl.setAttribute('data-row', String(index));
-        rowEl.setAttribute('tabindex', '0');
-        rowEl.setAttribute('role', 'listitem');
         rowEl.setAttribute('aria-rowindex', String(index + 1));
-        rowEl.addEventListener('keydown', event =>
-          this._handleRowKeydown(event as KeyboardEvent, index)
-        );
 
-        rowEl.appendChild(template.content.cloneNode(true));
-        this._applyBindings(rowEl, rowData);
-        this._applyFormSemantics(rowEl, rowData, index);
-
-        rowsHost.appendChild(rowEl);
+        // Re-apply bindings and semantics with cached elements
+        this._applyBindingsOptimized(boundEls, rowData);
+        this._applyFormSemanticsOptimized(rowEl, boundEls, rowData, index);
       });
       return;
     }
 
+    // No template: show empty state
+    rowsHost.replaceChildren();
     const empty = document.createElement('p');
     empty.className = 'empty-state';
     empty.textContent =
@@ -235,6 +339,50 @@ export class CkEditableArray extends HTMLElement {
     rowEl.setAttribute('data-form-row-index', String(rowIndex));
 
     // Store serialized row data for form submission
+    if (typeof rowData === 'object' && rowData !== null) {
+      try {
+        const serialized = JSON.stringify(rowData);
+        rowEl.setAttribute('data-form-row-data', serialized);
+      } catch {
+        // Silently skip serialization if not JSON-serializable
+      }
+    }
+  }
+
+  private _applyBindingsOptimized(boundEls: HTMLElement[], rowData: unknown) {
+    boundEls.forEach(el => {
+      const path = el.getAttribute('data-bind');
+      if (!path) {
+        el.textContent = '';
+        return;
+      }
+
+      const value = this._resolvePath(rowData, path);
+      if (Array.isArray(value)) {
+        el.textContent = value.map(v => String(v)).join(', ');
+        return;
+      }
+      if (value === null || value === undefined) {
+        el.textContent = '';
+        return;
+      }
+      el.textContent = String(value);
+    });
+  }
+
+  private _applyFormSemanticsOptimized(
+    rowEl: HTMLElement,
+    boundEls: HTMLElement[],
+    rowData: unknown,
+    rowIndex: number
+  ) {
+    // Optimized version: use pre-cached bound elements
+    boundEls.forEach(el => {
+      el.setAttribute('role', 'cell');
+    });
+
+    rowEl.setAttribute('data-form-row-index', String(rowIndex));
+
     if (typeof rowData === 'object' && rowData !== null) {
       try {
         const serialized = JSON.stringify(rowData);
