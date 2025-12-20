@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ck-editable-array - Edit Template Demos</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        margin: 0;
+        background: radial-gradient(circle at 20% 20%, #f3f4f6, #ffffff 35%),
+          radial-gradient(circle at 80% 10%, #eef2ff, #ffffff 35%),
+          #f8fafc;
+        color: #0f172a;
+        min-height: 100vh;
+      }
+
+      .page {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 3rem;
+      }
+
+      header {
+        margin-bottom: 2rem;
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      h1 {
+        font-size: 2.1rem;
+        margin: 0;
+        letter-spacing: -0.02em;
+      }
+
+      .lede {
+        margin: 0;
+        color: #475569;
+        max-width: 780px;
+        line-height: 1.6;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 1.25rem;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
+        display: grid;
+        gap: 1rem;
+      }
+
+      .card h2 {
+        margin: 0;
+        font-size: 1.2rem;
+        color: #0f172a;
+      }
+
+      .note {
+        margin: 0;
+        color: #64748b;
+        line-height: 1.5;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.3rem 0.6rem;
+        border-radius: 999px;
+        background: #eef2ff;
+        color: #4338ca;
+        font-weight: 600;
+        font-size: 0.8rem;
+      }
+
+      ck-editable-array {
+        --cea-message-color: #0f172a;
+        --cea-rows-gap: 0.75rem;
+      }
+
+      .code {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 0.9rem;
+        background: #0f172a;
+        color: #e2e8f0;
+        padding: 0.75rem;
+        border-radius: 10px;
+        overflow-x: auto;
+      }
+
+      .inline-edit .rows > .row {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0.9rem 1rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0.75rem;
+        align-items: center;
+        background: #f8fafc;
+      }
+
+      .inline-edit .rows > .row + .row {
+        box-shadow: 0 -1px 0 #e2e8f0;
+      }
+
+      .inline-edit .label {
+        color: #475569;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .inline-edit .value {
+        font-weight: 600;
+      }
+
+      .inline-edit .edit-form {
+        display: grid;
+        gap: 0.5rem;
+        background: #ffffff;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 0.75rem;
+      }
+
+      .inline-edit .edit-form label {
+        display: grid;
+        gap: 0.25rem;
+        font-size: 0.9rem;
+        color: #0f172a;
+      }
+
+      .inline-edit .edit-form input,
+      .inline-edit .edit-form select {
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 0.55rem 0.65rem;
+        font: inherit;
+      }
+
+      .inline-edit .edit-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+      }
+
+      .inline-edit .button {
+        padding: 0.55rem 0.9rem;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        background: #ffffff;
+        cursor: pointer;
+        font-weight: 600;
+        color: #0f172a;
+      }
+
+      .inline-edit .button.primary {
+        background: #4338ca;
+        border-color: #4338ca;
+        color: #ffffff;
+      }
+
+      .panel-edit ck-editable-array {
+        --cea-rows-gap: 1rem;
+      }
+
+      .panel-edit .rows > .row {
+        padding: 1rem;
+        border-radius: 14px;
+        background: linear-gradient(145deg, #0f172a, #111827);
+        color: #e0f2fe;
+        border: 1px solid #1e293b;
+      }
+
+      .panel-edit .project-name {
+        font-weight: 700;
+        font-size: 1rem;
+      }
+
+      .panel-edit .meta {
+        display: flex;
+        gap: 0.75rem;
+        font-size: 0.9rem;
+        color: #cbd5e1;
+      }
+
+      .panel-edit .edit-sheet {
+        display: grid;
+        gap: 0.75rem;
+        background: #0b1222;
+        border: 1px solid #1d283a;
+        border-radius: 12px;
+        padding: 1rem;
+      }
+
+      .panel-edit .edit-sheet label {
+        display: grid;
+        gap: 0.3rem;
+        color: #e2e8f0;
+        font-size: 0.95rem;
+      }
+
+      .panel-edit .edit-sheet input,
+      .panel-edit .edit-sheet textarea,
+      .panel-edit .edit-sheet select {
+        border-radius: 10px;
+        border: 1px solid #334155;
+        background: #0f172a;
+        color: #e2e8f0;
+        padding: 0.55rem 0.65rem;
+        font: inherit;
+      }
+
+      .panel-edit .edit-sheet textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+
+      .panel-edit .edit-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+      }
+
+      .panel-edit .button {
+        padding: 0.6rem 1rem;
+        border-radius: 10px;
+        border: 1px solid #334155;
+        background: #1d283a;
+        color: #e2e8f0;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      .panel-edit .button.primary {
+        background: #22c55e;
+        border-color: #16a34a;
+        color: #0b1222;
+      }
+
+      @media (max-width: 720px) {
+        .inline-edit .rows > .row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1>Edit Template Samples</h1>
+        <p class="lede">
+          These examples include a dedicated <code>slot="edit"</code> template so you can see how to provide
+          editing surfaces alongside the display template. <strong>Form inputs with <code>data-bind</code> attributes
+          are automatically populated</strong> with values from the row data (text inputs get `.value`, checkboxes get `.checked`,
+          selects get the matching option selected). Toggle logic is app-specific; the component will
+          clone both templates so you can choose when to reveal the edit experience.
+        </p>
+      </header>
+
+      <div class="grid">
+        <div class="card inline-edit">
+          <div class="chip">Inline form</div>
+          <h2>Field-first editing</h2>
+          <p class="note">
+            A compact row layout with inputs and selects in the edit template. Bindings mirror the display fields.
+          </p>
+          <ck-editable-array id="inlineEditor" name="Inline Editor" row-class="inline-row">
+            <template slot="display">
+              <div class="row-shell">
+                <div class="label">Name</div>
+                <div class="value" data-bind="name"></div>
+                <div class="label">Role</div>
+                <div class="value" data-bind="role"></div>
+                <div class="label">Level</div>
+                <div class="value" data-bind="level"></div>
+              </div>
+            </template>
+
+            <template slot="edit">
+              <form class="edit-form">
+                <label>
+                  Name
+                  <input type="text" name="name" data-bind="name" />
+                </label>
+                <label>
+                  Role
+                  <input type="text" name="role" data-bind="role" />
+                </label>
+                <label>
+                  Level
+                  <select name="level" data-bind="level">
+                    <option>Junior</option>
+                    <option>Mid</option>
+                    <option>Senior</option>
+                    <option>Lead</option>
+                  </select>
+                </label>
+                <div class="edit-actions">
+                  <button type="button" class="button">Cancel</button>
+                  <button type="submit" class="button primary">Save</button>
+                </div>
+              </form>
+            </template>
+          </ck-editable-array>
+          <div class="code">&lt;template slot="edit"&gt;...form fields...&lt;/template&gt;</div>
+        </div>
+
+        <div class="card panel-edit">
+          <div class="chip">Panel editor</div>
+          <h2>Rich project editor</h2>
+          <p class="note">
+            A denser editor with textarea support and darker styling to show the edit surface can look distinct from
+            the display template.
+          </p>
+          <ck-editable-array id="panelEditor" name="Panel Editor" row-class="panel-row">
+            <template slot="display">
+              <div class="row-shell">
+                <div class="project-name" data-bind="name"></div>
+                <div class="meta">
+                  <span data-bind="owner"></span>
+                  <span aria-hidden="true">•</span>
+                  <span data-bind="status"></span>
+                  <span aria-hidden="true">•</span>
+                  <span data-bind="updated"></span>
+                </div>
+              </div>
+            </template>
+
+            <template slot="edit">
+              <div class="edit-sheet">
+                <label>
+                  Project name
+                  <input type="text" name="name" data-bind="name" />
+                </label>
+                <label>
+                  Owner
+                  <input type="text" name="owner" data-bind="owner" />
+                </label>
+                <label>
+                  Status
+                  <select name="status" data-bind="status">
+                    <option>planning</option>
+                    <option>in progress</option>
+                    <option>blocked</option>
+                    <option>done</option>
+                  </select>
+                </label>
+                <label>
+                  Notes
+                  <textarea name="notes" data-bind="notes"></textarea>
+                </label>
+                <div class="edit-actions">
+                  <button type="button" class="button">Discard</button>
+                  <button type="submit" class="button primary">Save changes</button>
+                </div>
+              </div>
+            </template>
+          </ck-editable-array>
+          <div class="code">&lt;template slot="edit"&gt;...panel form...&lt;/template&gt;</div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import '../dist/hello-world/hello-world.esm.js';
+
+      const inline = document.getElementById('inlineEditor');
+      inline.data = [
+        { name: 'Ariel Chen', role: 'Designer', level: 'Senior' },
+        { name: 'Dev Patel', role: 'Engineer', level: 'Mid' },
+        { name: 'Sasha Moore', role: 'PM', level: 'Lead' },
+      ];
+
+      const panel = document.getElementById('panelEditor');
+      panel.data = [
+        {
+          name: 'Mobile redesign',
+          owner: 'Kelly',
+          status: 'in progress',
+          updated: 'Updated 2d ago',
+          notes: 'Polish nav transitions and finish onboarding flow',
+        },
+        {
+          name: 'Data lake sync',
+          owner: 'Samir',
+          status: 'planning',
+          updated: 'Updated 1w ago',
+          notes: 'Finalize schema and retention rules',
+        },
+        {
+          name: 'Billing refresh',
+          owner: 'Taylor',
+          status: 'blocked',
+          updated: 'Updated 3d ago',
+          notes: 'Waiting on legal review of invoice layout',
+        },
+      ];
+    </script>
+  </body>
+</html>

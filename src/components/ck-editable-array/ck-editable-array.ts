@@ -12,6 +12,7 @@ export class CkEditableArray extends HTMLElement {
   private _rowsHostEl: HTMLDivElement | null = null;
   private _statusRegionEl: HTMLDivElement | null = null;
   private _displayTemplate: HTMLTemplateElement | null = null;
+  private _editTemplate: HTMLTemplateElement | null = null;
 
   constructor() {
     super();
@@ -236,6 +237,16 @@ export class CkEditableArray extends HTMLElement {
     this._applyWrapperClasses();
   }
 
+  private _getEditTemplate() {
+    if (this._editTemplate) return this._editTemplate;
+    const template = this.querySelector('template[slot="edit"]');
+    if (template instanceof HTMLTemplateElement) {
+      this._editTemplate = template;
+      return template;
+    }
+    return null;
+  }
+
   private _getDisplayTemplate(): HTMLTemplateElement | null {
     if (this._displayTemplate) return this._displayTemplate;
     const template = this.querySelector('template[slot="display"]');
@@ -248,6 +259,7 @@ export class CkEditableArray extends HTMLElement {
 
   private _renderRows(rowsHost: HTMLElement) {
     const template = this._getDisplayTemplate();
+    const editTemplate = this._getEditTemplate();
     if (template) {
       const rowTokens = this._parseClassTokens(this.getAttribute('row-class'));
 
@@ -263,49 +275,17 @@ export class CkEditableArray extends HTMLElement {
       }
 
       // Update or create rows
-      this._data.forEach((rowData, index) => {
-        let rowEl = existingRows[index];
-        let boundEls: HTMLElement[] = [];
-
-        if (!rowEl) {
-          // Create new row if it doesn't exist
-          rowEl = document.createElement('div');
-          rowEl.className = 'row';
-          rowTokens.forEach(t => rowEl.classList.add(t));
-          rowEl.setAttribute('tabindex', '0');
-          rowEl.setAttribute('role', 'listitem');
-          rowEl.addEventListener('keydown', event =>
-            this._handleRowKeydown(event as KeyboardEvent, index)
-          );
-          rowsHost.appendChild(rowEl);
-
-          // Clone template content into new row
-          rowEl.appendChild(template.content.cloneNode(true));
-
-          // Cache bound elements on first creation
-          boundEls = Array.from(
-            rowEl.querySelectorAll('[data-bind]')
-          ) as HTMLElement[];
-          (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls =
-            boundEls;
-        } else {
-          // Retrieve cached bound elements
-          boundEls =
-            (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls || [];
-        }
-
-        // Ensure row wrapper classes reflect current configuration (handles updates)
-        rowEl.className = 'row';
-        rowTokens.forEach(t => rowEl.classList.add(t));
-
-        // Always update attributes and bindings for current index/data
-        rowEl.setAttribute('data-row', String(index));
-        rowEl.setAttribute('aria-rowindex', String(index + 1));
-
-        // Re-apply bindings and semantics with cached elements
-        this._applyBindingsOptimized(boundEls, rowData);
-        this._applyFormSemanticsOptimized(rowEl, boundEls, rowData, index);
-      });
+      this._data.forEach((rowData, index) =>
+        this._renderRow(
+          rowData,
+          index,
+          rowsHost,
+          existingRows,
+          template,
+          editTemplate,
+          rowTokens
+        )
+      );
       return;
     }
 
@@ -316,6 +296,64 @@ export class CkEditableArray extends HTMLElement {
     empty.textContent =
       'No display template found. Add <template slot="display">...</template> to provide custom display content.';
     rowsHost.appendChild(empty);
+  }
+
+  private _renderRow(
+    rowData: unknown,
+    index: number,
+    rowsHost: HTMLElement,
+    existingRows: HTMLElement[],
+    template: HTMLTemplateElement,
+    editTemplate: HTMLTemplateElement | null,
+    rowTokens: string[]
+  ) {
+    let rowEl = existingRows[index];
+    let boundEls: HTMLElement[] = [];
+
+    if (!rowEl) {
+      // Create new row if it doesn't exist
+      rowEl = document.createElement('div');
+      rowEl.className = 'row';
+      rowTokens.forEach(t => rowEl.classList.add(t));
+      rowEl.setAttribute('tabindex', '0');
+      rowEl.setAttribute('role', 'listitem');
+      rowEl.addEventListener('keydown', event =>
+        this._handleRowKeydown(event as KeyboardEvent, index)
+      );
+      rowsHost.appendChild(rowEl);
+
+      // Clone template content into new row
+      rowEl.appendChild(template.content.cloneNode(true));
+      rowEl.toggleAttribute('data-has-edit-template', !!editTemplate);
+      if (editTemplate) {
+        let editContent = editTemplate.content.cloneNode(true);
+        rowEl.appendChild(editContent);
+      }
+      // Cache bound elements on first creation
+      boundEls = Array.from(
+        rowEl.querySelectorAll('[data-bind]')
+      ) as HTMLElement[];
+      (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls = boundEls;
+    } else {
+      // Retrieve cached bound elements
+      boundEls =
+        (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls || [];
+    }
+
+    if (!rowEl) return;
+
+    // Ensure row wrapper classes reflect current configuration (handles updates)
+    rowEl.className = 'row';
+    rowTokens.forEach(t => rowEl.classList.add(t));
+    rowEl.toggleAttribute('data-has-edit-template', !!editTemplate);
+
+    // Always update attributes and bindings for current index/data
+    rowEl.setAttribute('data-row', String(index));
+    rowEl.setAttribute('aria-rowindex', String(index + 1));
+
+    // Re-apply bindings and semantics with cached elements
+    this._applyBindingsOptimized(boundEls, rowData);
+    this._applyFormSemanticsOptimized(rowEl, boundEls, rowData, index);
   }
 
   private _applyBindings(root: ParentNode, rowData: unknown) {
@@ -371,21 +409,78 @@ export class CkEditableArray extends HTMLElement {
     boundEls.forEach(el => {
       const path = el.getAttribute('data-bind');
       if (!path) {
-        el.textContent = '';
+        // Handle form elements and non-form elements differently
+        if (this._isFormElement(el)) {
+          this._setFormElementValue(el, '');
+        } else {
+          el.textContent = '';
+        }
         return;
       }
 
       const value = this._resolvePath(rowData, path);
-      if (Array.isArray(value)) {
-        el.textContent = value.map(v => String(v)).join(', ');
-        return;
+
+      // Check if element is a form input (input, select, textarea)
+      if (this._isFormElement(el)) {
+        this._setFormElementValue(el, value);
+      } else {
+        // Non-form elements use textContent (existing behavior)
+        if (Array.isArray(value)) {
+          el.textContent = value.map(v => String(v)).join(', ');
+          return;
+        }
+        if (value === null || value === undefined) {
+          el.textContent = '';
+          return;
+        }
+        el.textContent = String(value);
       }
-      if (value === null || value === undefined) {
-        el.textContent = '';
-        return;
-      }
-      el.textContent = String(value);
     });
+  }
+
+  private _isFormElement(el: HTMLElement): boolean {
+    const tagName = el.tagName.toLowerCase();
+    return (
+      tagName === 'input' || tagName === 'select' || tagName === 'textarea'
+    );
+  }
+
+  private _setFormElementValue(el: HTMLElement, value: unknown): void {
+    const tagName = el.tagName.toLowerCase();
+
+    if (tagName === 'input') {
+      const inputEl = el as HTMLInputElement;
+      const inputType = inputEl.type.toLowerCase();
+
+      if (inputType === 'checkbox') {
+        // Checkbox: set checked property
+        inputEl.checked = Boolean(value);
+      } else if (inputType === 'radio') {
+        // Radio: set checked if value matches
+        inputEl.checked = inputEl.value === String(value);
+      } else {
+        // Text, number, email, etc.: set value
+        if (value === null || value === undefined) {
+          inputEl.value = '';
+        } else {
+          inputEl.value = String(value);
+        }
+      }
+    } else if (tagName === 'select') {
+      const selectEl = el as HTMLSelectElement;
+      if (value === null || value === undefined) {
+        selectEl.value = '';
+      } else {
+        selectEl.value = String(value);
+      }
+    } else if (tagName === 'textarea') {
+      const textareaEl = el as HTMLTextAreaElement;
+      if (value === null || value === undefined) {
+        textareaEl.value = '';
+      } else {
+        textareaEl.value = String(value);
+      }
+    }
   }
 
   private _applyFormSemanticsOptimized(

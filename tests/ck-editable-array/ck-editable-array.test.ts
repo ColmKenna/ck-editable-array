@@ -606,4 +606,277 @@ describe('CkEditableArray Component', () => {
       expect(element.shadowRoot?.activeElement).toBe(rows[1]);
     });
   });
+
+  // Edit Template Input Value Binding Tests (TDD: RED phase)
+  describe('Edit Template - Input Value Binding', () => {
+    test('should populate input value from data-bind in edit template', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Alice' }, { name: 'Bob' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+
+      expect(rows?.length).toBe(2);
+
+      const input1 = rows?.[0]?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      const input2 = rows?.[1]?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+
+      expect(input1).toBeTruthy();
+      expect(input2).toBeTruthy();
+      expect(input1.value).toBe('Alice');
+      expect(input2.value).toBe('Bob');
+    });
+
+    test('should populate textarea value from data-bind in edit template', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="notes"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<textarea data-bind="notes"></textarea>`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ notes: 'First note' }, { notes: 'Second note' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+
+      const textarea1 = rows?.[0]?.querySelector(
+        'textarea[data-bind="notes"]'
+      ) as HTMLTextAreaElement;
+      const textarea2 = rows?.[1]?.querySelector(
+        'textarea[data-bind="notes"]'
+      ) as HTMLTextAreaElement;
+
+      expect(textarea1).toBeTruthy();
+      expect(textarea2).toBeTruthy();
+      expect(textarea1.value).toBe('First note');
+      expect(textarea2.value).toBe('Second note');
+    });
+
+    test('should select correct option in select element from data-bind in edit template', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="status"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `
+        <select data-bind="status">
+          <option value="pending">Pending</option>
+          <option value="active">Active</option>
+          <option value="done">Done</option>
+        </select>
+      `;
+      element.appendChild(editTemplate);
+
+      element.data = [{ status: 'active' }, { status: 'done' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+
+      const select1 = rows?.[0]?.querySelector(
+        'select[data-bind="status"]'
+      ) as HTMLSelectElement;
+      const select2 = rows?.[1]?.querySelector(
+        'select[data-bind="status"]'
+      ) as HTMLSelectElement;
+
+      expect(select1).toBeTruthy();
+      expect(select2).toBeTruthy();
+      expect(select1.value).toBe('active');
+      expect(select2.value).toBe('done');
+    });
+
+    test('should handle nested path bindings in input elements', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="user.email"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="email" data-bind="user.email" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [
+        { user: { email: 'alice@example.com' } },
+        { user: { email: 'bob@example.com' } },
+      ];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+
+      const input1 = rows?.[0]?.querySelector(
+        'input[data-bind="user.email"]'
+      ) as HTMLInputElement;
+      const input2 = rows?.[1]?.querySelector(
+        'input[data-bind="user.email"]'
+      ) as HTMLInputElement;
+
+      expect(input1.value).toBe('alice@example.com');
+      expect(input2.value).toBe('bob@example.com');
+    });
+
+    test('should handle null/undefined values in input elements gracefully', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="optional"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="optional" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [
+        { optional: null },
+        { optional: undefined },
+        { optional: 'value' },
+      ];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+
+      const input1 = rows?.[0]?.querySelector(
+        'input[data-bind="optional"]'
+      ) as HTMLInputElement;
+      const input2 = rows?.[1]?.querySelector(
+        'input[data-bind="optional"]'
+      ) as HTMLInputElement;
+      const input3 = rows?.[2]?.querySelector(
+        'input[data-bind="optional"]'
+      ) as HTMLInputElement;
+
+      expect(input1.value).toBe('');
+      expect(input2.value).toBe('');
+      expect(input3.value).toBe('value');
+    });
+
+    test('should preserve textContent binding for non-form elements in edit template', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="title"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `
+        <div>
+          <label data-bind="title"></label>
+          <input type="text" data-bind="title" />
+        </div>
+      `;
+      element.appendChild(editTemplate);
+
+      element.data = [{ title: 'Test Title' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row]') as HTMLElement;
+
+      const label = row?.querySelector(
+        'label[data-bind="title"]'
+      ) as HTMLLabelElement;
+      const input = row?.querySelector(
+        'input[data-bind="title"]'
+      ) as HTMLInputElement;
+
+      // Label should use textContent
+      expect(label.textContent).toBe('Test Title');
+      // Input should use value
+      expect(input.value).toBe('Test Title');
+    });
+
+    test('should handle number inputs with numeric values', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="age"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="number" data-bind="age" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ age: 25 }, { age: 30 }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+
+      const input1 = rows?.[0]?.querySelector(
+        'input[data-bind="age"]'
+      ) as HTMLInputElement;
+      const input2 = rows?.[1]?.querySelector(
+        'input[data-bind="age"]'
+      ) as HTMLInputElement;
+
+      expect(input1.value).toBe('25');
+      expect(input2.value).toBe('30');
+    });
+
+    test('should handle checkbox inputs with boolean values', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="active"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="checkbox" data-bind="active" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ active: true }, { active: false }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+
+      const checkbox1 = rows?.[0]?.querySelector(
+        'input[data-bind="active"]'
+      ) as HTMLInputElement;
+      const checkbox2 = rows?.[1]?.querySelector(
+        'input[data-bind="active"]'
+      ) as HTMLInputElement;
+
+      expect(checkbox1.checked).toBe(true);
+      expect(checkbox2.checked).toBe(false);
+    });
+  });
 });

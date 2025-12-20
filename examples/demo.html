@@ -498,6 +498,96 @@ console.log(element.data[0].name); // Still 'Original' ✓
           </div>
         </div>
       </div>
+
+      <!-- Edit Template Demo -->
+      <div class="demo-section">
+        <h2>9. Edit Template with Auto-Populated Inputs</h2>
+        <p class="section-description">
+          Form inputs in edit templates automatically have their values populated from row data.
+          Text inputs get their <code>value</code>, checkboxes get <code>checked</code>, and selects have the matching option selected.
+        </p>
+
+        <div class="demo-grid">
+          <div class="demo-item">
+            <h3>Automatic Input Value Binding</h3>
+            <div class="component-wrapper">
+              <ck-editable-array id="editBindingDemo" name="Edit Binding">
+                <template slot="display">
+                  <style>
+                    .display-row {
+                      padding: 0.5rem;
+                      background: #f9f9f9;
+                      border-radius: 8px;
+                    }
+                    .edit-row {
+                      padding: 0.75rem;
+                      background: #fff;
+                      border: 2px solid #667eea;
+                      border-radius: 8px;
+                      display: grid;
+                      gap: 0.5rem;
+                    }
+                    .edit-row label {
+                      display: grid;
+                      gap: 0.25rem;
+                      font-size: 0.9rem;
+                    }
+                    .edit-row input,
+                    .edit-row select {
+                      padding: 0.5rem;
+                      border: 1px solid #ddd;
+                      border-radius: 4px;
+                    }
+                  </style>
+                  <div class="display-row">
+                    <strong data-bind="name"></strong> -
+                    <span data-bind="role"></span>
+                    (<span data-bind="status"></span>)
+                  </div>
+                </template>
+
+                <template slot="edit">
+                  <div class="edit-row">
+                    <label>
+                      Name
+                      <input type="text" data-bind="name" />
+                    </label>
+                    <label>
+                      Role
+                      <select data-bind="role">
+                        <option value="Developer">Developer</option>
+                        <option value="Designer">Designer</option>
+                        <option value="Manager">Manager</option>
+                      </select>
+                    </label>
+                    <label>
+                      Status
+                      <select data-bind="status">
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
+                    </label>
+                  </div>
+                </template>
+              </ck-editable-array>
+            </div>
+            <p class="section-description" style="margin-top: 1rem;">
+              <strong>Note:</strong> Open browser DevTools and inspect the inputs in the Shadow DOM.
+              You'll see they're automatically populated with values from the data!
+            </p>
+            <div class="code-block">
+&lt;template slot="edit"&gt;
+  &lt;!-- Inputs auto-populate from data --&gt;
+  &lt;input type="text" data-bind="name" /&gt;
+  &lt;select data-bind="role"&gt;
+    &lt;option value="Developer"&gt;Developer&lt;/option&gt;
+    &lt;option value="Designer"&gt;Designer&lt;/option&gt;
+  &lt;/select&gt;
+&lt;/template&gt;
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Component Import -->
@@ -525,6 +615,15 @@ console.log(element.data[0].name); // Still 'Original' ✓
           { title: 'Alpha', status: 'ready' },
           { title: 'Beta', status: 'in progress' },
           { title: 'Gamma', status: 'done' },
+        ];
+      }
+
+      const editBindingDemo = document.getElementById('editBindingDemo');
+      if (editBindingDemo) {
+        editBindingDemo.data = [
+          { name: 'Alice Johnson', role: 'Developer', status: 'Active' },
+          { name: 'Bob Smith', role: 'Designer', status: 'Active' },
+          { name: 'Carol White', role: 'Manager', status: 'Inactive' },
         ];
       }
 
