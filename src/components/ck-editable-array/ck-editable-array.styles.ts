@@ -46,6 +46,10 @@ export const ckEditableArrayCSS = `
   font-size: 0.95rem;
 }
 
+.ck-hidden {
+  display: none !important;
+}
+
 .ck-sr-only {
   position: absolute;
   width: 1px;

@@ -245,6 +245,48 @@ describe('CkEditableArray Component', () => {
     expect((rows[1] as HTMLElement).getAttribute('data-row')).toBe('1');
   });
 
+  test('should set data-mode="display" on each row wrapper', () => {
+    const template = document.createElement('template');
+    template.setAttribute('slot', 'display');
+    template.innerHTML = `<span data-bind="name"></span>`;
+    element.appendChild(template);
+
+    element.data = [{ name: 'First' }, { name: 'Second' }];
+    element.connectedCallback();
+
+    const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+    const rows = rowsHost?.querySelectorAll('[data-row]') as
+      | NodeListOf<HTMLElement>
+      | undefined;
+
+    expect(rows?.[0]?.getAttribute('data-mode')).toBe('display');
+    expect(rows?.[1]?.getAttribute('data-mode')).toBe('display');
+  });
+
+  test('should hide edit template content by default with ck-hidden', () => {
+    const displayTemplate = document.createElement('template');
+    displayTemplate.setAttribute('slot', 'display');
+    displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+    element.appendChild(displayTemplate);
+
+    const editTemplate = document.createElement('template');
+    editTemplate.setAttribute('slot', 'edit');
+    editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+    element.appendChild(editTemplate);
+
+    element.data = [{ name: 'First' }];
+    element.connectedCallback();
+
+    const row = element.shadowRoot
+      ?.querySelector('[data-row="0"]')
+      ?.closest('[data-row]') as HTMLElement;
+    const editWrapper = row?.querySelector('.edit-content') as HTMLElement;
+
+    expect(editWrapper).toBeTruthy();
+    expect(editWrapper.classList.contains('ck-hidden')).toBe(true);
+    expect(editWrapper.querySelector('input[data-bind="name"]')).toBeTruthy();
+  });
+
   test('should bind dot-path values via [data-bind]', () => {
     const template = document.createElement('template');
     template.setAttribute('slot', 'display');
@@ -291,6 +333,322 @@ describe('CkEditableArray Component', () => {
 
     const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
     expect(rowsHost?.textContent).toContain('No display template found');
+  });
+
+  describe('Edit Mode Toggle', () => {
+    test('should add edit, save, and cancel buttons to each row', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'First' }, { name: 'Second' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+
+      expect(
+        rows?.[0]?.querySelector('[data-action="toggle"]')
+      ).toBeTruthy();
+      expect(rows?.[0]?.querySelector('[data-action="save"]')).toBeTruthy();
+      expect(rows?.[0]?.querySelector('[data-action="cancel"]')).toBeTruthy();
+      expect(
+        rows?.[1]?.querySelector('[data-action="toggle"]')
+      ).toBeTruthy();
+      expect(rows?.[1]?.querySelector('[data-action="save"]')).toBeTruthy();
+      expect(rows?.[1]?.querySelector('[data-action="cancel"]')).toBeTruthy();
+    });
+
+    test('should show only edit button in display mode and show save/cancel in edit mode', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'First' }];
+      element.connectedCallback();
+
+      const row = element.shadowRoot?.querySelector(
+        '[data-row="0"]'
+      ) as HTMLElement;
+      const editButton = row.querySelector('[data-action="toggle"]') as HTMLElement;
+      const saveButton = row.querySelector('[data-action="save"]') as HTMLElement;
+      const cancelButton = row.querySelector('[data-action="cancel"]') as HTMLElement;
+
+      expect(editButton.classList.contains('ck-hidden')).toBe(false);
+      expect(saveButton.classList.contains('ck-hidden')).toBe(true);
+      expect(cancelButton.classList.contains('ck-hidden')).toBe(true);
+
+      const toggleButton = editButton as HTMLButtonElement;
+      toggleButton.click();
+
+      expect(editButton.classList.contains('ck-hidden')).toBe(true);
+      expect(saveButton.classList.contains('ck-hidden')).toBe(false);
+      expect(cancelButton.classList.contains('ck-hidden')).toBe(false);
+    });
+
+    test('should dispatch cancelable beforetogglemode and respect preventDefault', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'First' }];
+      element.connectedCallback();
+
+      const beforeHandler = jest.fn(event => {
+        expect(event.cancelable).toBe(true);
+        event.preventDefault();
+      });
+      element.addEventListener('beforetogglemode', beforeHandler);
+
+      const toggleButton = element.shadowRoot?.querySelector(
+        '[data-row="0"] [data-action="toggle"]'
+      ) as HTMLButtonElement;
+
+      toggleButton?.click();
+
+      const row = element.shadowRoot?.querySelector(
+        '[data-row="0"]'
+      ) as HTMLElement;
+
+      expect(row.getAttribute('data-mode')).toBe('display');
+      expect(beforeHandler).toHaveBeenCalledTimes(1);
+    });
+
+    test('should enter edit mode, snapshot data, and set editing flag', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'First' }];
+      element.connectedCallback();
+
+      const toggleButton = element.shadowRoot?.querySelector(
+        '[data-row="0"] [data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      const row = element.shadowRoot?.querySelector(
+        '[data-row="0"]'
+      ) as HTMLElement;
+      const displayContent = row.querySelector(
+        '.display-content'
+      ) as HTMLElement;
+      const editContent = row.querySelector('.edit-content') as HTMLElement;
+
+      expect(row.getAttribute('data-mode')).toBe('edit');
+      expect(displayContent.classList.contains('ck-hidden')).toBe(true);
+      expect(editContent.classList.contains('ck-hidden')).toBe(false);
+
+      const data = element.data as { name: string; editing?: boolean; __originalSnapshot?: { name: string } }[];
+      expect(data[0].editing).toBe(true);
+      expect(data[0].__originalSnapshot).toEqual({ name: 'First' });
+      expect(data[0].__originalSnapshot).not.toBe(data[0]);
+    });
+
+    test('should enforce exclusive editing lock across rows', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'First' }, { name: 'Second' }];
+      element.connectedCallback();
+
+      const firstToggle = element.shadowRoot?.querySelector(
+        '[data-row="0"] [data-action="toggle"]'
+      ) as HTMLButtonElement;
+      const secondToggle = element.shadowRoot?.querySelector(
+        '[data-row="1"] [data-action="toggle"]'
+      ) as HTMLButtonElement;
+
+      firstToggle?.click();
+      secondToggle?.click();
+
+      const firstRow = element.shadowRoot?.querySelector(
+        '[data-row="0"]'
+      ) as HTMLElement;
+      const secondRow = element.shadowRoot?.querySelector(
+        '[data-row="1"]'
+      ) as HTMLElement;
+
+      expect(firstRow.getAttribute('data-mode')).toBe('edit');
+      expect(secondRow.getAttribute('data-mode')).toBe('display');
+    });
+
+    test('should focus the first input in edit template when entering edit mode', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `
+        <input type="text" data-bind="name" />
+        <input type="text" data-bind="other" />
+      `;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'First' }];
+      element.connectedCallback();
+
+      const toggleButton = element.shadowRoot?.querySelector(
+        '[data-row="0"] [data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      const active = element.shadowRoot?.activeElement as HTMLElement | null;
+      expect(active?.getAttribute('data-bind')).toBe('name');
+    });
+
+    test('should dispatch aftertogglemode with mode "edit"', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'First' }];
+      element.connectedCallback();
+
+      const handler = jest.fn();
+      element.addEventListener('aftertogglemode', handler);
+
+      const toggleButton = element.shadowRoot?.querySelector(
+        '[data-row="0"] [data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      const event = handler.mock.calls[0][0] as CustomEvent;
+      expect(event.detail.mode).toBe('edit');
+    });
+
+    test('should keep edited values when saving and return to display mode', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'First' }];
+      element.connectedCallback();
+
+      const toggleButton = element.shadowRoot?.querySelector(
+        '[data-row="0"] [data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      const row = element.shadowRoot?.querySelector(
+        '[data-row="0"]'
+      ) as HTMLElement;
+      const input = row.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      input.value = 'Updated';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      const saveButton = row.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      saveButton?.click();
+
+      const displaySpan = row.querySelector(
+        '.display-content [data-bind="name"]'
+      ) as HTMLElement;
+
+      expect(row.getAttribute('data-mode')).toBe('display');
+      expect(displaySpan.textContent).toBe('Updated');
+
+      const data = element.data as { name: string; editing?: boolean }[];
+      expect(data[0].name).toBe('Updated');
+      expect(data[0].editing).toBeUndefined();
+    });
+
+    test('should revert to original snapshot when cancel is clicked', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Original' }];
+      element.connectedCallback();
+
+      const toggleButton = element.shadowRoot?.querySelector(
+        '[data-row="0"] [data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      const row = element.shadowRoot?.querySelector(
+        '[data-row="0"]'
+      ) as HTMLElement;
+      const input = row.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+
+      input.value = 'Changed';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      const cancelButton = row.querySelector(
+        '[data-action="cancel"]'
+      ) as HTMLButtonElement;
+      cancelButton?.click();
+
+      const displaySpan = row.querySelector(
+        '.display-content [data-bind="name"]'
+      ) as HTMLElement;
+
+      expect(row.getAttribute('data-mode')).toBe('display');
+      expect(displaySpan.textContent).toBe('Original');
+      const data = element.data as { name: string; editing?: boolean; __originalSnapshot?: unknown }[];
+      expect(data[0].name).toBe('Original');
+      expect(data[0].editing).toBeUndefined();
+      expect(data[0].__originalSnapshot).toBeUndefined();
+    });
   });
 
   describe('Display - Wrapper Class Configuration (Phase 2)', () => {

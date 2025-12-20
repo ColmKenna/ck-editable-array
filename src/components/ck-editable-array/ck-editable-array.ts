@@ -13,12 +13,16 @@ export class CkEditableArray extends HTMLElement {
   private _statusRegionEl: HTMLDivElement | null = null;
   private _displayTemplate: HTMLTemplateElement | null = null;
   private _editTemplate: HTMLTemplateElement | null = null;
+  private _currentEditIndex: number | null = null;
+  private _onShadowClick = (event: Event) =>
+    this._handleShadowClick(event as MouseEvent);
 
   constructor() {
     super();
     this.shadow = this.attachShadow({ mode: 'open' });
     this._rootEl = document.createElement('div');
     this.shadow.appendChild(this._rootEl);
+    this.shadow.addEventListener('click', this._onShadowClick);
 
     const adopted = (
       this.shadow as unknown as ShadowRoot & {
@@ -38,7 +42,9 @@ export class CkEditableArray extends HTMLElement {
     this.render();
   }
 
-  disconnectedCallback() {}
+  disconnectedCallback() {
+    this.shadow.removeEventListener('click', this._onShadowClick);
+  }
 
   static get observedAttributes() {
     return ['name', 'root-class', 'rows-class', 'row-class'];
@@ -98,6 +104,7 @@ export class CkEditableArray extends HTMLElement {
 
   set data(value: unknown) {
     this._data = Array.isArray(value) ? this._deepClone(value) : [];
+    this._currentEditIndex = null;
     if (this.isConnected) {
       this.render();
       this._announceDataChange();
@@ -113,17 +120,22 @@ export class CkEditableArray extends HTMLElement {
   }
 
   private _deepClone(obj: unknown): unknown[] {
+    const cloned = this._cloneValue(obj);
+    return Array.isArray(cloned) ? cloned : [];
+  }
+
+  private _cloneValue<T>(obj: T): T {
     // structuredClone is ES2022+, target is ES2020; graceful fallback to JSON
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof (globalThis as any).structuredClone === 'function') {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (globalThis as any).structuredClone(obj) as unknown[];
+        return (globalThis as any).structuredClone(obj) as T;
       } catch {
-        return this._jsonClone(obj);
+        return this._jsonClone(obj) as T;
       }
     }
-    return this._jsonClone(obj);
+    return this._jsonClone(obj) as T;
   }
 
   private _jsonClone(obj: unknown): unknown[] {
@@ -317,18 +329,42 @@ export class CkEditableArray extends HTMLElement {
       rowTokens.forEach(t => rowEl.classList.add(t));
       rowEl.setAttribute('tabindex', '0');
       rowEl.setAttribute('role', 'listitem');
+      rowEl.setAttribute('data-mode', 'display');
       rowEl.addEventListener('keydown', event =>
         this._handleRowKeydown(event as KeyboardEvent, index)
       );
       rowsHost.appendChild(rowEl);
 
       // Clone template content into new row
-      rowEl.appendChild(template.content.cloneNode(true));
+      const displayWrapper = document.createElement('div');
+      displayWrapper.className = 'display-content';
+      displayWrapper.appendChild(template.content.cloneNode(true));
+      rowEl.appendChild(displayWrapper);
       rowEl.toggleAttribute('data-has-edit-template', !!editTemplate);
       if (editTemplate) {
-        let editContent = editTemplate.content.cloneNode(true);
-        rowEl.appendChild(editContent);
+        const editWrapper = document.createElement('div');
+        editWrapper.className = 'edit-content ck-hidden';
+        editWrapper.appendChild(editTemplate.content.cloneNode(true));
+        rowEl.appendChild(editWrapper);
       }
+      const actionsWrapper = document.createElement('div');
+      actionsWrapper.className = 'row-actions';
+      const editButton = document.createElement('button');
+      editButton.type = 'button';
+      editButton.setAttribute('data-action', 'toggle');
+      editButton.textContent = 'Edit';
+      actionsWrapper.appendChild(editButton);
+      const saveButton = document.createElement('button');
+      saveButton.type = 'button';
+      saveButton.setAttribute('data-action', 'save');
+      saveButton.textContent = 'Save';
+      actionsWrapper.appendChild(saveButton);
+      const cancelButton = document.createElement('button');
+      cancelButton.type = 'button';
+      cancelButton.setAttribute('data-action', 'cancel');
+      cancelButton.textContent = 'Cancel';
+      actionsWrapper.appendChild(cancelButton);
+      rowEl.appendChild(actionsWrapper);
       // Cache bound elements on first creation
       boundEls = Array.from(
         rowEl.querySelectorAll('[data-bind]')
@@ -351,6 +387,13 @@ export class CkEditableArray extends HTMLElement {
     // Ensure row wrapper classes reflect current configuration (handles updates)
     rowEl.className = 'row';
     rowTokens.forEach(t => rowEl.classList.add(t));
+    const isEditing = this._isRowEditing(rowData, index);
+    if (isEditing) {
+      this._currentEditIndex = index;
+    } else if (this._currentEditIndex === index) {
+      this._currentEditIndex = null;
+    }
+    this._setRowMode(rowEl, isEditing ? 'edit' : 'display');
     rowEl.toggleAttribute('data-has-edit-template', !!editTemplate);
 
     // Always update attributes and bindings for current index/data
@@ -664,6 +707,178 @@ export class CkEditableArray extends HTMLElement {
 
     // Set the value
     current[lastKey] = value;
+  }
+
+  private _handleShadowClick(event: MouseEvent) {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    const actionEl = target.closest('[data-action]') as HTMLElement | null;
+    if (!actionEl || !this.shadow.contains(actionEl)) return;
+
+    const rowEl = actionEl.closest('[data-row]') as HTMLElement | null;
+    const action = actionEl.getAttribute('data-action');
+    if (!rowEl || !action) return;
+
+    const rowIndex = Number(rowEl.getAttribute('data-row'));
+    if (!Number.isFinite(rowIndex)) return;
+
+    if (action === 'toggle') {
+      this._enterEditMode(rowEl, rowIndex);
+    } else if (action === 'save') {
+      this._saveRow(rowEl, rowIndex);
+    } else if (action === 'cancel') {
+      this._cancelRow(rowEl, rowIndex);
+    }
+  }
+
+  private _enterEditMode(rowEl: HTMLElement, rowIndex: number) {
+    if (
+      this._currentEditIndex !== null &&
+      this._currentEditIndex !== rowIndex
+    ) {
+      return;
+    }
+
+    const beforeEvent = new CustomEvent('beforetogglemode', {
+      detail: { mode: 'edit', rowIndex },
+      bubbles: true,
+      composed: true,
+      cancelable: true,
+    });
+    this.dispatchEvent(beforeEvent);
+    if (beforeEvent.defaultPrevented) return;
+
+    const rowData = this._data[rowIndex];
+    if (typeof rowData === 'object' && rowData !== null) {
+      const snapshot = this._cloneValue(rowData);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (rowData as any).__originalSnapshot = snapshot;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (rowData as any).editing = true;
+    }
+
+    this._currentEditIndex = rowIndex;
+    this._setRowMode(rowEl, 'edit');
+    this._focusFirstInput(rowEl);
+
+    const afterEvent = new CustomEvent('aftertogglemode', {
+      detail: { mode: 'edit', rowIndex },
+      bubbles: true,
+      composed: true,
+    });
+    this.dispatchEvent(afterEvent);
+  }
+
+  private _saveRow(rowEl: HTMLElement, rowIndex: number) {
+    if (this._currentEditIndex !== rowIndex) return;
+
+    const rowData = this._data[rowIndex];
+    if (typeof rowData === 'object' && rowData !== null) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (rowData as any).editing;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (rowData as any).__originalSnapshot;
+    }
+
+    this._currentEditIndex = null;
+    this._setRowMode(rowEl, 'display');
+
+    const afterEvent = new CustomEvent('aftertogglemode', {
+      detail: { mode: 'display', rowIndex },
+      bubbles: true,
+      composed: true,
+    });
+    this.dispatchEvent(afterEvent);
+  }
+
+  private _cancelRow(rowEl: HTMLElement, rowIndex: number) {
+    if (this._currentEditIndex !== rowIndex) return;
+
+    const beforeEvent = new CustomEvent('beforetogglemode', {
+      detail: { mode: 'display', rowIndex },
+      bubbles: true,
+      composed: true,
+      cancelable: true,
+    });
+    this.dispatchEvent(beforeEvent);
+    if (beforeEvent.defaultPrevented) return;
+
+    const rowData = this._data[rowIndex];
+    if (typeof rowData === 'object' && rowData !== null) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const snapshot = (rowData as any).__originalSnapshot;
+      if (snapshot !== undefined) {
+        this._data[rowIndex] = this._cloneValue(snapshot);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (this._data[rowIndex] as any).editing;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (this._data[rowIndex] as any).__originalSnapshot;
+    }
+
+    const boundEls =
+      (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls || [];
+    this._applyBindingsOptimized(boundEls, this._data[rowIndex]);
+
+    this._currentEditIndex = null;
+    this._setRowMode(rowEl, 'display');
+
+    const afterEvent = new CustomEvent('aftertogglemode', {
+      detail: { mode: 'display', rowIndex },
+      bubbles: true,
+      composed: true,
+    });
+    this.dispatchEvent(afterEvent);
+  }
+
+  private _isRowEditing(rowData: unknown, rowIndex: number): boolean {
+    if (typeof rowData === 'object' && rowData !== null) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((rowData as any).editing === true) return true;
+    }
+    return this._currentEditIndex === rowIndex;
+  }
+
+  private _setRowMode(rowEl: HTMLElement, mode: 'display' | 'edit') {
+    rowEl.setAttribute('data-mode', mode);
+    const displayWrapper = rowEl.querySelector(
+      '.display-content'
+    ) as HTMLElement | null;
+    const editWrapper = rowEl.querySelector(
+      '.edit-content'
+    ) as HTMLElement | null;
+    if (displayWrapper) {
+      displayWrapper.classList.toggle('ck-hidden', mode === 'edit');
+    }
+    if (editWrapper) {
+      editWrapper.classList.toggle('ck-hidden', mode !== 'edit');
+    }
+    const editButton = rowEl.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLElement | null;
+    const saveButton = rowEl.querySelector(
+      '[data-action="save"]'
+    ) as HTMLElement | null;
+    const cancelButton = rowEl.querySelector(
+      '[data-action="cancel"]'
+    ) as HTMLElement | null;
+    if (editButton) {
+      editButton.classList.toggle('ck-hidden', mode === 'edit');
+    }
+    if (saveButton) {
+      saveButton.classList.toggle('ck-hidden', mode !== 'edit');
+    }
+    if (cancelButton) {
+      cancelButton.classList.toggle('ck-hidden', mode !== 'edit');
+    }
+  }
+
+  private _focusFirstInput(rowEl: HTMLElement) {
+    const firstInput = rowEl.querySelector(
+      '.edit-content input, .edit-content select, .edit-content textarea'
+    ) as HTMLElement | null;
+    firstInput?.focus();
   }
 }
 
