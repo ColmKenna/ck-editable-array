@@ -588,6 +588,125 @@ console.log(element.data[0].name); // Still 'Original' ✓
           </div>
         </div>
       </div>
+
+      <!-- Bidirectional Binding Demo -->
+      <div class="demo-section">
+        <h2>10. Bidirectional Data Binding (Live Sync)</h2>
+        <p class="section-description">
+          When users type in edit template inputs, changes automatically sync to both the component's data AND the corresponding display elements in real-time. No manual event handling required!
+        </p>
+
+        <div class="demo-grid">
+          <div class="demo-item">
+            <h3>Live Edit-to-Display Sync</h3>
+            <div class="component-wrapper">
+              <ck-editable-array id="liveBindingDemo" name="contacts">
+                <template slot="display">
+                  <style>
+                    .display-card {
+                      padding: 0.75rem;
+                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                      color: white;
+                      border-radius: 8px;
+                      margin-bottom: 0.5rem;
+                    }
+                    .display-card .name {
+                      font-size: 1.1rem;
+                      font-weight: bold;
+                      margin-bottom: 0.25rem;
+                    }
+                    .display-card .email {
+                      opacity: 0.9;
+                      font-size: 0.9rem;
+                    }
+                    .display-card .status {
+                      margin-top: 0.5rem;
+                      padding: 0.25rem 0.5rem;
+                      background: rgba(255, 255, 255, 0.2);
+                      border-radius: 4px;
+                      display: inline-block;
+                      font-size: 0.85rem;
+                    }
+                    .edit-card {
+                      padding: 0.75rem;
+                      background: #f9f9f9;
+                      border: 2px dashed #667eea;
+                      border-radius: 8px;
+                      margin-top: 0.5rem;
+                      display: grid;
+                      gap: 0.5rem;
+                    }
+                    .edit-card label {
+                      display: grid;
+                      gap: 0.25rem;
+                      font-size: 0.9rem;
+                      font-weight: 500;
+                      color: #333;
+                    }
+                    .edit-card input,
+                    .edit-card select {
+                      padding: 0.5rem;
+                      border: 1px solid #ddd;
+                      border-radius: 4px;
+                      font-size: 0.95rem;
+                    }
+                    .edit-card input:focus,
+                    .edit-card select:focus {
+                      outline: none;
+                      border-color: #667eea;
+                      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+                    }
+                  </style>
+                  <div class="display-card">
+                    <div class="name" data-bind="name"></div>
+                    <div class="email" data-bind="email"></div>
+                    <div class="status" data-bind="status"></div>
+                  </div>
+                </template>
+
+                <template slot="edit">
+                  <div class="edit-card">
+                    <label>
+                      Name (type to see instant update above)
+                      <input type="text" data-bind="name" placeholder="Enter name" />
+                    </label>
+                    <label>
+                      Email
+                      <input type="email" data-bind="email" placeholder="Enter email" />
+                    </label>
+                    <label>
+                      Status
+                      <select data-bind="status">
+                        <option value="Active">Active</option>
+                        <option value="Away">Away</option>
+                        <option value="Offline">Offline</option>
+                      </select>
+                    </label>
+                  </div>
+                </template>
+              </ck-editable-array>
+            </div>
+            <p class="section-description" style="margin-top: 1rem;">
+              <strong>Try it:</strong> Start typing in any input field above and watch the display card update instantly! The component data also updates automatically.
+            </p>
+            <div class="code-block">
+// No code needed - it just works!
+// When user types → data updates → display updates
+// datachanged event fires automatically
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-item">
+          <h3>Data Event Log</h3>
+          <p class="section-description">
+            This log shows the <code>datachanged</code> events firing as you edit the fields above.
+          </p>
+          <div class="output" id="bindingEventLog" style="max-height: 150px;">
+Waiting for input changes...
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Component Import -->
@@ -625,6 +744,33 @@ console.log(element.data[0].name); // Still 'Original' ✓
           { name: 'Bob Smith', role: 'Designer', status: 'Active' },
           { name: 'Carol White', role: 'Manager', status: 'Inactive' },
         ];
+      }
+
+      // Live bidirectional binding demo initialization
+      const liveBindingDemo = document.getElementById('liveBindingDemo');
+      if (liveBindingDemo) {
+        liveBindingDemo.data = [
+          { name: 'John Doe', email: 'john@example.com', status: 'Active' },
+          { name: 'Jane Smith', email: 'jane@example.com', status: 'Away' },
+        ];
+
+        // Log datachanged events
+        const bindingLog = [];
+        liveBindingDemo.addEventListener('datachanged', (e) => {
+          const data = e.detail?.data ?? [];
+          const timestamp = new Date().toLocaleTimeString();
+          const summary = data.map((item, idx) =>
+            `Row ${idx}: ${item.name} <${item.email}> [${item.status}]`
+          ).join('\n');
+
+          bindingLog.unshift(`[${timestamp}] Data Updated:\n${summary}`);
+          bindingLog.splice(10); // Keep last 10 events
+
+          const logEl = document.getElementById('bindingEventLog');
+          if (logEl) {
+            logEl.textContent = bindingLog.join('\n\n---\n\n');
+          }
+        });
       }
 
       // Demo Helper: Output display

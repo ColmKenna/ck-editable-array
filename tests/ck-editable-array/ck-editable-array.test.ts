@@ -1119,4 +1119,358 @@ describe('CkEditableArray Component', () => {
       expect(statusSelect.getAttribute('id')).toBe('records__0__status');
     });
   });
+
+  // Input-to-Display Sync Tests (FR-010: TDD RED phase)
+  describe('Input-to-Display Sync (Bidirectional Binding)', () => {
+    test('should update display element when input value changes', () => {
+      element.setAttribute('name', 'users');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Alice' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+
+      const input = row?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      const displaySpan = row?.querySelector(
+        'span[data-bind="name"]'
+      ) as HTMLElement;
+
+      // Initial state
+      expect(input.value).toBe('Alice');
+      expect(displaySpan.textContent).toBe('Alice');
+
+      // User types new value
+      input.value = 'Alice Updated';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Display should update
+      expect(displaySpan.textContent).toBe('Alice Updated');
+    });
+
+    test('should update component data when input value changes', () => {
+      element.setAttribute('name', 'users');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Bob' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const input = row?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+
+      // User types new value
+      input.value = 'Bob Updated';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Component data should update
+      const updatedData = element.data as { name: string }[];
+      expect(updatedData[0].name).toBe('Bob Updated');
+    });
+
+    test('should dispatch datachanged event on input change', () => {
+      element.setAttribute('name', 'users');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Charlie' }];
+      element.connectedCallback();
+
+      const eventHandler = jest.fn();
+      element.addEventListener('datachanged', eventHandler);
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const input = row?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+
+      // Clear events from initial data set
+      eventHandler.mockClear();
+
+      // User types new value
+      input.value = 'Charlie Updated';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Event should fire
+      expect(eventHandler).toHaveBeenCalledTimes(1);
+      const event = eventHandler.mock.calls[0][0] as CustomEvent;
+      expect(event.detail.data[0].name).toBe('Charlie Updated');
+
+      element.removeEventListener('datachanged', eventHandler);
+    });
+
+    test('should handle nested path bindings on input change', () => {
+      element.setAttribute('name', 'profiles');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="user.email"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="email" data-bind="user.email" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ user: { email: 'alice@example.com' } }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const input = row?.querySelector(
+        'input[data-bind="user.email"]'
+      ) as HTMLInputElement;
+      const displaySpan = row?.querySelector(
+        'span[data-bind="user.email"]'
+      ) as HTMLElement;
+
+      // User types new value
+      input.value = 'newemail@example.com';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Display and data should update
+      expect(displaySpan.textContent).toBe('newemail@example.com');
+      const updatedData = element.data as { user: { email: string } }[];
+      expect(updatedData[0].user.email).toBe('newemail@example.com');
+    });
+
+    test('should update correct row when multiple rows exist', () => {
+      element.setAttribute('name', 'users');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Alice' }, { name: 'Bob' }, { name: 'Charlie' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+      const input1 = row1?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+
+      // User updates row 1 (Bob)
+      input1.value = 'Bob Modified';
+      input1.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Only row 1 data should change
+      const updatedData = element.data as { name: string }[];
+      expect(updatedData[0].name).toBe('Alice'); // Unchanged
+      expect(updatedData[1].name).toBe('Bob Modified'); // Changed
+      expect(updatedData[2].name).toBe('Charlie'); // Unchanged
+
+      // Only row 1 display should update
+      const row0Display = rowsHost
+        ?.querySelector('[data-row="0"]')
+        ?.querySelector('span[data-bind="name"]') as HTMLElement;
+      const row1Display = row1?.querySelector(
+        'span[data-bind="name"]'
+      ) as HTMLElement;
+      const row2Display = rowsHost
+        ?.querySelector('[data-row="2"]')
+        ?.querySelector('span[data-bind="name"]') as HTMLElement;
+
+      expect(row0Display.textContent).toBe('Alice');
+      expect(row1Display.textContent).toBe('Bob Modified');
+      expect(row2Display.textContent).toBe('Charlie');
+    });
+
+    test('should work with textarea elements', () => {
+      element.setAttribute('name', 'posts');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="content"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<textarea data-bind="content"></textarea>`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ content: 'Original content' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const textarea = row?.querySelector(
+        'textarea[data-bind="content"]'
+      ) as HTMLTextAreaElement;
+      const displaySpan = row?.querySelector(
+        'span[data-bind="content"]'
+      ) as HTMLElement;
+
+      // User types new content
+      textarea.value = 'Updated content';
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Display and data should update
+      expect(displaySpan.textContent).toBe('Updated content');
+      const updatedData = element.data as { content: string }[];
+      expect(updatedData[0].content).toBe('Updated content');
+    });
+
+    test('should work with select elements', () => {
+      element.setAttribute('name', 'employees');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="role"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `
+        <select data-bind="role">
+          <option value="Developer">Developer</option>
+          <option value="Designer">Designer</option>
+          <option value="Manager">Manager</option>
+        </select>
+      `;
+      element.appendChild(editTemplate);
+
+      element.data = [{ role: 'Developer' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const select = row?.querySelector(
+        'select[data-bind="role"]'
+      ) as HTMLSelectElement;
+      const displaySpan = row?.querySelector(
+        'span[data-bind="role"]'
+      ) as HTMLElement;
+
+      // User selects new role
+      select.value = 'Manager';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // Display and data should update
+      expect(displaySpan.textContent).toBe('Manager');
+      const updatedData = element.data as { role: string }[];
+      expect(updatedData[0].role).toBe('Manager');
+    });
+
+    test('should update boolean data when checkbox changes', () => {
+      element.setAttribute('name', 'tasks');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="completed"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="checkbox" data-bind="completed" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ completed: false }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const checkbox = row?.querySelector(
+        'input[data-bind="completed"]'
+      ) as HTMLInputElement;
+      const displaySpan = row?.querySelector(
+        'span[data-bind="completed"]'
+      ) as HTMLElement;
+
+      expect(checkbox.checked).toBe(false);
+      expect(displaySpan.textContent).toBe('false');
+
+      // User checks the checkbox
+      checkbox.checked = true;
+      checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // Display and data should update
+      expect(displaySpan.textContent).toBe('true');
+      const updatedData = element.data as { completed: boolean }[];
+      expect(updatedData[0].completed).toBe(true);
+    });
+
+    test('should not update display elements in other rows', () => {
+      element.setAttribute('name', 'users');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Alice' }, { name: 'Bob' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+
+      const input0 = row0?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      const display0 = row0?.querySelector(
+        'span[data-bind="name"]'
+      ) as HTMLElement;
+      const display1 = row1?.querySelector(
+        'span[data-bind="name"]'
+      ) as HTMLElement;
+
+      // Record initial display content
+      const initialDisplay1 = display1.textContent;
+
+      // User updates row 0
+      input0.value = 'Alice Modified';
+      input0.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Row 0 display should update
+      expect(display0.textContent).toBe('Alice Modified');
+
+      // Row 1 display should NOT change
+      expect(display1.textContent).toBe(initialDisplay1);
+      expect(display1.textContent).toBe('Bob');
+    });
+  });
 });

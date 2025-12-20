@@ -337,6 +337,9 @@ export class CkEditableArray extends HTMLElement {
 
       // Set name/id attributes on form controls during initial creation
       this._setFormControlAttributes(boundEls, index);
+
+      // Add input event listeners for bidirectional binding
+      this._attachInputListeners(boundEls, index, rowEl);
     } else {
       // Retrieve cached bound elements
       boundEls =
@@ -576,6 +579,91 @@ export class CkEditableArray extends HTMLElement {
             : `${rowCount} items in array`;
       statusRegion.textContent = message;
     }
+  }
+
+  private _attachInputListeners(
+    boundEls: HTMLElement[],
+    rowIndex: number,
+    rowEl: HTMLElement
+  ): void {
+    boundEls.forEach(el => {
+      // Only attach listeners to form elements
+      if (!this._isFormElement(el)) return;
+
+      const bindPath = el.getAttribute('data-bind');
+      if (!bindPath) return;
+
+      // Use 'input' event for text inputs and textareas
+      // Use 'change' event for selects and checkboxes
+      const eventType =
+        el.tagName.toLowerCase() === 'select' ||
+        (el as HTMLInputElement).type === 'checkbox'
+          ? 'change'
+          : 'input';
+
+      el.addEventListener(eventType, event =>
+        this._handleInputChange(event, rowIndex, bindPath, rowEl)
+      );
+    });
+  }
+
+  private _handleInputChange(
+    event: Event,
+    rowIndex: number,
+    bindPath: string,
+    rowEl: HTMLElement
+  ): void {
+    const target = event.target as
+      | HTMLInputElement
+      | HTMLSelectElement
+      | HTMLTextAreaElement;
+
+    // Get the new value from the input
+    let newValue: unknown;
+    if (target instanceof HTMLInputElement && target.type === 'checkbox') {
+      newValue = target.checked;
+    } else {
+      newValue = target.value;
+    }
+
+    // Update the internal data
+    this._setNestedPath(this._data[rowIndex], bindPath, newValue);
+
+    // Update only the display elements in this row
+    const boundEls =
+      (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls || [];
+    this._applyBindingsOptimized(boundEls, this._data[rowIndex]);
+
+    // Dispatch datachanged event
+    this.dispatchEvent(
+      new CustomEvent('datachanged', {
+        detail: { data: this._deepClone(this._data) },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private _setNestedPath(obj: unknown, path: string, value: unknown): void {
+    if (typeof obj !== 'object' || obj === null) return;
+
+    const keys = path.split('.');
+    const lastKey = keys.pop();
+    if (!lastKey) return;
+
+    let current = obj as Record<string, unknown>;
+
+    // Navigate to the parent object
+    for (const key of keys) {
+      if (!(key in current)) {
+        current[key] = {};
+      }
+      current = current[key] as Record<string, unknown>;
+      if (typeof current !== 'object' || current === null) return;
+    }
+
+    // Set the value
+    current[lastKey] = value;
   }
 }
 
