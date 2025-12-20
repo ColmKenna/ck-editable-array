@@ -268,7 +268,9 @@
           These examples include a dedicated <code>slot="edit"</code> template so you can see how to provide
           editing surfaces alongside the display template. <strong>Form inputs with <code>data-bind</code> attributes
           are automatically populated</strong> with values from the row data (text inputs get `.value`, checkboxes get `.checked`,
-          selects get the matching option selected). Toggle logic is app-specific; the component will
+          selects get the matching option selected). <strong>Additionally, form controls automatically receive <code>name</code>
+          and <code>id</code> attributes</strong> following the pattern <code>componentName[index].field</code> and
+          <code>componentName__index__field</code> for proper form submission. Toggle logic is app-specific; the component will
           clone both templates so you can choose when to reveal the edit experience.
         </p>
       </header>

@@ -61,7 +61,7 @@ export class CkEditableArray extends HTMLElement {
   }
 
   get name() {
-    return this.getAttribute('name') || 'World';
+    return this.getAttribute('name') || 'items';
   }
 
   set name(value: string) {
@@ -334,6 +334,9 @@ export class CkEditableArray extends HTMLElement {
         rowEl.querySelectorAll('[data-bind]')
       ) as HTMLElement[];
       (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls = boundEls;
+
+      // Set name/id attributes on form controls during initial creation
+      this._setFormControlAttributes(boundEls, index);
     } else {
       // Retrieve cached bound elements
       boundEls =
@@ -481,6 +484,31 @@ export class CkEditableArray extends HTMLElement {
         textareaEl.value = String(value);
       }
     }
+  }
+
+  private _setFormControlAttributes(
+    boundEls: HTMLElement[],
+    rowIndex: number
+  ): void {
+    const componentName = this.name;
+
+    boundEls.forEach(el => {
+      // Only set name/id on form controls (input, select, textarea)
+      if (!this._isFormElement(el)) return;
+
+      const bindPath = el.getAttribute('data-bind');
+      if (!bindPath) return;
+
+      // Set name attribute: componentName[index].path
+      const nameAttr = `${componentName}[${rowIndex}].${bindPath}`;
+      el.setAttribute('name', nameAttr);
+
+      // Set id attribute: componentName__index__path
+      // Replace dots in path with underscores for valid IDs
+      const idPath = bindPath.replace(/\./g, '_');
+      const idAttr = `${componentName}__${rowIndex}__${idPath}`;
+      el.setAttribute('id', idAttr);
+    });
   }
 
   private _applyFormSemanticsOptimized(

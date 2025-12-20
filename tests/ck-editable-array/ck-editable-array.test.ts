@@ -34,8 +34,8 @@ describe('CkEditableArray Component', () => {
     expect(element.shadowRoot).toBeTruthy();
   });
 
-  test('should have default name "World"', () => {
-    expect(element.name).toBe('World');
+  test('should have default name "items"', () => {
+    expect(element.name).toBe('items');
   });
 
   test('should set and get name attribute', () => {
@@ -48,7 +48,7 @@ describe('CkEditableArray Component', () => {
     element.connectedCallback();
     const shadowContent = element.shadowRoot?.innerHTML;
     expect(shadowContent).toContain('Hello');
-    expect(shadowContent).toContain('World');
+    expect(shadowContent).toContain('items');
   });
 
   test('should update content when name attribute changes', () => {
@@ -56,7 +56,7 @@ describe('CkEditableArray Component', () => {
     element.setAttribute('name', 'Testing');
 
     // Trigger attribute change callback
-    element.attributeChangedCallback('name', 'World', 'Testing');
+    element.attributeChangedCallback('name', 'items', 'Testing');
 
     const shadowContent = element.shadowRoot?.innerHTML;
     expect(shadowContent).toContain('Testing');
@@ -877,6 +877,246 @@ describe('CkEditableArray Component', () => {
 
       expect(checkbox1.checked).toBe(true);
       expect(checkbox2.checked).toBe(false);
+    });
+  });
+
+  // Form Control Name/ID Attributes Tests (TDD: RED phase)
+  describe('Form Control Name/ID Attributes', () => {
+    test('should have default name attribute of "items"', () => {
+      const freshElement = new CkEditableArray();
+      expect(freshElement.name).toBe('items');
+    });
+
+    test('should set name and id attributes on input elements in edit template', () => {
+      element.setAttribute('name', 'users');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="firstName"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="firstName" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ firstName: 'Alice' }, { firstName: 'Bob' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+
+      const input1 = rows?.[0]?.querySelector(
+        'input[data-bind="firstName"]'
+      ) as HTMLInputElement;
+      const input2 = rows?.[1]?.querySelector(
+        'input[data-bind="firstName"]'
+      ) as HTMLInputElement;
+
+      expect(input1.getAttribute('name')).toBe('users[0].firstName');
+      expect(input1.getAttribute('id')).toBe('users__0__firstName');
+      expect(input2.getAttribute('name')).toBe('users[1].firstName');
+      expect(input2.getAttribute('id')).toBe('users__1__firstName');
+    });
+
+    test('should set name and id attributes on select elements in edit template', () => {
+      element.setAttribute('name', 'employees');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="role"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `
+        <select data-bind="role">
+          <option value="admin">Admin</option>
+          <option value="user">User</option>
+        </select>
+      `;
+      element.appendChild(editTemplate);
+
+      element.data = [{ role: 'admin' }, { role: 'user' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+
+      const select1 = rows?.[0]?.querySelector(
+        'select[data-bind="role"]'
+      ) as HTMLSelectElement;
+      const select2 = rows?.[1]?.querySelector(
+        'select[data-bind="role"]'
+      ) as HTMLSelectElement;
+
+      expect(select1.getAttribute('name')).toBe('employees[0].role');
+      expect(select1.getAttribute('id')).toBe('employees__0__role');
+      expect(select2.getAttribute('name')).toBe('employees[1].role');
+      expect(select2.getAttribute('id')).toBe('employees__1__role');
+    });
+
+    test('should set name and id attributes on textarea elements in edit template', () => {
+      element.setAttribute('name', 'posts');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="content"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<textarea data-bind="content"></textarea>`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ content: 'First' }, { content: 'Second' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+
+      const textarea1 = rows?.[0]?.querySelector(
+        'textarea[data-bind="content"]'
+      ) as HTMLTextAreaElement;
+      const textarea2 = rows?.[1]?.querySelector(
+        'textarea[data-bind="content"]'
+      ) as HTMLTextAreaElement;
+
+      expect(textarea1.getAttribute('name')).toBe('posts[0].content');
+      expect(textarea1.getAttribute('id')).toBe('posts__0__content');
+      expect(textarea2.getAttribute('name')).toBe('posts[1].content');
+      expect(textarea2.getAttribute('id')).toBe('posts__1__content');
+    });
+
+    test('should handle nested paths in data-bind for name/id attributes', () => {
+      element.setAttribute('name', 'profiles');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="contact.email"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="email" data-bind="contact.email" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [
+        { contact: { email: 'alice@example.com' } },
+        { contact: { email: 'bob@example.com' } },
+      ];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+
+      const input1 = rows?.[0]?.querySelector(
+        'input[data-bind="contact.email"]'
+      ) as HTMLInputElement;
+      const input2 = rows?.[1]?.querySelector(
+        'input[data-bind="contact.email"]'
+      ) as HTMLInputElement;
+
+      expect(input1.getAttribute('name')).toBe('profiles[0].contact.email');
+      expect(input1.getAttribute('id')).toBe('profiles__0__contact_email');
+      expect(input2.getAttribute('name')).toBe('profiles[1].contact.email');
+      expect(input2.getAttribute('id')).toBe('profiles__1__contact_email');
+    });
+
+    test('should not set name/id attributes on display template elements', () => {
+      element.setAttribute('name', 'items');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="title"></span>`;
+      element.appendChild(displayTemplate);
+
+      element.data = [{ title: 'Test' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const span = rowsHost?.querySelector(
+        'span[data-bind="title"]'
+      ) as HTMLElement;
+
+      expect(span.getAttribute('name')).toBeNull();
+      expect(span.getAttribute('id')).toBeNull();
+    });
+
+    test('should use default name "items" when name attribute not set', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="value"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="value" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ value: 'Test' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const input = rowsHost?.querySelector(
+        'input[data-bind="value"]'
+      ) as HTMLInputElement;
+
+      expect(input.getAttribute('name')).toBe('items[0].value');
+      expect(input.getAttribute('id')).toBe('items__0__value');
+    });
+
+    test('should handle multiple form controls in same row', () => {
+      element.setAttribute('name', 'records');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `
+        <input type="text" data-bind="name" />
+        <input type="email" data-bind="email" />
+        <select data-bind="status">
+          <option value="active">Active</option>
+        </select>
+      `;
+      element.appendChild(editTemplate);
+
+      element.data = [
+        { name: 'Alice', email: 'alice@example.com', status: 'active' },
+      ];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row]') as HTMLElement;
+
+      const nameInput = row?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      const emailInput = row?.querySelector(
+        'input[data-bind="email"]'
+      ) as HTMLInputElement;
+      const statusSelect = row?.querySelector(
+        'select[data-bind="status"]'
+      ) as HTMLSelectElement;
+
+      expect(nameInput.getAttribute('name')).toBe('records[0].name');
+      expect(nameInput.getAttribute('id')).toBe('records__0__name');
+      expect(emailInput.getAttribute('name')).toBe('records[0].email');
+      expect(emailInput.getAttribute('id')).toBe('records__0__email');
+      expect(statusSelect.getAttribute('name')).toBe('records[0].status');
+      expect(statusSelect.getAttribute('id')).toBe('records__0__status');
     });
   });
 });
