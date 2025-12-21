@@ -640,7 +640,7 @@ export class CkEditableArray extends HTMLElement {
       // Use 'change' event for selects and checkboxes
       const eventType =
         el.tagName.toLowerCase() === 'select' ||
-        (el as HTMLInputElement).type === 'checkbox'
+          (el as HTMLInputElement).type === 'checkbox'
           ? 'change'
           : 'input';
 
@@ -694,10 +694,15 @@ export class CkEditableArray extends HTMLElement {
     const lastKey = keys.pop();
     if (!lastKey) return;
 
+    // Reject reserved keys to prevent prototype pollution
+    const reservedKeys = ['__proto__', 'constructor', 'prototype'];
+
     let current = obj as Record<string, unknown>;
 
     // Navigate to the parent object
     for (const key of keys) {
+      if (reservedKeys.includes(key)) return;
+
       if (!(key in current)) {
         current[key] = {};
       }
@@ -706,6 +711,7 @@ export class CkEditableArray extends HTMLElement {
     }
 
     // Set the value
+    if (reservedKeys.includes(lastKey)) return;
     current[lastKey] = value;
   }
 
