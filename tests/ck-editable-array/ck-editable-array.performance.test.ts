@@ -23,18 +23,33 @@ describe('CkEditableArray Performance Benchmarks', () => {
     }
   });
 
-  test('should render 100 rows with linear DOM operations', () => {
+  const createDisplayTemplate = (
+    bindPath: string = 'name',
+    innerHTML?: string
+  ): HTMLTemplateElement => {
     const template = document.createElement('template');
     template.setAttribute('slot', 'display');
-    template.innerHTML = `<span data-bind="name"></span>`;
-    element.appendChild(template);
+    template.innerHTML =
+      innerHTML || `<span data-bind="${bindPath}"></span>`;
+    return template;
+  };
 
+  const setupElementWithTemplate = (
+    data: unknown[],
+    bindPath: string = 'name'
+  ): void => {
+    const template = createDisplayTemplate(bindPath);
+    element.appendChild(template);
+    element.data = data;
+    element.connectedCallback();
+  };
+
+  test('should render 100 rows with linear DOM operations', () => {
     const data = Array.from({ length: 100 }, (_, i) => ({
       name: `Item ${i}`,
     }));
 
-    element.data = data;
-    element.connectedCallback();
+    setupElementWithTemplate(data);
 
     // Verify all rows were rendered correctly
     const rows = element.shadowRoot?.querySelectorAll('[data-row]');
@@ -57,17 +72,11 @@ describe('CkEditableArray Performance Benchmarks', () => {
   });
 
   test('should update only changed rows efficiently', () => {
-    const template = document.createElement('template');
-    template.setAttribute('slot', 'display');
-    template.innerHTML = `<span data-bind="name"></span>`;
-    element.appendChild(template);
-
     const data = Array.from({ length: 100 }, (_, i) => ({
       name: `Item ${i}`,
     }));
 
-    element.data = data;
-    element.connectedCallback();
+    setupElementWithTemplate(data);
 
     // Get references to existing DOM rows
     const rowsBefore = element.shadowRoot?.querySelectorAll('[data-row]');
@@ -124,17 +133,12 @@ describe('CkEditableArray Performance Benchmarks', () => {
   });
 
   test('should minimize DOM operations when removing rows', () => {
-    const template = document.createElement('template');
-    template.setAttribute('slot', 'display');
-    template.innerHTML = `<span data-bind="name"></span>`;
-    element.appendChild(template);
-
     // Initial 50 rows
     const initialData = Array.from({ length: 50 }, (_, i) => ({
       name: `Item ${i}`,
     }));
-    element.data = initialData;
-    element.connectedCallback();
+
+    setupElementWithTemplate(initialData);
 
     // Get references to rows before removal
     const rowsBefore = Array.from(
@@ -171,19 +175,12 @@ describe('CkEditableArray Performance Benchmarks', () => {
   });
 
   test('should use template caching and avoid re-querying', () => {
-    const template = document.createElement('template');
-    template.setAttribute('slot', 'display');
-    template.innerHTML = `<span data-bind="name"></span>`;
-    element.appendChild(template);
-
-    element.connectedCallback();
-
     const data = Array.from({ length: 10 }, (_, i) => ({
       name: `Item ${i}`,
     }));
 
-    // First render
-    element.data = data;
+    setupElementWithTemplate(data);
+
     const firstRenderRows = Array.from(
       element.shadowRoot?.querySelectorAll('[data-row]') || []
     );
@@ -216,11 +213,7 @@ describe('CkEditableArray Performance Benchmarks', () => {
   });
 
   test('should scale linearly with dataset size', () => {
-    const template = document.createElement('template');
-    template.setAttribute('slot', 'display');
-    template.innerHTML = `<span data-bind="name"></span>`;
-    element.appendChild(template);
-    element.connectedCallback();
+    setupElementWithTemplate([]);
 
     // Test with different sizes
     const sizes = [10, 100, 500];
@@ -243,8 +236,8 @@ describe('CkEditableArray Performance Benchmarks', () => {
     expect(rowCounts[2]).toBe(500);
 
     // Verify ratio is linear
-    const ratio1 = rowCounts[1] / rowCounts[0]; // Should be ~10
-    const ratio2 = rowCounts[2] / rowCounts[1]; // Should be ~5
+    const ratio1 = rowCounts[1] / rowCounts[0]; // Should be 10
+    const ratio2 = rowCounts[2] / rowCounts[1]; // Should be 5
 
     expect(ratio1).toBe(10);
     expect(ratio2).toBe(5);

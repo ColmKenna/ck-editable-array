@@ -13,13 +13,13 @@ describe('CkEditableArray Security - Prototype Pollution', () => {
   let element: CkEditableArray;
 
   beforeEach(() => {
+    // Clean up Object prototype at the start to avoid state leakage from previous tests
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (Object.prototype as any).polluted;
+
     // Create a fresh instance for each test
     element = new CkEditableArray();
     document.body.appendChild(element);
-
-    // Reset Object prototype after each test if needed (though we expect to fail)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (Object.prototype as any).polluted;
   });
 
   afterEach(() => {
@@ -31,17 +31,23 @@ describe('CkEditableArray Security - Prototype Pollution', () => {
     delete (Object.prototype as any).polluted;
   });
 
+  const createDisplayTemplate = (bindPath: string): HTMLTemplateElement => {
+    const template = document.createElement('template');
+    template.setAttribute('slot', 'display');
+    template.innerHTML = `<span data-bind="${bindPath}"></span>`;
+    return template;
+  };
+
+  const createEditTemplate = (bindPath: string): HTMLTemplateElement => {
+    const template = document.createElement('template');
+    template.setAttribute('slot', 'edit');
+    template.innerHTML = `<input type="text" data-bind="${bindPath}" />`;
+    return template;
+  };
+
   const setupTemplates = (bindPath: string) => {
-    const displayTemplate = document.createElement('template');
-    displayTemplate.setAttribute('slot', 'display');
-    displayTemplate.innerHTML = `<span data-bind="${bindPath}"></span>`;
-    element.appendChild(displayTemplate);
-
-    const editTemplate = document.createElement('template');
-    editTemplate.setAttribute('slot', 'edit');
-    editTemplate.innerHTML = `<input type="text" data-bind="${bindPath}" />`;
-    element.appendChild(editTemplate);
-
+    element.appendChild(createDisplayTemplate(bindPath));
+    element.appendChild(createEditTemplate(bindPath));
     element.data = [{}];
     element.connectedCallback();
 
@@ -64,8 +70,13 @@ describe('CkEditableArray Security - Prototype Pollution', () => {
       input.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
+    // Verify prototype was not polluted
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((Object.prototype as any).polluted).toBeUndefined();
+
+    // Verify component data was not modified by the pollution attempt
+    expect(element.data[0]).not.toHaveProperty('__proto__.polluted');
+    expect((element.data[0] as Record<string, unknown>).__proto__).not.toHaveProperty('polluted');
   });
 
   test('should reject prototype pollution via constructor.prototype path', () => {
@@ -76,8 +87,12 @@ describe('CkEditableArray Security - Prototype Pollution', () => {
       input.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
+    // Verify prototype was not polluted
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((Object.prototype as any).polluted).toBeUndefined();
+
+    // Verify component data was not modified by the pollution attempt
+    expect(element.data[0]).not.toHaveProperty('constructor.prototype.polluted');
   });
 
   test('should reject prototype pollution via prototype path', () => {
@@ -89,8 +104,12 @@ describe('CkEditableArray Security - Prototype Pollution', () => {
       input.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
+    // Verify prototype was not polluted
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((Object.prototype as any).polluted).toBeUndefined();
+
+    // Verify component data was not modified by the pollution attempt
+    expect(element.data[0]).not.toHaveProperty('prototype.polluted');
   });
 
   test('should reject prototype pollution in deep nested path', () => {
@@ -101,7 +120,20 @@ describe('CkEditableArray Security - Prototype Pollution', () => {
       input.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
+    // Verify prototype was not polluted
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((Object.prototype as any).polluted).toBeUndefined();
+
+    // Verify component data was not modified by the pollution attempt
+    expect(element.data[0]).not.toHaveProperty('a.b.__proto__.polluted');
+    // Also verify nested structure was not created as a pollution vector
+    const dataItem = element.data[0] as Record<string, unknown>;
+    if (dataItem.a && typeof dataItem.a === 'object') {
+      const aObj = dataItem.a as Record<string, unknown>;
+      if (aObj.b && typeof aObj.b === 'object') {
+        const bObj = aObj.b as Record<string, unknown>;
+        expect(bObj.__proto__).not.toHaveProperty('polluted');
+      }
+    }
   });
 });
