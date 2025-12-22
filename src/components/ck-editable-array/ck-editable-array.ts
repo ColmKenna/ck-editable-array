@@ -8,6 +8,11 @@ interface EditState {
   originalSnapshot: unknown;
 }
 
+type DataChangeMode = 'debounced' | 'change' | 'save';
+
+const DEFAULT_DATA_CHANGE_MODE: DataChangeMode = 'debounced';
+const DEFAULT_DATA_CHANGE_DEBOUNCE_MS = 300;
+
 export class CkEditableArray extends HTMLElement {
   private shadow: ShadowRoot;
   private _data: unknown[] = [];
@@ -21,6 +26,7 @@ export class CkEditableArray extends HTMLElement {
   private _currentEditIndex: number | null = null;
   private _onShadowClick = (event: Event) =>
     this._handleShadowClick(event as MouseEvent);
+  private _dataChangeTimer: number | null = null;
 
   // Internal edit state tracking (prevents polluting user data)
   private _editStateMap = new WeakMap<object, EditState>();
@@ -53,10 +59,18 @@ export class CkEditableArray extends HTMLElement {
 
   disconnectedCallback() {
     this.shadow.removeEventListener('click', this._onShadowClick);
+    this._clearDataChangeTimer();
   }
 
   static get observedAttributes() {
-    return ['name', 'root-class', 'rows-class', 'row-class'];
+    return [
+      'name',
+      'root-class',
+      'rows-class',
+      'row-class',
+      'datachange-mode',
+      'datachange-debounce',
+    ];
   }
 
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
@@ -69,6 +83,8 @@ export class CkEditableArray extends HTMLElement {
         name === 'row-class'
       ) {
         this._updateWrapperClassesOnly();
+      } else if (name === 'datachange-mode' || name === 'datachange-debounce') {
+        this._clearDataChangeTimer();
       } else {
         this.render();
       }
@@ -107,11 +123,28 @@ export class CkEditableArray extends HTMLElement {
     this.setAttribute('row-class', value);
   }
 
+  get datachangeMode(): DataChangeMode {
+    return this._getDataChangeMode();
+  }
+
+  set datachangeMode(value: DataChangeMode) {
+    this.setAttribute('datachange-mode', value);
+  }
+
+  get datachangeDebounce(): number {
+    return this._getDataChangeDebounce();
+  }
+
+  set datachangeDebounce(value: number) {
+    this.setAttribute('datachange-debounce', String(value));
+  }
+
   get data(): unknown[] {
     return this._deepClone(this._data);
   }
 
   set data(value: unknown) {
+    this._clearDataChangeTimer();
     this._data = Array.isArray(value) ? this._deepClone(value) : [];
     this._currentEditIndex = null;
 
@@ -123,13 +156,7 @@ export class CkEditableArray extends HTMLElement {
       this._announceDataChange();
     }
 
-    this.dispatchEvent(
-      new CustomEvent('datachanged', {
-        detail: { data: this._deepClone(this._data) },
-        bubbles: true,
-        composed: true,
-      })
-    );
+    this._dispatchDataChanged();
   }
 
   private _deepClone(obj: unknown): unknown[] {
@@ -157,6 +184,63 @@ export class CkEditableArray extends HTMLElement {
     } catch {
       return [];
     }
+  }
+
+  private _getDataChangeMode(): DataChangeMode {
+    const mode = (this.getAttribute('datachange-mode') || '')
+      .toLowerCase()
+      .trim();
+    if (mode === 'change' || mode === 'save' || mode === 'debounced') {
+      return mode;
+    }
+    return DEFAULT_DATA_CHANGE_MODE;
+  }
+
+  private _getDataChangeDebounce(): number {
+    const raw = this.getAttribute('datachange-debounce');
+    const parsed = raw ? Number(raw) : Number.NaN;
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return DEFAULT_DATA_CHANGE_DEBOUNCE_MS;
+    }
+    return Math.floor(parsed);
+  }
+
+  private _clearDataChangeTimer(): void {
+    if (this._dataChangeTimer === null) return;
+    window.clearTimeout(this._dataChangeTimer);
+    this._dataChangeTimer = null;
+  }
+
+  private _scheduleDataChanged(): void {
+    this._clearDataChangeTimer();
+    const delay = this._getDataChangeDebounce();
+    this._dataChangeTimer = window.setTimeout(() => {
+      this._dataChangeTimer = null;
+      this._dispatchDataChanged();
+    }, delay);
+  }
+
+  private _dispatchDataChanged(): void {
+    this.dispatchEvent(
+      new CustomEvent('datachanged', {
+        detail: { data: this._deepClone(this._data) },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private _dispatchRowChanged(rowIndex: number): void {
+    this.dispatchEvent(
+      new CustomEvent('rowchanged', {
+        detail: {
+          index: rowIndex,
+          row: this._cloneValue(this._data[rowIndex]),
+        },
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 
   private render() {
@@ -655,15 +739,25 @@ export class CkEditableArray extends HTMLElement {
       const bindPath = el.getAttribute('data-bind');
       if (!bindPath) return;
 
-      // Use 'input' event for text inputs and textareas
-      // Use 'change' event for selects and checkboxes
-      const eventType =
-        el.tagName.toLowerCase() === 'select' ||
-        (el as HTMLInputElement).type === 'checkbox'
-          ? 'change'
-          : 'input';
+      const tagName = el.tagName.toLowerCase();
+      const inputType =
+        el instanceof HTMLInputElement ? el.type.toLowerCase() : '';
 
-      el.addEventListener(eventType, event =>
+      if (
+        tagName === 'select' ||
+        inputType === 'checkbox' ||
+        inputType === 'radio'
+      ) {
+        el.addEventListener('change', event =>
+          this._handleInputChange(event, bindPath)
+        );
+        return;
+      }
+
+      el.addEventListener('input', event =>
+        this._handleInputChange(event, bindPath)
+      );
+      el.addEventListener('change', event =>
         this._handleInputChange(event, bindPath)
       );
     });
@@ -703,14 +797,22 @@ export class CkEditableArray extends HTMLElement {
       (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls || [];
     this._applyBindingsOptimized(boundEls, this._data[rowIndex]);
 
-    // Dispatch datachanged event
-    this.dispatchEvent(
-      new CustomEvent('datachanged', {
-        detail: { data: this._deepClone(this._data) },
-        bubbles: true,
-        composed: true,
-      })
-    );
+    this._dispatchRowChanged(rowIndex);
+    this._handleDataChangeForEvent(event);
+  }
+
+  private _handleDataChangeForEvent(event: Event): void {
+    const mode = this._getDataChangeMode();
+    if (mode === 'debounced') {
+      this._scheduleDataChanged();
+      return;
+    }
+    if (mode === 'change') {
+      if (event.type === 'change') {
+        this._dispatchDataChanged();
+      }
+      return;
+    }
   }
 
   private _setNestedPath(obj: unknown, path: string, value: unknown): void {
@@ -819,6 +921,10 @@ export class CkEditableArray extends HTMLElement {
       composed: true,
     });
     this.dispatchEvent(afterEvent);
+
+    if (this._getDataChangeMode() === 'save') {
+      this._dispatchDataChanged();
+    }
   }
 
   private _cancelRow(rowEl: HTMLElement, rowIndex: number) {

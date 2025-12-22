@@ -78,6 +78,28 @@
         margin-bottom: 1.5rem;
       }
 
+      .datachange-controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+        margin: 0 0 1rem;
+      }
+
+      .datachange-controls label {
+        display: grid;
+        gap: 0.25rem;
+        font-size: 0.9rem;
+        color: #333;
+      }
+
+      .datachange-controls select,
+      .datachange-controls input {
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.95rem;
+      }
+
       ck-editable-array {
         --cea-message-color: #333;
       }
@@ -235,6 +257,7 @@
           <div class="code-block">
 // Set data
 const element = document.querySelector('ck-editable-array');
+element.addEventListener('rowchanged', (e) => console.log(e.detail.index, e.detail.row));
 element.addEventListener('datachanged', (e) => console.log(e.detail.data));
 element.data = [
   { id: 1, name: 'Item 1' },
@@ -686,13 +709,28 @@ console.log(element.data[0].name); // Still 'Original' ✓
                 </template>
               </ck-editable-array>
             </div>
+            <div class="datachange-controls">
+              <label>
+                datachange-mode
+                <select id="liveBindingMode">
+                  <option value="debounced" selected>debounced</option>
+                  <option value="change">change</option>
+                  <option value="save">save</option>
+                </select>
+              </label>
+              <label>
+                debounce (ms)
+                <input id="liveBindingDebounce" type="number" min="0" value="300" />
+              </label>
+            </div>
             <p class="section-description" style="margin-top: 1rem;">
-              <strong>Try it:</strong> Start typing in any input field above and watch the display card update instantly! The component data also updates automatically.
+              <strong>Try it:</strong> Start typing in any input field above and watch the display card update instantly. Row updates emit <code>rowchanged</code>; full <code>datachanged</code> follows the mode you select.
             </p>
             <div class="code-block">
 // No code needed - it just works!
-// When user types → data updates → display updates
-// datachanged event fires automatically
+// When user types -> data updates -> display updates
+// rowchanged fires on each edit
+// datachanged fires based on datachange-mode (debounced by default)
             </div>
           </div>
         </div>
@@ -700,7 +738,8 @@ console.log(element.data[0].name); // Still 'Original' ✓
         <div class="demo-item">
           <h3>Data Event Log</h3>
           <p class="section-description">
-            This log shows the <code>datachanged</code> events firing as you edit the fields above.
+            This log shows <code>rowchanged</code> events on each edit and debounced
+            <code>datachanged</code> events based on the selected mode.
           </p>
           <div class="output" id="bindingEventLog" style="max-height: 150px;">
 Waiting for input changes...
@@ -754,8 +793,54 @@ Waiting for input changes...
           { name: 'Jane Smith', email: 'jane@example.com', status: 'Away' },
         ];
 
-        // Log datachanged events
+        const modeSelect = document.getElementById('liveBindingMode');
+        const debounceInput = document.getElementById('liveBindingDebounce');
+        const applyMode = () => {
+          if (modeSelect && 'value' in modeSelect) {
+            liveBindingDemo.setAttribute('datachange-mode', modeSelect.value);
+          }
+        };
+        const applyDebounce = () => {
+          if (debounceInput && 'value' in debounceInput) {
+            liveBindingDemo.setAttribute(
+              'datachange-debounce',
+              debounceInput.value
+            );
+          }
+        };
+        if (modeSelect) {
+          modeSelect.addEventListener('change', applyMode);
+        }
+        if (debounceInput) {
+          debounceInput.addEventListener('input', applyDebounce);
+        }
+        applyMode();
+        applyDebounce();
+
+        // Log rowchanged/datachanged events
         const bindingLog = [];
+        const pushBindingLog = (message) => {
+          bindingLog.unshift(message);
+          bindingLog.splice(10); // Keep last 10 events
+
+          const logEl = document.getElementById('bindingEventLog');
+          if (logEl) {
+            logEl.textContent = bindingLog.join('\n\n---\n\n');
+          }
+        };
+
+        liveBindingDemo.addEventListener('rowchanged', (e) => {
+          const detail = e.detail ?? {};
+          const timestamp = new Date().toLocaleTimeString();
+          const row = detail.row ?? {};
+          const summary = row && typeof row === 'object'
+            ? `${row.name ?? ''} <${row.email ?? ''}> [${row.status ?? ''}]`
+            : String(row);
+
+          pushBindingLog(
+            `[${timestamp}] rowchanged (row ${detail.index}): ${summary}`
+          );
+        });
         liveBindingDemo.addEventListener('datachanged', (e) => {
           const data = e.detail?.data ?? [];
           const timestamp = new Date().toLocaleTimeString();
@@ -763,13 +848,7 @@ Waiting for input changes...
             `Row ${idx}: ${item.name} <${item.email}> [${item.status}]`
           ).join('\n');
 
-          bindingLog.unshift(`[${timestamp}] Data Updated:\n${summary}`);
-          bindingLog.splice(10); // Keep last 10 events
-
-          const logEl = document.getElementById('bindingEventLog');
-          if (logEl) {
-            logEl.textContent = bindingLog.join('\n\n---\n\n');
-          }
+          pushBindingLog(`[${timestamp}] datachanged:\n${summary}`);
         });
       }
 
@@ -784,6 +863,14 @@ Waiting for input changes...
         const data = e.detail?.data ?? [];
         eventLog.unshift(
           `[${new Date().toLocaleTimeString()}] datachanged (${data.length} items)`
+        );
+        eventLog.splice(20);
+        showOutput('eventOutput', eventLog.join('\n'));
+      });
+      document.addEventListener('rowchanged', (e) => {
+        const detail = e.detail ?? {};
+        eventLog.unshift(
+          `[${new Date().toLocaleTimeString()}] rowchanged (row ${detail.index})`
         );
         eventLog.splice(20);
         showOutput('eventOutput', eventLog.join('\n'));

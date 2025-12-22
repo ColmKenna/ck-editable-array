@@ -1560,7 +1560,48 @@ describe('CkEditableArray Component', () => {
       expect(updatedData[0].name).toBe('Bob Updated');
     });
 
-    test('should dispatch datachanged event on input change', () => {
+    test('should dispatch rowchanged event on input change', () => {
+      element.setAttribute('name', 'users');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Charlie' }];
+      element.connectedCallback();
+
+      const eventHandler = jest.fn();
+      element.addEventListener('rowchanged', eventHandler);
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const input = row?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+
+      // User types new value
+      input.value = 'Charlie Updated';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Event should fire
+      expect(eventHandler).toHaveBeenCalledTimes(1);
+      const event = eventHandler.mock.calls[0][0] as CustomEvent;
+      expect(event.detail.index).toBe(0);
+      expect(event.detail.row).toEqual({ name: 'Charlie Updated' });
+      const snapshot = element.data as { name: string }[];
+      expect(event.detail.row).not.toBe(snapshot[0]);
+
+      element.removeEventListener('rowchanged', eventHandler);
+    });
+
+    test('should debounce datachanged event on input change by default', () => {
+      jest.useFakeTimers();
       element.setAttribute('name', 'users');
 
       const displayTemplate = document.createElement('template');
@@ -1592,7 +1633,144 @@ describe('CkEditableArray Component', () => {
       input.value = 'Charlie Updated';
       input.dispatchEvent(new Event('input', { bubbles: true }));
 
-      // Event should fire
+      expect(eventHandler).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(299);
+      expect(eventHandler).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(1);
+      expect(eventHandler).toHaveBeenCalledTimes(1);
+
+      const event = eventHandler.mock.calls[0][0] as CustomEvent;
+      expect(event.detail.data[0].name).toBe('Charlie Updated');
+
+      element.removeEventListener('datachanged', eventHandler);
+      jest.useRealTimers();
+    });
+
+    test('should respect datachange-debounce attribute for debounced mode', () => {
+      jest.useFakeTimers();
+      element.setAttribute('name', 'users');
+      element.setAttribute('datachange-mode', 'debounced');
+      element.setAttribute('datachange-debounce', '50');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Charlie' }];
+      element.connectedCallback();
+
+      const eventHandler = jest.fn();
+      element.addEventListener('datachanged', eventHandler);
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const input = row?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+
+      eventHandler.mockClear();
+
+      input.value = 'Charlie Updated';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      jest.advanceTimersByTime(49);
+      expect(eventHandler).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(1);
+      expect(eventHandler).toHaveBeenCalledTimes(1);
+
+      element.removeEventListener('datachanged', eventHandler);
+      jest.useRealTimers();
+    });
+
+    test('should dispatch datachanged on change when datachange-mode is "change"', () => {
+      element.setAttribute('name', 'users');
+      element.setAttribute('datachange-mode', 'change');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Charlie' }];
+      element.connectedCallback();
+
+      const eventHandler = jest.fn();
+      element.addEventListener('datachanged', eventHandler);
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const input = row?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+
+      eventHandler.mockClear();
+
+      input.value = 'Charlie Updated';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      expect(eventHandler).not.toHaveBeenCalled();
+
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      expect(eventHandler).toHaveBeenCalledTimes(1);
+
+      element.removeEventListener('datachanged', eventHandler);
+    });
+
+    test('should dispatch datachanged on save when datachange-mode is "save"', () => {
+      element.setAttribute('name', 'users');
+      element.setAttribute('datachange-mode', 'save');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Charlie' }];
+      element.connectedCallback();
+
+      const eventHandler = jest.fn();
+      element.addEventListener('datachanged', eventHandler);
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const input = row?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+
+      eventHandler.mockClear();
+
+      const toggleButton = row.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton.click();
+
+      input.value = 'Charlie Updated';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      expect(eventHandler).not.toHaveBeenCalled();
+
+      const saveButton = row.querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
+      saveButton.click();
+
       expect(eventHandler).toHaveBeenCalledTimes(1);
       const event = eventHandler.mock.calls[0][0] as CustomEvent;
       expect(event.detail.data[0].name).toBe('Charlie Updated');
@@ -2179,6 +2357,8 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should emit clean data in datachanged event during edit mode', () => {
+      element.setAttribute('datachange-mode', 'change');
+
       const displayTemplate = document.createElement('template');
       displayTemplate.setAttribute('slot', 'display');
       displayTemplate.innerHTML = `<span data-bind="name"></span>`;
@@ -2211,6 +2391,7 @@ describe('CkEditableArray Component', () => {
       ) as HTMLInputElement;
       input.value = 'Charlie Updated';
       input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
 
       // Check emitted event data
       expect(eventHandler).toHaveBeenCalled();
