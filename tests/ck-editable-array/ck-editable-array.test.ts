@@ -26,8 +26,7 @@ const createDisplayTemplate = (
 ): HTMLTemplateElement => {
   const template = document.createElement('template');
   template.setAttribute('slot', 'display');
-  template.innerHTML =
-    innerHTML || `<span data-bind="${bindPath}"></span>`;
+  template.innerHTML = innerHTML || `<span data-bind="${bindPath}"></span>`;
   return template;
 };
 
@@ -68,7 +67,7 @@ const attachTemplates = (
  * @param data - The data array to assign
  * @param displayBindPath - The bind path for the display template
  */
-const setupElementWithTemplates = (
+const _setupElementWithTemplates = (
   element: CkEditableArray,
   data: unknown[],
   displayBindPath: string
@@ -254,10 +253,9 @@ describe('CkEditableArray Component', () => {
   });
 
   test('should render the light DOM <template slot="display"> content into shadow DOM', () => {
-    const template = document.createElement('template');
-    template.setAttribute('slot', 'display');
-    template.innerHTML = `<div id="fromTemplate">From template</div>`;
-    element.appendChild(template);
+    element.appendChild(
+      createDisplayTemplate('', `<div id="fromTemplate">From template</div>`)
+    );
 
     element.data = [{ id: 1 }];
     element.connectedCallback();
@@ -273,10 +271,9 @@ describe('CkEditableArray Component', () => {
       'No display template found'
     );
 
-    const template = document.createElement('template');
-    template.setAttribute('slot', 'display');
-    template.innerHTML = `<div id="lateTemplate">Late template</div>`;
-    element.appendChild(template);
+    element.appendChild(
+      createDisplayTemplate('', `<div id="lateTemplate">Late template</div>`)
+    );
 
     // Template changes are not observed; a subsequent render is required.
     element.data = [{ id: 1 }];
@@ -287,10 +284,7 @@ describe('CkEditableArray Component', () => {
 
   // Rows rendering + data-bind tests (TDD: RED phase)
   test('should render one row per data item into part="rows"', () => {
-    const template = document.createElement('template');
-    template.setAttribute('slot', 'display');
-    template.innerHTML = `<span data-bind="name"></span>`;
-    element.appendChild(template);
+    element.appendChild(createDisplayTemplate('name'));
 
     element.data = [{ name: 'A' }, { name: 'B' }];
     element.connectedCallback();
@@ -303,10 +297,7 @@ describe('CkEditableArray Component', () => {
   });
 
   test('should set data-row attribute to the row index', () => {
-    const template = document.createElement('template');
-    template.setAttribute('slot', 'display');
-    template.innerHTML = `<span data-bind="name"></span>`;
-    element.appendChild(template);
+    element.appendChild(createDisplayTemplate('name'));
 
     element.data = [{ name: 'First' }, { name: 'Second' }];
     element.connectedCallback();
@@ -318,10 +309,7 @@ describe('CkEditableArray Component', () => {
   });
 
   test('should set data-mode="display" on each row wrapper', () => {
-    const template = document.createElement('template');
-    template.setAttribute('slot', 'display');
-    template.innerHTML = `<span data-bind="name"></span>`;
-    element.appendChild(template);
+    element.appendChild(createDisplayTemplate('name'));
 
     element.data = [{ name: 'First' }, { name: 'Second' }];
     element.connectedCallback();
@@ -336,15 +324,7 @@ describe('CkEditableArray Component', () => {
   });
 
   test('should hide edit template content by default with ck-hidden', () => {
-    const displayTemplate = document.createElement('template');
-    displayTemplate.setAttribute('slot', 'display');
-    displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-    element.appendChild(displayTemplate);
-
-    const editTemplate = document.createElement('template');
-    editTemplate.setAttribute('slot', 'edit');
-    editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-    element.appendChild(editTemplate);
+    attachTemplates(element, 'name');
 
     element.data = [{ name: 'First' }];
     element.connectedCallback();
@@ -360,10 +340,7 @@ describe('CkEditableArray Component', () => {
   });
 
   test('should bind dot-path values via [data-bind]', () => {
-    const template = document.createElement('template');
-    template.setAttribute('slot', 'display');
-    template.innerHTML = `<span data-bind="person.address.city"></span>`;
-    element.appendChild(template);
+    element.appendChild(createDisplayTemplate('person.address.city'));
 
     element.data = [{ person: { address: { city: 'Dublin' } } }];
     element.connectedCallback();
@@ -373,10 +350,7 @@ describe('CkEditableArray Component', () => {
   });
 
   test('should join bound arrays with comma+space', () => {
-    const template = document.createElement('template');
-    template.setAttribute('slot', 'display');
-    template.innerHTML = `<span data-bind="tags"></span>`;
-    element.appendChild(template);
+    element.appendChild(createDisplayTemplate('tags'));
 
     element.data = [{ tags: ['a', 'b', 'c'] }];
     element.connectedCallback();
@@ -386,10 +360,7 @@ describe('CkEditableArray Component', () => {
   });
 
   test('should set bound text via textContent (not interpret HTML)', () => {
-    const template = document.createElement('template');
-    template.setAttribute('slot', 'display');
-    template.innerHTML = `<span data-bind="name"></span>`;
-    element.appendChild(template);
+    element.appendChild(createDisplayTemplate('name'));
 
     element.data = [{ name: '<img src=x onerror=alert(1)>' }];
     element.connectedCallback();
@@ -409,15 +380,7 @@ describe('CkEditableArray Component', () => {
 
   describe('Edit Mode Toggle', () => {
     test('should add edit, save, and cancel buttons to each row', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       element.data = [{ name: 'First' }, { name: 'Second' }];
       element.connectedCallback();
@@ -436,15 +399,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should show only edit button in display mode and show save/cancel in edit mode', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       element.data = [{ name: 'First' }];
       element.connectedCallback();
@@ -475,15 +430,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should dispatch cancelable beforetogglemode and respect preventDefault', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       element.data = [{ name: 'First' }];
       element.connectedCallback();
@@ -509,15 +456,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should enter edit mode and transition to edit UI state', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       element.data = [{ name: 'First' }];
       element.connectedCallback();
@@ -551,15 +490,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should enforce exclusive editing lock across rows', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       element.data = [{ name: 'First' }, { name: 'Second' }];
       element.connectedCallback();
@@ -586,13 +517,9 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should focus the first input in edit template when entering edit mode', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
+      element.appendChild(createDisplayTemplate('name'));
 
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
+      const editTemplate = createEditTemplate('name');
       editTemplate.innerHTML = `
         <input type="text" data-bind="name" />
         <input type="text" data-bind="other" />
@@ -612,15 +539,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should dispatch aftertogglemode with mode "edit"', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       element.data = [{ name: 'First' }];
       element.connectedCallback();
@@ -639,15 +558,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should keep edited values when saving and return to display mode', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       element.data = [{ name: 'First' }];
       element.connectedCallback();
@@ -684,15 +595,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should revert to original snapshot when cancel is clicked', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       element.data = [{ name: 'Original' }];
       element.connectedCallback();
@@ -754,10 +657,7 @@ describe('CkEditableArray Component', () => {
       element.setAttribute('rows-class', 'custom-rows');
       element.setAttribute('row-class', 'custom-row');
 
-      const template = document.createElement('template');
-      template.setAttribute('slot', 'display');
-      template.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(template);
+      element.appendChild(createDisplayTemplate('name'));
 
       element.data = [{ name: 'A' }, { name: 'B' }];
       element.connectedCallback();
@@ -788,10 +688,7 @@ describe('CkEditableArray Component', () => {
     test('should update wrapper classes when attributes change', () => {
       element.setAttribute('row-class', 'row-v1');
 
-      const template = document.createElement('template');
-      template.setAttribute('slot', 'display');
-      template.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(template);
+      element.appendChild(createDisplayTemplate('name'));
 
       element.data = [{ name: 'A' }, { name: 'B' }];
       element.connectedCallback();
@@ -812,10 +709,7 @@ describe('CkEditableArray Component', () => {
       element.setAttribute('root-class', 'root-v1');
       element.setAttribute('rows-class', 'rows-v1');
 
-      const template = document.createElement('template');
-      template.setAttribute('slot', 'display');
-      template.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(template);
+      element.appendChild(createDisplayTemplate('name'));
 
       element.data = [{ name: 'A' }];
       element.connectedCallback();
@@ -842,10 +736,7 @@ describe('CkEditableArray Component', () => {
     test('should remove wrapper classes when attribute is cleared', () => {
       element.setAttribute('row-class', 'row-v1');
 
-      const template = document.createElement('template');
-      template.setAttribute('slot', 'display');
-      template.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(template);
+      element.appendChild(createDisplayTemplate('name'));
 
       element.data = [{ name: 'A' }];
       element.connectedCallback();
@@ -925,10 +816,7 @@ describe('CkEditableArray Component', () => {
   // Accessibility tests (Phase 1 - Task 1.2)
   describe('Accessibility - Keyboard Navigation', () => {
     test('should add tabindex="0" to each row', () => {
-      const template = document.createElement('template');
-      template.setAttribute('slot', 'display');
-      template.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(template);
+      element.appendChild(createDisplayTemplate('name'));
 
       element.data = [{ name: 'A' }, { name: 'B' }];
       element.connectedCallback();
@@ -940,10 +828,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should allow ArrowDown to move focus to next row', () => {
-      const template = document.createElement('template');
-      template.setAttribute('slot', 'display');
-      template.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(template);
+      element.appendChild(createDisplayTemplate('name'));
 
       element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
       element.connectedCallback();
@@ -968,10 +853,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should allow ArrowUp to move focus to previous row', () => {
-      const template = document.createElement('template');
-      template.setAttribute('slot', 'display');
-      template.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(template);
+      element.appendChild(createDisplayTemplate('name'));
 
       element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
       element.connectedCallback();
@@ -996,10 +878,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should not move focus beyond first row with ArrowUp', () => {
-      const template = document.createElement('template');
-      template.setAttribute('slot', 'display');
-      template.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(template);
+      element.appendChild(createDisplayTemplate('name'));
 
       element.data = [{ name: 'A' }, { name: 'B' }];
       element.connectedCallback();
@@ -1022,10 +901,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should not move focus beyond last row with ArrowDown', () => {
-      const template = document.createElement('template');
-      template.setAttribute('slot', 'display');
-      template.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(template);
+      element.appendChild(createDisplayTemplate('name'));
 
       element.data = [{ name: 'A' }, { name: 'B' }];
       element.connectedCallback();
@@ -1051,15 +927,7 @@ describe('CkEditableArray Component', () => {
   // Edit Template Input Value Binding Tests (TDD: RED phase)
   describe('Edit Template - Input Value Binding', () => {
     test('should populate input value from data-bind in edit template', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       element.data = [{ name: 'Alice' }, { name: 'Bob' }];
       element.connectedCallback();
@@ -1085,9 +953,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should populate textarea value from data-bind in edit template', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="notes"></span>`;
+      const displayTemplate = createDisplayTemplate('notes');
       element.appendChild(displayTemplate);
 
       const editTemplate = document.createElement('template');
@@ -1117,9 +983,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should select correct option in select element from data-bind in edit template', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="status"></span>`;
+      const displayTemplate = createDisplayTemplate('status');
       element.appendChild(displayTemplate);
 
       const editTemplate = document.createElement('template');
@@ -1155,9 +1019,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should handle nested path bindings in input elements', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="user.email"></span>`;
+      const displayTemplate = createDisplayTemplate('user.email');
       element.appendChild(displayTemplate);
 
       const editTemplate = document.createElement('template');
@@ -1188,9 +1050,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should handle null/undefined values in input elements gracefully', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="optional"></span>`;
+      const displayTemplate = createDisplayTemplate('optional');
       element.appendChild(displayTemplate);
 
       const editTemplate = document.createElement('template');
@@ -1226,10 +1086,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should preserve textContent binding for non-form elements in edit template', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="title"></span>`;
-      element.appendChild(displayTemplate);
+      element.appendChild(createDisplayTemplate('title'));
 
       const editTemplate = document.createElement('template');
       editTemplate.setAttribute('slot', 'edit');
@@ -1261,15 +1118,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should handle number inputs with numeric values', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="age"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="number" data-bind="age" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'age', 'age');
 
       element.data = [{ age: 25 }, { age: 30 }];
       element.connectedCallback();
@@ -1291,15 +1140,8 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should handle checkbox inputs with boolean values', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="active"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="checkbox" data-bind="active" />`;
-      element.appendChild(editTemplate);
+      element.appendChild(createDisplayTemplate('active'));
+      element.appendChild(createEditTemplate('active', 'checkbox'));
 
       element.data = [{ active: true }, { active: false }];
       element.connectedCallback();
@@ -1331,15 +1173,7 @@ describe('CkEditableArray Component', () => {
     test('should set name and id attributes on input elements in edit template', () => {
       element.setAttribute('name', 'users');
 
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="firstName"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="firstName" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'firstName');
 
       element.data = [{ firstName: 'Alice' }, { firstName: 'Bob' }];
       element.connectedCallback();
@@ -1404,10 +1238,7 @@ describe('CkEditableArray Component', () => {
     test('should set name and id attributes on textarea elements in edit template', () => {
       element.setAttribute('name', 'posts');
 
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="content"></span>`;
-      element.appendChild(displayTemplate);
+      element.appendChild(createDisplayTemplate('content'));
 
       const editTemplate = document.createElement('template');
       editTemplate.setAttribute('slot', 'edit');
@@ -1438,15 +1269,7 @@ describe('CkEditableArray Component', () => {
     test('should handle nested paths in data-bind for name/id attributes', () => {
       element.setAttribute('name', 'profiles');
 
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="contact.email"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="email" data-bind="contact.email" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'contact.email');
 
       element.data = [
         { contact: { email: 'alice@example.com' } },
@@ -1475,10 +1298,7 @@ describe('CkEditableArray Component', () => {
     test('should not set name/id attributes on display template elements', () => {
       element.setAttribute('name', 'items');
 
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="title"></span>`;
-      element.appendChild(displayTemplate);
+      element.appendChild(createDisplayTemplate('title'));
 
       element.data = [{ title: 'Test' }];
       element.connectedCallback();
@@ -1493,15 +1313,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should use default name "items" when name attribute not set', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="value"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="value" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'value');
 
       element.data = [{ value: 'Test' }];
       element.connectedCallback();
@@ -1518,10 +1330,7 @@ describe('CkEditableArray Component', () => {
     test('should handle multiple form controls in same row', () => {
       element.setAttribute('name', 'records');
 
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
+      element.appendChild(createDisplayTemplate('name'));
 
       const editTemplate = document.createElement('template');
       editTemplate.setAttribute('slot', 'edit');
@@ -1604,15 +1413,7 @@ describe('CkEditableArray Component', () => {
     test('should update component data when input value changes', () => {
       element.setAttribute('name', 'users');
 
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       element.data = [{ name: 'Bob' }];
       element.connectedCallback();
@@ -1635,15 +1436,7 @@ describe('CkEditableArray Component', () => {
     test('should dispatch rowchanged event on input change', () => {
       element.setAttribute('name', 'users');
 
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       element.data = [{ name: 'Charlie' }];
       element.connectedCallback();
@@ -1726,10 +1519,7 @@ describe('CkEditableArray Component', () => {
       element.setAttribute('datachange-mode', 'debounced');
       element.setAttribute('datachange-debounce', '50');
 
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
+      attachTemplates(element, 'name');
 
       const editTemplate = document.createElement('template');
       editTemplate.setAttribute('slot', 'edit');
@@ -1805,15 +1595,7 @@ describe('CkEditableArray Component', () => {
       element.setAttribute('name', 'users');
       element.setAttribute('datachange-mode', 'save');
 
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       element.data = [{ name: 'Charlie' }];
       element.connectedCallback();
@@ -1853,15 +1635,7 @@ describe('CkEditableArray Component', () => {
     test('should handle nested path bindings on input change', () => {
       element.setAttribute('name', 'profiles');
 
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="user.email"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="email" data-bind="user.email" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'user.email');
 
       element.data = [{ user: { email: 'alice@example.com' } }];
       element.connectedCallback();
@@ -1888,15 +1662,7 @@ describe('CkEditableArray Component', () => {
     test('should update correct row when multiple rows exist', () => {
       element.setAttribute('name', 'users');
 
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       element.data = [{ name: 'Alice' }, { name: 'Bob' }, { name: 'Charlie' }];
       element.connectedCallback();
@@ -2012,15 +1778,8 @@ describe('CkEditableArray Component', () => {
     test('should update boolean data when checkbox changes', () => {
       element.setAttribute('name', 'tasks');
 
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="completed"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="checkbox" data-bind="completed" />`;
-      element.appendChild(editTemplate);
+      element.appendChild(createDisplayTemplate('completed'));
+      element.appendChild(createEditTemplate('completed', 'checkbox'));
 
       element.data = [{ completed: false }];
       element.connectedCallback();
@@ -2050,15 +1809,7 @@ describe('CkEditableArray Component', () => {
     test('should not update display elements in other rows', () => {
       element.setAttribute('name', 'users');
 
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       element.data = [{ name: 'Alice' }, { name: 'Bob' }];
       element.connectedCallback();
@@ -2173,15 +1924,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should update name/id attributes when row index changes due to data shift', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       element.setAttribute('name', 'users');
 
@@ -2226,10 +1969,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should use current DOM index for keyboard navigation after data reorder', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
+      element.appendChild(createDisplayTemplate('name'));
 
       // Set initial data
       element.data = [{ name: 'Alice' }, { name: 'Bob' }, { name: 'Charlie' }];
@@ -2274,10 +2014,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should use current DOM index for ArrowUp navigation after data reorder', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
+      element.appendChild(createDisplayTemplate('name'));
 
       // Set initial data
       element.data = [{ name: 'Alice' }, { name: 'Bob' }, { name: 'Charlie' }];
@@ -2307,15 +2044,7 @@ describe('CkEditableArray Component', () => {
     });
 
     test('should apply edit action to current visual row after data reorder', () => {
-      const displayTemplate = document.createElement('template');
-      displayTemplate.setAttribute('slot', 'display');
-      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
-      element.appendChild(displayTemplate);
-
-      const editTemplate = document.createElement('template');
-      editTemplate.setAttribute('slot', 'edit');
-      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
-      element.appendChild(editTemplate);
+      attachTemplates(element, 'name');
 
       // Set initial data
       element.data = [{ name: 'Alice' }, { name: 'Bob' }, { name: 'Charlie' }];
