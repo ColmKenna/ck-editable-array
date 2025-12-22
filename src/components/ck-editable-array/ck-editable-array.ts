@@ -659,7 +659,7 @@ export class CkEditableArray extends HTMLElement {
       // Use 'change' event for selects and checkboxes
       const eventType =
         el.tagName.toLowerCase() === 'select' ||
-          (el as HTMLInputElement).type === 'checkbox'
+        (el as HTMLInputElement).type === 'checkbox'
           ? 'change'
           : 'input';
 
@@ -669,10 +669,7 @@ export class CkEditableArray extends HTMLElement {
     });
   }
 
-  private _handleInputChange(
-    event: Event,
-    bindPath: string
-  ): void {
+  private _handleInputChange(event: Event, bindPath: string): void {
     const target = event.target as
       | HTMLInputElement
       | HTMLSelectElement
@@ -683,7 +680,12 @@ export class CkEditableArray extends HTMLElement {
     if (!rowEl) return;
 
     const rowIndex = Number(rowEl.getAttribute('data-row'));
-    if (!Number.isFinite(rowIndex) || rowIndex < 0 || rowIndex >= this._data.length) return;
+    if (
+      !Number.isFinite(rowIndex) ||
+      rowIndex < 0 ||
+      rowIndex >= this._data.length
+    )
+      return;
 
     // Get the new value from the input
     let newValue: unknown;

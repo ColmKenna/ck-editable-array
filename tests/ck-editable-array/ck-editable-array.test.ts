@@ -355,14 +355,10 @@ describe('CkEditableArray Component', () => {
         | NodeListOf<HTMLElement>
         | undefined;
 
-      expect(
-        rows?.[0]?.querySelector('[data-action="toggle"]')
-      ).toBeTruthy();
+      expect(rows?.[0]?.querySelector('[data-action="toggle"]')).toBeTruthy();
       expect(rows?.[0]?.querySelector('[data-action="save"]')).toBeTruthy();
       expect(rows?.[0]?.querySelector('[data-action="cancel"]')).toBeTruthy();
-      expect(
-        rows?.[1]?.querySelector('[data-action="toggle"]')
-      ).toBeTruthy();
+      expect(rows?.[1]?.querySelector('[data-action="toggle"]')).toBeTruthy();
       expect(rows?.[1]?.querySelector('[data-action="save"]')).toBeTruthy();
       expect(rows?.[1]?.querySelector('[data-action="cancel"]')).toBeTruthy();
     });
@@ -384,9 +380,15 @@ describe('CkEditableArray Component', () => {
       const row = element.shadowRoot?.querySelector(
         '[data-row="0"]'
       ) as HTMLElement;
-      const editButton = row.querySelector('[data-action="toggle"]') as HTMLElement;
-      const saveButton = row.querySelector('[data-action="save"]') as HTMLElement;
-      const cancelButton = row.querySelector('[data-action="cancel"]') as HTMLElement;
+      const editButton = row.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLElement;
+      const saveButton = row.querySelector(
+        '[data-action="save"]'
+      ) as HTMLElement;
+      const cancelButton = row.querySelector(
+        '[data-action="cancel"]'
+      ) as HTMLElement;
 
       expect(editButton.classList.contains('ck-hidden')).toBe(false);
       expect(saveButton.classList.contains('ck-hidden')).toBe(true);
@@ -467,7 +469,11 @@ describe('CkEditableArray Component', () => {
       expect(editContent.classList.contains('ck-hidden')).toBe(false);
 
       // Verify user data is NOT polluted (uses internal state tracking)
-      const data = element.data as { name: string; editing?: boolean; __originalSnapshot?: { name: string } }[];
+      const data = element.data as {
+        name: string;
+        editing?: boolean;
+        __originalSnapshot?: { name: string };
+      }[];
       expect(data[0].editing).toBeUndefined();
       expect(data[0].__originalSnapshot).toBeUndefined();
     });
@@ -645,7 +651,11 @@ describe('CkEditableArray Component', () => {
 
       expect(row.getAttribute('data-mode')).toBe('display');
       expect(displaySpan.textContent).toBe('Original');
-      const data = element.data as { name: string; editing?: boolean; __originalSnapshot?: unknown }[];
+      const data = element.data as {
+        name: string;
+        editing?: boolean;
+        __originalSnapshot?: unknown;
+      }[];
       expect(data[0].name).toBe('Original');
       expect(data[0].editing).toBeUndefined();
       expect(data[0].__originalSnapshot).toBeUndefined();
@@ -1845,7 +1855,9 @@ describe('CkEditableArray Component', () => {
       element.connectedCallback();
 
       const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
-      const rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
+      const rows = rowsHost?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
 
       // Manually change data-row attribute to simulate index mismatch
       rows[0].setAttribute('data-row', '5');
@@ -1883,8 +1895,12 @@ describe('CkEditableArray Component', () => {
       element.connectedCallback();
 
       const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
-      const rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
-      const input0 = rows[0].querySelector('input[data-bind="name"]') as HTMLInputElement;
+      const rows = rowsHost?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
+      const input0 = rows[0].querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
 
       // Manually change data-row attribute
       rows[0].setAttribute('data-row', '1');
@@ -1920,33 +1936,38 @@ describe('CkEditableArray Component', () => {
       element.setAttribute('name', 'users');
 
       // Set initial data with 2 items
-      element.data = [
-        { name: 'Alice' },
-        { name: 'Bob' }
-      ];
+      element.data = [{ name: 'Alice' }, { name: 'Bob' }];
       element.connectedCallback();
 
       const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
-      let rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
+      let rows = rowsHost?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
 
       // Verify initial name attributes
-      const input0Initial = rows[0].querySelector('input[data-bind="name"]') as HTMLInputElement;
+      const input0Initial = rows[0].querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
       expect(input0Initial.getAttribute('name')).toBe('users[0].name');
       expect(input0Initial.getAttribute('id')).toBe('users__0__name');
 
       // Add a NEW item at the beginning (shifts existing items down)
       element.data = [
-        { name: 'New First' },  // New item at index 0
-        { name: 'Alice' },      // Alice shifted from index 0 to index 1
-        { name: 'Bob' }         // Bob shifted from index 1 to index 2
+        { name: 'New First' }, // New item at index 0
+        { name: 'Alice' }, // Alice shifted from index 0 to index 1
+        { name: 'Bob' }, // Bob shifted from index 1 to index 2
       ];
 
       // Re-query rows
-      rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
+      rows = rowsHost?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
 
       // The input in what is NOW row 1 (showing Alice) should have name="users[1].name"
       // not the original name="users[0].name" from when it was created
-      const input1AfterShift = rows[1].querySelector('input[data-bind="name"]') as HTMLInputElement;
+      const input1AfterShift = rows[1].querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
 
       // BUG: This will likely still be "users[0].name" because name/id were set at creation time
       // and never updated when the row was reused at a different index
@@ -1965,7 +1986,9 @@ describe('CkEditableArray Component', () => {
       element.connectedCallback();
 
       const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
-      let rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
+      let rows = rowsHost?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
 
       // Verify initial order
       expect(rows[0].textContent).toContain('Alice');
@@ -1976,7 +1999,9 @@ describe('CkEditableArray Component', () => {
       element.data = [{ name: 'Charlie' }, { name: 'Alice' }, { name: 'Bob' }];
 
       // Re-query rows after data change
-      rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
+      rows = rowsHost?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
 
       // Verify new order
       expect(rows[0].textContent).toContain('Charlie');
@@ -2012,7 +2037,9 @@ describe('CkEditableArray Component', () => {
       element.data = [{ name: 'Charlie' }, { name: 'Alice' }, { name: 'Bob' }];
 
       const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
-      const rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
+      const rows = rowsHost?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
 
       // Focus second row (Alice)
       rows[1].focus();
@@ -2048,7 +2075,9 @@ describe('CkEditableArray Component', () => {
       element.data = [{ name: 'Charlie' }, { name: 'Alice' }, { name: 'Bob' }];
 
       const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
-      const rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
+      const rows = rowsHost?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
 
       // Verify order
       expect(rows[0].textContent).toContain('Charlie');
@@ -2056,12 +2085,16 @@ describe('CkEditableArray Component', () => {
       expect(rows[2].textContent).toContain('Bob');
 
       // Click edit button on first row (Charlie)
-      const editButton = rows[0].querySelector('[data-action="toggle"]') as HTMLButtonElement;
+      const editButton = rows[0].querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
       editButton.click();
 
       // Verify first row is in edit mode (should be Charlie, not Alice from old index 0)
       expect(rows[0].getAttribute('data-mode')).toBe('edit');
-      const input = rows[0].querySelector('input[data-bind="name"]') as HTMLInputElement;
+      const input = rows[0].querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
       expect(input.value).toBe('Charlie'); // Should be Charlie, not Alice
 
       // Edit the value
@@ -2069,7 +2102,9 @@ describe('CkEditableArray Component', () => {
       input.dispatchEvent(new Event('input', { bubbles: true }));
 
       // Save
-      const saveButton = rows[0].querySelector('[data-action="save"]') as HTMLButtonElement;
+      const saveButton = rows[0].querySelector(
+        '[data-action="save"]'
+      ) as HTMLButtonElement;
       saveButton.click();
 
       // Verify the correct row was updated in data
@@ -2098,7 +2133,9 @@ describe('CkEditableArray Component', () => {
 
       const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
       const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
-      const editButton = row.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+      const editButton = row.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
 
       // Enter edit mode
       editButton.click();
@@ -2125,13 +2162,18 @@ describe('CkEditableArray Component', () => {
 
       const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
       const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
-      const editButton = row.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+      const editButton = row.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
 
       // Enter edit mode
       editButton.click();
 
       // User data should NOT have '__originalSnapshot' property injected
-      const data = element.data as { name: string; __originalSnapshot?: unknown }[];
+      const data = element.data as {
+        name: string;
+        __originalSnapshot?: unknown;
+      }[];
       expect(data[0].__originalSnapshot).toBeUndefined();
       expect('__originalSnapshot' in data[0]).toBe(false);
     });
@@ -2156,20 +2198,30 @@ describe('CkEditableArray Component', () => {
 
       const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
       const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
-      const editButton = row.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+      const editButton = row.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
 
       // Enter edit mode
       editButton.click();
 
       // Edit the value
-      const input = row.querySelector('input[data-bind="name"]') as HTMLInputElement;
+      const input = row.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
       input.value = 'Charlie Updated';
       input.dispatchEvent(new Event('input', { bubbles: true }));
 
       // Check emitted event data
       expect(eventHandler).toHaveBeenCalled();
-      const lastCall = eventHandler.mock.calls[eventHandler.mock.calls.length - 1][0] as CustomEvent;
-      const emittedData = lastCall.detail.data[0] as { name: string; editing?: boolean; __originalSnapshot?: unknown };
+      const lastCall = eventHandler.mock.calls[
+        eventHandler.mock.calls.length - 1
+      ][0] as CustomEvent;
+      const emittedData = lastCall.detail.data[0] as {
+        name: string;
+        editing?: boolean;
+        __originalSnapshot?: unknown;
+      };
 
       // Emitted data should be clean (no internal properties)
       expect(emittedData.name).toBe('Charlie Updated');
@@ -2195,22 +2247,32 @@ describe('CkEditableArray Component', () => {
 
       const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
       const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
-      const editButton = row.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+      const editButton = row.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
 
       // Enter edit mode
       editButton.click();
 
       // Edit the value
-      const input = row.querySelector('input[data-bind="name"]') as HTMLInputElement;
+      const input = row.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
       input.value = 'Modified';
       input.dispatchEvent(new Event('input', { bubbles: true }));
 
       // Cancel
-      const cancelButton = row.querySelector('[data-action="cancel"]') as HTMLButtonElement;
+      const cancelButton = row.querySelector(
+        '[data-action="cancel"]'
+      ) as HTMLButtonElement;
       cancelButton.click();
 
       // Data should be restored to original value
-      const data = element.data as { name: string; editing?: boolean; __originalSnapshot?: unknown }[];
+      const data = element.data as {
+        name: string;
+        editing?: boolean;
+        __originalSnapshot?: unknown;
+      }[];
       expect(data[0].name).toBe('Original');
 
       // Data should NOT have internal properties
@@ -2239,7 +2301,9 @@ describe('CkEditableArray Component', () => {
       const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
 
       // Try to enter edit mode (component should handle gracefully)
-      const editButton = row.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+      const editButton = row.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
       editButton?.click();
 
       // Data should still be clean primitives
