@@ -10,6 +10,74 @@ beforeAll(() => {
   }
 });
 
+// ============================================================================
+// Helper Functions for Test Setup & Fixture Building
+// ============================================================================
+
+/**
+ * Creates a display template with the given bind path.
+ * @param bindPath - The data-bind path (e.g., "name", "person.address.city")
+ * @param innerHTML - Optional custom innerHTML. Defaults to a span with data-bind attribute.
+ * @returns HTMLTemplateElement configured for slot="display"
+ */
+const createDisplayTemplate = (
+  bindPath: string,
+  innerHTML?: string
+): HTMLTemplateElement => {
+  const template = document.createElement('template');
+  template.setAttribute('slot', 'display');
+  template.innerHTML =
+    innerHTML || `<span data-bind="${bindPath}"></span>`;
+  return template;
+};
+
+/**
+ * Creates an edit template with the given bind path.
+ * @param bindPath - The data-bind path (e.g., "name", "person.address.city")
+ * @param inputType - Optional input type. Defaults to "text".
+ * @returns HTMLTemplateElement configured for slot="edit"
+ */
+const createEditTemplate = (
+  bindPath: string,
+  inputType: string = 'text'
+): HTMLTemplateElement => {
+  const template = document.createElement('template');
+  template.setAttribute('slot', 'edit');
+  template.innerHTML = `<input type="${inputType}" data-bind="${bindPath}" />`;
+  return template;
+};
+
+/**
+ * Appends both display and edit templates to the element with the given bind paths.
+ * @param element - The CkEditableArray element
+ * @param displayBindPath - The bind path for the display template
+ * @param editBindPath - The bind path for the edit template (defaults to displayBindPath)
+ */
+const attachTemplates = (
+  element: CkEditableArray,
+  displayBindPath: string,
+  editBindPath: string = displayBindPath
+): void => {
+  element.appendChild(createDisplayTemplate(displayBindPath));
+  element.appendChild(createEditTemplate(editBindPath));
+};
+
+/**
+ * Sets up element with templates, data, and calls connectedCallback.
+ * @param element - The CkEditableArray element
+ * @param data - The data array to assign
+ * @param displayBindPath - The bind path for the display template
+ */
+const setupElementWithTemplates = (
+  element: CkEditableArray,
+  data: unknown[],
+  displayBindPath: string
+): void => {
+  attachTemplates(element, displayBindPath);
+  element.data = data;
+  element.connectedCallback();
+};
+
 describe('CkEditableArray Component', () => {
   let element: CkEditableArray;
 
@@ -46,6 +114,9 @@ describe('CkEditableArray Component', () => {
   });
 
   test('should render content in shadow DOM', () => {
+    // Note: We explicitly call connectedCallback() here. While Web Components normally
+    // auto-invoke this when appended to DOM, jsdom requires explicit invocation for
+    // component initialization in this context. This is a jsdom-specific behavior.
     element.connectedCallback();
     const shadowContent = element.shadowRoot?.innerHTML;
     expect(shadowContent).toContain('Hello');
