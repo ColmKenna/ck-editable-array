@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Form + ck-editable-array (FACE) Demo</title>
+    <style>
+      :root { --bg: #0f172a; --card: #111827; --text: #e5e7eb; --muted: #9ca3af; --accent: #6366f1; }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: linear-gradient(180deg, #0b1220, #111827 30%, #0b1220); color: var(--text); }
+      .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
+      h1 { font-size: 1.75rem; margin: 0 0 4px; }
+      .sub { color: var(--muted); margin: 0 0 20px; }
+      .card { background: var(--card); border: 1px solid #1f2937; border-radius: 12px; padding: 16px; margin: 16px 0; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .row + .row { margin-top: 12px; }
+      label { display: grid; gap: 6px; font-size: .95rem; color: var(--text); }
+      input, select, textarea, button { font: inherit; }
+      input, select, textarea { color: var(--text); background: #0b1220; border: 1px solid #273449; border-radius: 8px; padding: 10px 12px; }
+      textarea { min-height: 84px; }
+      .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+      button { background: var(--accent); color: white; border: 0; padding: 10px 14px; border-radius: 8px; cursor: pointer; }
+      button.secondary { background: #374151; }
+      pre { background: #0b1220; border: 1px solid #273449; border-radius: 8px; padding: 12px; overflow: auto; color: #d1d5db; }
+      code.k { color: #93c5fd; }
+      .columns { display: grid; grid-template-columns: 1fr; gap: 16px; }
+      @media (min-width: 960px) { .columns { grid-template-columns: 1.15fr .85fr; } }
+      .muted { color: var(--muted); }
+      .hint { font-size: .9rem; color: var(--muted); }
+      .split { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      ck-editable-array { --cea-message-color: var(--text); }
+      .ck-hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Form + <code>ck-editable-array</code> (FACE)</h1>
+      <p class="sub">Demonstrates native-like form submission with other inputs. Values come through as regular key/value pairs, no JSON.</p>
+
+      <div class="columns">
+        <div>
+          <form id="peopleForm" class="card">
+            <h2 style="margin:0 0 10px">People Form</h2>
+            <p class="hint">This form mixes normal fields with a FACE-enabled component.</p>
+
+            <div class="row">
+              <label>
+                Project Name
+                <input type="text" name="project" placeholder="e.g., Odyssey" />
+              </label>
+              <label>
+                Category
+                <select name="category">
+                  <option value="">— Select —</option>
+                  <option>Research</option>
+                  <option>Product</option>
+                  <option>Internal</option>
+                </select>
+              </label>
+            </div>
+
+            <label style="margin-top:12px">
+              Notes
+              <textarea name="notes" placeholder="Free-form notes..."></textarea>
+            </label>
+
+            <div class="card" style="margin-top:16px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                <strong>People</strong>
+                <label class="muted" style="display:flex;align-items:center;gap:8px">
+                  <input id="disableSet" type="checkbox" /> Disable fieldset
+                </label>
+              </div>
+              <fieldset id="peopleFieldset" style="border:0;padding:0;margin:12px 0 0;">
+                <ck-editable-array id="cea" name="people" rows-class="grid gap" row-class="row">
+                  <!-- Display template -->
+                  <template slot="display">
+                    <div class="row">
+                      <div>
+                        <div><strong>Name:</strong> <span data-bind="name"></span></div>
+                        <div><strong>Email:</strong> <span data-bind="email"></span></div>
+                      </div>
+                      <div>
+                        <div><strong>Status:</strong> <span data-bind="status"></span></div>
+                        <div><strong>Subscribed:</strong> <span data-bind="subscribed"></span></div>
+                      </div>
+                    </div>
+                  </template>
+
+                  <!-- Edit template (real form controls in shadow DOM) -->
+                  <template slot="edit">
+                    <div class="row">
+                      <label>
+                        Name
+                        <input type="text" data-bind="name" placeholder="Full name" />
+                      </label>
+                      <label>
+                        Email
+                        <input type="email" data-bind="email" placeholder="user@example.com" />
+                      </label>
+                    </div>
+                    <div class="row">
+                      <label>
+                        Status
+                        <select data-bind="status">
+                          <option value="Active">Active</option>
+                          <option value="Away">Away</option>
+                          <option value="Inactive">Inactive</option>
+                        </select>
+                      </label>
+                      <label style="align-self:end;display:flex;gap:8px;align-items:center;padding-top:10px">
+                        <input type="checkbox" data-bind="subscribed" value="yes" />
+                        Subscribed
+                      </label>
+                    </div>
+                  </template>
+                </ck-editable-array>
+              </fieldset>
+            </div>
+
+            <div class="actions">
+              <button type="submit">Submit</button>
+              <button type="reset" class="secondary">Reset</button>
+              <button id="toggleMode" type="button" class="secondary">Toggle first row Edit/Display</button>
+            </div>
+          </form>
+        </div>
+
+        <div>
+          <div class="card">
+            <h3 style="margin:0 0 10px">Submission Output</h3>
+            <p class="hint">Shows native-like key/value pairs captured via <code>FormData</code>.</p>
+            <pre id="out">Submit the form to see results…</pre>
+          </div>
+          <div class="card">
+            <h3 style="margin:0 0 10px">Events</h3>
+            <p class="hint">Streams <code>rowchanged</code> and <code>datachanged</code>.</p>
+            <pre id="evt">Waiting for events…</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load the built component bundle (registers <ck-editable-array>) -->
+    <script type="module">
+      import '../dist/hello-world/hello-world.esm.js';
+
+      const form = document.getElementById('peopleForm');
+      const cea = document.getElementById('cea');
+      const out = document.getElementById('out');
+      const evt = document.getElementById('evt');
+      const fieldset = document.getElementById('peopleFieldset');
+      const disableSet = document.getElementById('disableSet');
+      const toggleModeBtn = document.getElementById('toggleMode');
+
+      // Seed initial rows (also establishes component's reset baseline)
+      if (cea) {
+        cea.data = [
+          { name: 'Ada Lovelace', email: 'ada@example.com', status: 'Active', subscribed: true },
+          { name: 'Linus Torvalds', email: 'linus@example.com', status: 'Away', subscribed: false }
+        ];
+
+        // Surface events
+        const log = [];
+        const push = (m) => {
+          const ts = new Date().toLocaleTimeString();
+          log.unshift(`[${ts}] ${m}`);
+          log.splice(20);
+          evt.textContent = log.join('\n');
+        };
+        cea.addEventListener('rowchanged', (e) => {
+          const d = e.detail ?? {}; const r = d.row ?? {}; const idx = d.index;
+          push(`rowchanged #${idx}: ${r.name ?? ''} <${r.email ?? ''}> [${r.status ?? ''}] subscribed=${r.subscribed ?? ''}`);
+        });
+        cea.addEventListener('datachanged', (e) => {
+          const d = e.detail ?? {}; push(`datachanged: ${JSON.stringify(d.data ?? [], null, 0)}`);
+        });
+      }
+
+      // Toggle parent fieldset disabled to trigger formDisabledCallback
+      if (disableSet && fieldset) {
+        disableSet.addEventListener('change', () => {
+          fieldset.disabled = disableSet.checked;
+        });
+      }
+
+      // Optional helper to flip first row between display/edit
+      if (toggleModeBtn && cea) {
+        toggleModeBtn.addEventListener('click', () => {
+          const sr = cea.shadowRoot; if (!sr) return;
+          const row = sr.querySelector('[data-row="0"]'); if (!row) return;
+          const btn = row.querySelector('[data-action="toggle"], [data-action="cancel"]');
+          if (btn) btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        });
+      }
+
+      // Submission logger (native FormData)
+      if (form) {
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const fd = new FormData(form);
+
+          // Build grouped view (key -> array of values)
+          const grouped = {};
+          for (const [k,v] of fd.entries()) {
+            grouped[k] = Object.prototype.hasOwnProperty.call(grouped, k) ? [...grouped[k], v] : [v];
+          }
+
+          const pairs = Array.from(fd.entries()).map(([k,v]) => `${k} = ${v}`).join('\n');
+          out.textContent = `Pairs:\n${pairs}\n\nGrouped (getAll):\n${JSON.stringify(grouped, null, 2)}`;
+        });
+      }
+    </script>
+  </body>
+</html>

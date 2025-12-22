@@ -15,6 +15,10 @@ export class CkEditableArray extends HTMLElement {
   // Public API
   get data(): unknown[];
   set data(value: unknown);
+  get datachangeMode(): 'debounced' | 'change' | 'save';
+  set datachangeMode(value: 'debounced' | 'change' | 'save');
+  get datachangeDebounce(): number;
+  set datachangeDebounce(value: number);
   get name(): string;
   set name(value: string);
   get rootClass(): string;
@@ -55,8 +59,114 @@ export class CkEditableArray extends HTMLElement {
 ### Public API
 
 - **`data` property**: Reactive property with automatic deep cloning
-- **`name` property**: Synced with `name` attribute via getter/setter
-- **`datachanged` event**: Dispatched when `data` is set (`detail: { data }`, bubbles + composed)
+- **`name` property`: Synced with `name` attribute via getter/setter
+- **`datachangeMode`/`datachangeDebounce` properties**: Control data change cadence (`debounced` by default)
+- **`datachanged` event**: Dispatched when `data` is set and when edits commit based on `datachangeMode`
+- **`rowchanged` event**: Dispatched on each row update (`detail: { index, row }`, bubbles + composed)
+
+### Edit State Management (Internal)
+
+The component maintains edit state internally using a dual-strategy approach that prevents polluting user data with internal properties like `editing` and `__originalSnapshot`.
+
+#### Strategy:
+
+**For Object Rows:**
+```typescript
+private _editStateMap = new WeakMap<object, EditState>();
+```
+- Uses `WeakMap` to associate edit state with object references
+- Automatic garbage collection when objects are no longer referenced
+- No memory leaks
+
+**For Primitive Rows:**
+```typescript
+private _primitiveEditState: (EditState | null)[] = [];
+```
+- Parallel array indexed by row position
+- Cleared when `data` is set to prevent stale references
+
+#### EditState Interface:
+
+```typescript
+interface EditState {
+  editing: boolean;           // Whether row is currently in edit mode
+  originalSnapshot: unknown;  // Deep clone of original data for cancel
+}
+```
+
+#### Helper Methods:
+
+**`_getEditState(rowData, rowIndex)`:**
+- Returns `EditState | null` for the given row
+- Checks `WeakMap` for objects, parallel array for primitives
+
+**`_setEditState(rowData, rowIndex, state)`:**
+- Stores edit state internally
+- Passing `null` clears the state
+
+#### Lifecycle:
+
+1. **Enter Edit Mode** (`_enterEditMode`):
+   - Creates snapshot of current row data
+   - Stores `{ editing: true, originalSnapshot }` in internal state
+   - User data remains untouched
+
+2. **Save** (`_saveRow`):
+   - Clears internal edit state
+   - User data contains only user-provided properties
+
+3. **Cancel** (`_cancelRow`):
+   - Retrieves snapshot from internal state
+   - Restores data to original values
+   - Clears internal edit state
+   - User data contains only user-provided properties
+
+### Event Handler Index Resolution
+
+All event handlers compute row indices from DOM attributes at runtime to prevent stale closure bugs.
+
+#### Pattern:
+
+```typescript
+// ❌ OLD (stale closure):
+rowEl.addEventListener('keydown', event =>
+  this._handleRowKeydown(event, index)  // 'index' captured at creation time
+);
+
+// ✅ NEW (runtime resolution):
+rowEl.addEventListener('keydown', event =>
+  this._handleRowKeydown(event)  // No captured index
+);
+
+private _handleRowKeydown(event: KeyboardEvent) {
+  const rowEl = target.closest('[data-row]');
+  const rowIndex = Number(rowEl.getAttribute('data-row'));  // Read from DOM
+  // ... use rowIndex
+}
+```
+
+#### Handlers Using Runtime Resolution:
+
+1. **`_handleRowKeydown`** (Keyboard Navigation):
+   - Reads `data-row` attribute from event target's closest row
+   - Validates index is finite number
+   - Safely handles arrow navigation even if DOM is modified
+
+2. **`_handleInputChange`** (Input Sync):
+   - Reads `data-row` from input's closest row ancestor
+   - Validates index is within `this._data` bounds
+   - Ensures edits apply to correct data index even after re-renders
+
+3. **`_handleShadowClick`** (Edit Actions):
+   - Already used runtime resolution (pre-existing pattern)
+   - Reads `data-row` from button's closest row ancestor
+
+#### Benefits:
+
+- **No Stale Closures**: Handlers always reference current DOM state
+- **Robust to Reordering**: Works correctly even if data/rows are reordered
+- **Consistent Pattern**: All handlers use same index resolution approach
+- **Future-Proof**: Adding new handlers follows established pattern
 
 ## Cloning Strategy
 
@@ -270,7 +380,7 @@ Updates shadow DOM:
 2. Create the shadow DOM structure once (root container, heading, subtitle, rows host, status region)
 3. Apply wrapper classes (`root-class`, `rows-class`, `row-class`) without modifying template markup
 4. Update message text + per-instance CSS variables
-5. Render rows into `part="rows"` by cloning `<template slot="display">` per `data` item and applying `data-bind` text binding (keyed updates + template caching)
+5. Render rows into `part="rows"` by cloning `<template slot="display">` and `<template slot="edit">` per `data` item and applying `data-bind` bindings (keyed updates + template caching)
 
 ```typescript
 private render() {
@@ -280,12 +390,82 @@ private render() {
 }
 ```
 
+## Data Binding Implementation
+
+### Form Element Binding
+
+The component automatically populates form element values from `data-bind` attributes.
+
+**Detection**: The `_isFormElement` helper checks if an element is `<input>`, `<select>`, or `<textarea>`:
+
+```typescript
+private _isFormElement(el: HTMLElement): boolean {
+  const tagName = el.tagName.toLowerCase();
+  return (
+    tagName === 'input' || tagName === 'select' || tagName === 'textarea'
+  );
+}
+```
+
+**Value Setting**: The `_setFormElementValue` helper sets the appropriate property based on element type:
+
+```typescript
+private _setFormElementValue(el: HTMLElement, value: unknown): void {
+  const tagName = el.tagName.toLowerCase();
+
+  if (tagName === 'input') {
+    const inputEl = el as HTMLInputElement;
+    const inputType = inputEl.type.toLowerCase();
+
+    if (inputType === 'checkbox') {
+      inputEl.checked = Boolean(value);  // Boolean conversion
+    } else if (inputType === 'radio') {
+      inputEl.checked = inputEl.value === String(value);  // Match check
+    } else {
+      // Text, number, email, etc.
+      inputEl.value = value === null || value === undefined ? '' : String(value);
+    }
+  } else if (tagName === 'select') {
+    const selectEl = el as HTMLSelectElement;
+    selectEl.value = value === null || value === undefined ? '' : String(value);
+  } else if (tagName === 'textarea') {
+    const textareaEl = el as HTMLTextAreaElement;
+    textareaEl.value = value === null || value === undefined ? '' : String(value);
+  }
+}
+```
+
+**Binding Pipeline**: The `_applyBindingsOptimized` method routes to the appropriate handler:
+
+```typescript
+private _applyBindingsOptimized(boundEls: HTMLElement[], rowData: unknown) {
+  boundEls.forEach(el => {
+    const path = el.getAttribute('data-bind');
+    const value = this._resolvePath(rowData, path);
+
+    if (this._isFormElement(el)) {
+      this._setFormElementValue(el, value);  // Form elements
+    } else {
+      el.textContent = String(value);  // Non-form elements
+    }
+  });
+}
+```
+
+**Key Design Decisions**:
+- Form elements use `.value` or `.checked` properties (not `textContent`)
+- Non-form elements continue using `textContent` (XSS-safe)
+- Null/undefined values map to empty strings for text inputs
+- Checkboxes use Boolean() conversion (truthy/falsy)
+- Radio buttons check for value match
+- Type detection uses tagName (performant, no instanceof)
+
 ## Testing Strategy
 
 ### Test Coverage
 
-- The test suite covers component instantiation, attribute/property reflection, `data` normalization + cloning, `datachanged` event dispatch, template rendering + bindings, wrapper class configuration, accessibility (ARIA + keyboard navigation), and basic performance benchmarks.
-- Current suite size: **52 tests** across **2 test suites**.
+- The test suite covers component instantiation, attribute/property reflection, `data` normalization + cloning, `datachanged`/`rowchanged` event dispatch, `datachangeMode` cadence, template rendering + bindings, wrapper class configuration, accessibility (ARIA + keyboard navigation), **form element value binding**, and basic performance benchmarks.
+- Current suite size: **105 tests** across **3 test suites**.
 
 ### Test Execution
 
@@ -350,7 +530,11 @@ expect(data1).not.toBe(data2); // ✓ (different references)
    element.data = data;
    ```
 
-2. **Lazy Loading**:
+2. **Edit Cadence**:
+   - Listen to `rowchanged` for per-row updates
+   - Use `datachangeMode="debounced"` (or `"change"`/`"save"`) to reduce full-array cloning during edits
+
+3. **Lazy Loading**:
    - Load/process data incrementally
    - Only clone when necessary
 

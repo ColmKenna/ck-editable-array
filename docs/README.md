@@ -102,25 +102,54 @@ console.log(data1 === data2); // false (different references)
 console.log(data1.length === data2.length); // true (same content)
 ```
 
+### `datachangeMode: "debounced" | "change" | "save"`
+
+Controls when `datachanged` events fire during user edits.
+
+**Defaults:** `"debounced"` (fires after a short pause)
+
+```javascript
+const element = document.querySelector('ck-editable-array');
+element.datachangeMode = 'change'; // fire datachanged on change/blur
+```
+
+### `datachangeDebounce: number`
+
+Debounce delay (ms) used when `datachangeMode` is `"debounced"`.
+
+```javascript
+const element = document.querySelector('ck-editable-array');
+element.datachangeDebounce = 250;
+```
+
 ### `name: string`
 
 **Type**: String
-**Default**: "World"
-**Description**: The name displayed in the greeting message
+**Default**: `"items"`
+**Description**: The component name used for:
+- Greeting message display ("Hello, {name}!")
+- Form control `name` attributes (e.g., `"users[0].firstName"`)
+- Form control `id` attributes (e.g., `"users__0__firstName"`)
+
 **Synced with Attribute**: Yes
 
 ```javascript
 const element = document.querySelector('ck-editable-array');
-element.name = 'Developer';
-console.log(element.name); // 'Developer'
+element.name = 'users';
+console.log(element.name); // 'users'
+
+// Form controls in edit template automatically get:
+// <input data-bind="firstName" name="users[0].firstName" id="users__0__firstName" />
+// <input data-bind="email" name="users[1].email" id="users__1__email" />
 ```
 
 ## Attributes
 
 ### `name`
 - **Type**: String
-- **Default**: "World"
-- **HTML**: `<ck-editable-array name="Developer"></ck-editable-array>`
+- **Default**: `"items"`
+- **HTML**: `<ck-editable-array name="users"></ck-editable-array>`
+- **Purpose**: Sets component name for form submission and element IDs
 
 ### `root-class`
 - **Type**: String
@@ -140,24 +169,116 @@ console.log(element.name); // 'Developer'
 - **HTML**: `<ck-editable-array row-class="my-row"></ck-editable-array>`
 - **Description**: Space-separated classes added to each generated row wrapper inside the shadow DOM
 
+### `datachange-mode`
+- **Type**: `"debounced" | "change" | "save"`
+- **Default**: `"debounced"`
+- **HTML**: `<ck-editable-array datachange-mode="debounced"></ck-editable-array>`
+- **Description**: Controls when `datachanged` fires during user edits
+
+### `datachange-debounce`
+- **Type**: Number (milliseconds)
+- **Default**: `300`
+- **HTML**: `<ck-editable-array datachange-debounce="300"></ck-editable-array>`
+- **Description**: Debounce delay used when `datachange-mode="debounced"`
+
 **Note**: The `data` property is not exposed as an attribute since arrays cannot be represented in HTML attributes.
 
-## Display Template (Light DOM)
+## Templates (Light DOM)
 
-Provide a light DOM template to render custom display content inside the component’s shadow DOM:
+### Display Template
+
+Provide a light DOM display template to render custom content inside the component's shadow DOM:
 
 ```html
 <ck-editable-array>
   <template slot="display">
     <div>
-      <strong>Custom display</strong>
-      <p>This content is cloned into the shadow DOM.</p>
+      <strong data-bind="name"></strong>
+      <p data-bind="description"></p>
     </div>
   </template>
 </ck-editable-array>
 ```
 
 The template is treated as a **row template** and is cloned once for each item in `element.data`, into a `part="rows"` container.
+
+### Edit Template
+
+Provide a light DOM edit template to render editable form inputs:
+
+```html
+<ck-editable-array>
+  <template slot="display">
+    <span data-bind="name"></span>
+  </template>
+
+  <template slot="edit">
+    <form>
+      <input type="text" data-bind="name" />
+      <button type="submit">Save</button>
+    </form>
+  </template>
+</ck-editable-array>
+```
+
+**Key Features**:
+- Edit template is cloned alongside display template for each row
+- Form inputs (`<input>`, `<select>`, `<textarea>`) with `data-bind` attributes are **automatically populated** with values from row data
+- Checkboxes have their `checked` property set based on boolean values
+- Select elements have the matching option automatically selected
+- **Form controls automatically receive `name` and `id` attributes** for proper form submission and accessibility:
+  - `name` format: `${componentName}[${rowIndex}].${bindPath}` (e.g., `"users[0].firstName"`)
+  - `id` format: `${componentName}__${rowIndex}__${bindPath}` (e.g., `"users__0__firstName"`)
+- **Bidirectional data binding**: User input changes automatically update both the component's data AND the corresponding display elements in real-time
+- `rowchanged` fires on each input/change with `{ index, row }`
+- `datachanged` fires on a configurable cadence (`datachange-mode`)
+- The component does NOT handle show/hide logic - use CSS or JavaScript to toggle between display and edit modes
+
+**Live Updates Example**:
+```javascript
+const element = document.querySelector('ck-editable-array');
+element.data = [{ name: 'Alice' }];
+
+// When user types "Alice Smith" in the input:
+// 1. element.data[0].name automatically becomes "Alice Smith"
+// 2. Display <span data-bind="name"> automatically shows "Alice Smith"
+// 3. rowchanged fires with { index, row }
+// 4. datachanged fires based on datachange-mode (debounced by default)
+
+element.addEventListener('datachanged', (e) => {
+  console.log('Data updated:', e.detail.data);
+  // Can save to server, update other UI, etc.
+});
+```
+
+**Example with Data Binding**:
+```javascript
+const element = document.querySelector('ck-editable-array');
+element.data = [
+  { name: 'Alice', active: true, role: 'Admin' },
+  { name: 'Bob', active: false, role: 'User' }
+];
+```
+
+Given the edit template:
+```html
+<template slot="edit">
+  <input type="text" data-bind="name" />
+  <input type="checkbox" data-bind="active" />
+  <select data-bind="role">
+    <option value="Admin">Admin</option>
+    <option value="User">User</option>
+  </select>
+</template>
+```
+
+The component will automatically (assuming `name="users"`):
+- **Row 0**: text input has `value="Alice"`, `name="users[0].name"`, `id="users__0__name"`;
+  checkbox has `checked=true`, `name="users[0].active"`, `id="users__0__active"`;
+  select has "Admin" selected, `name="users[0].role"`, `id="users__0__role"`
+- **Row 1**: text input has `value="Bob"`, `name="users[1].name"`, `id="users__1__name"`;
+  checkbox has `checked=false`, `name="users[1].active"`, `id="users__1__active"`;
+  select has "User" selected, `name="users[1].role"`, `id="users__1__role"`
 
 ### Wrapper Class Customization
 
@@ -324,6 +445,8 @@ console.log(element.data[0].tags.includes('newTag')); // false (unchanged)
    - Using references to immutable data structures
    - Storing metadata separately from large data arrays
 
+   For edit-heavy UIs, prefer listening to `rowchanged` and keep `datachange-mode="debounced"` (or `"change"`/`"save"`) to avoid cloning the full dataset on every keystroke.
+
 2. **Rendering**: The component renders a greeting message. For data-heavy UIs, consider:
    - Using this component as a data manager
    - Creating separate components for data display/editing
@@ -382,6 +505,12 @@ class CkEditableArray extends HTMLElement {
   get data(): unknown[];
   set data(value: unknown);
 
+  // Data change cadence
+  get datachangeMode(): 'debounced' | 'change' | 'save';
+  set datachangeMode(value: 'debounced' | 'change' | 'save');
+  get datachangeDebounce(): number;
+  set datachangeDebounce(value: number);
+
   // Greeting display
   get name(): string;
   set name(value: string);
@@ -394,16 +523,28 @@ Currently no custom methods beyond standard HTMLElement interface.
 
 ### Events
 
-The component emits a `datachanged` event whenever the `data` property is set.
+The component emits `datachanged` when the `data` property is set and based on `datachange-mode` for user edits. It also emits `rowchanged` on each row update.
 
 - **Event**: `datachanged`
 - **Bubbles / Composed**: Yes / Yes
 - **Payload**: `event.detail.data` (deep-cloned `unknown[]`)
+- **Cadence**: Debounced by default (300 ms), or on `change` / `save` depending on `datachange-mode`
 
 ```js
 const el = document.querySelector('ck-editable-array');
 el.addEventListener('datachanged', (e) => {
   console.log('datachanged', e.detail.data);
+});
+```
+
+- **Event**: `rowchanged`
+- **Bubbles / Composed**: Yes / Yes
+- **Payload**: `event.detail.index` and `event.detail.row` (cloned row)
+
+```js
+const el = document.querySelector('ck-editable-array');
+el.addEventListener('rowchanged', (e) => {
+  console.log('rowchanged', e.detail.index, e.detail.row);
 });
 ```
 

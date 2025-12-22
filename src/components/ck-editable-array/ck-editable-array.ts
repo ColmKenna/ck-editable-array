@@ -14,6 +14,8 @@ const DEFAULT_DATA_CHANGE_MODE: DataChangeMode = 'debounced';
 const DEFAULT_DATA_CHANGE_DEBOUNCE_MS = 300;
 
 export class CkEditableArray extends HTMLElement {
+  static formAssociated = true;
+
   private shadow: ShadowRoot;
   private _data: unknown[] = [];
   private _rootEl: HTMLDivElement;
@@ -27,13 +29,16 @@ export class CkEditableArray extends HTMLElement {
   private _onShadowClick = (event: Event) =>
     this._handleShadowClick(event as MouseEvent);
   private _dataChangeTimer: number | null = null;
+  private _internals: ElementInternals;
 
   // Internal edit state tracking (prevents polluting user data)
   private _editStateMap = new WeakMap<object, EditState>();
   private _primitiveEditState: (EditState | null)[] = [];
+  private _initialData: unknown[] = [];
 
   constructor() {
     super();
+    this._internals = this.attachInternals();
     this.shadow = this.attachShadow({ mode: 'open' });
     this._rootEl = document.createElement('div');
     this.shadow.appendChild(this._rootEl);
@@ -146,6 +151,12 @@ export class CkEditableArray extends HTMLElement {
   set data(value: unknown) {
     this._clearDataChangeTimer();
     this._data = Array.isArray(value) ? this._deepClone(value) : [];
+    
+    // Store initial data for formResetCallback (only if not already set)
+    if (this._initialData.length === 0) {
+      this._initialData = this._deepClone(this._data);
+    }
+    
     this._currentEditIndex = null;
 
     // Clear internal edit state when data changes
@@ -301,6 +312,9 @@ export class CkEditableArray extends HTMLElement {
     if (this._rowsHostEl) {
       this._renderRows(this._rowsHostEl);
     }
+
+    // Update form value after render completes
+    this._updateFormValueFromControls();
   }
 
   private _updateNameOnly() {
@@ -799,6 +813,11 @@ export class CkEditableArray extends HTMLElement {
 
     this._dispatchRowChanged(rowIndex);
     this._handleDataChangeForEvent(event);
+
+    // Update form value on change events
+    if (event.type === 'change') {
+      this._updateFormValueFromControls();
+    }
   }
 
   private _handleDataChangeForEvent(event: Event): void {
@@ -925,6 +944,9 @@ export class CkEditableArray extends HTMLElement {
     if (this._getDataChangeMode() === 'save') {
       this._dispatchDataChanged();
     }
+
+    // Update form value after save
+    this._updateFormValueFromControls();
   }
 
   private _cancelRow(rowEl: HTMLElement, rowIndex: number) {
@@ -963,6 +985,9 @@ export class CkEditableArray extends HTMLElement {
       composed: true,
     });
     this.dispatchEvent(afterEvent);
+
+    // Update form value after cancel
+    this._updateFormValueFromControls();
   }
 
   private _getEditState(rowData: unknown, rowIndex: number): EditState | null {
@@ -1036,6 +1061,93 @@ export class CkEditableArray extends HTMLElement {
       '.edit-content input, .edit-content select, .edit-content textarea'
     ) as HTMLElement | null;
     firstInput?.focus();
+  }
+
+  private _updateFormValueFromControls(): void {
+    const fd = new FormData();
+
+    // Query all form controls in shadow DOM
+    const controls = this.shadow.querySelectorAll(
+      'input, select, textarea'
+    ) as NodeListOf<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>;
+
+    controls.forEach(control => {
+      // Skip disabled controls
+      if (control.disabled) return;
+
+      // Get the name attribute (native-like behavior: skip if no name)
+      const key = control.getAttribute('name');
+      if (!key) return;
+
+      // Apply native inclusion rules based on control type
+      if (control instanceof HTMLInputElement) {
+        if (control.type === 'checkbox') {
+          // Checkbox: include only if checked
+          if (control.checked) {
+            const value = control.value || 'on';
+            fd.append(key, value);
+          }
+        } else if (control.type === 'radio') {
+          // Radio: include only if checked
+          if (control.checked) {
+            fd.append(key, control.value);
+          }
+        } else {
+          // All other input types: include value
+          fd.append(key, control.value);
+        }
+      } else if (control instanceof HTMLSelectElement) {
+        if (control.multiple) {
+          // Multiple select: append each selected option
+          Array.from(control.selectedOptions).forEach(option => {
+            fd.append(key, option.value);
+          });
+        } else {
+          // Single select: append value
+          fd.append(key, control.value);
+        }
+      } else if (control instanceof HTMLTextAreaElement) {
+        // Textarea: append value
+        fd.append(key, control.value);
+      }
+    });
+
+    // Update the form value via ElementInternals
+    // Check if setFormValue exists (may not in test environments like jsdom)
+    if (typeof this._internals.setFormValue === 'function') {
+      this._internals.setFormValue(fd);
+    }
+  }
+
+  // FACE callback: called when the form is disabled/enabled
+  formDisabledCallback(disabled: boolean): void {
+    // Disable/enable all internal form controls
+    const controls = this.shadow.querySelectorAll(
+      'input, select, textarea'
+    ) as NodeListOf<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>;
+
+    controls.forEach(control => {
+      control.disabled = disabled;
+    });
+
+    // Update form value after state change
+    this._updateFormValueFromControls();
+  }
+
+  // FACE callback: called when the form is reset
+  formResetCallback(): void {
+    // Restore data to initial state
+    this._data = this._deepClone(this._initialData);
+    this._currentEditIndex = null;
+    this._primitiveEditState = [];
+
+    // Re-render with restored data
+    if (this.isConnected) {
+      this.render();
+    }
+
+    // Update form value after reset
+    this._updateFormValueFromControls();
   }
 }
 
