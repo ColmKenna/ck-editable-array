@@ -1,6 +1,7 @@
 /// <reference lib="dom" />
 /* eslint-disable no-undef */
 import { CkEditableArray } from '../../src/components/ck-editable-array/ck-editable-array';
+import { ckEditableArrayCSS } from '../../src/components/ck-editable-array/ck-editable-array.styles';
 
 // Define the custom element before running tests
 beforeAll(() => {
@@ -2569,9 +2570,7 @@ describe('CkEditableArray Component', () => {
       element.appendChild(editTemplate);
 
       element.name = 'users';
-      element.data = [
-        { firstName: 'Alice', address: { city: 'NYC' } },
-      ];
+      element.data = [{ firstName: 'Alice', address: { city: 'NYC' } }];
       element.connectedCallback();
 
       const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
@@ -2805,16 +2804,11 @@ describe('CkEditableArray Component', () => {
       input0.value = 'Alice Updated';
       input0.dispatchEvent(new Event('change', { bubbles: true }));
 
-      // Access internals and verify FormData
-      const internals = (element as unknown as { _internals: ElementInternals })
-        ._internals;
-      const formData = internals.form?.elements.namedItem(
-        element.name
-      ) as unknown as FormData;
-
       // Note: In real browser, formData would be populated via setFormValue
       // For testing, we'll call the private method directly
-      (element as unknown as { _updateFormValueFromControls: () => void })._updateFormValueFromControls();
+      (
+        element as unknown as { _updateFormValueFromControls: () => void }
+      )._updateFormValueFromControls();
 
       // Since we can't easily test FormData in jsdom, we'll test the method exists
       expect(
@@ -2843,7 +2837,9 @@ describe('CkEditableArray Component', () => {
       element.connectedCallback();
 
       // Verify the method can be called without error
-      (element as unknown as { _updateFormValueFromControls: () => void })._updateFormValueFromControls();
+      (
+        element as unknown as { _updateFormValueFromControls: () => void }
+      )._updateFormValueFromControls();
       expect(true).toBe(true); // Method executed successfully
     });
 
@@ -2883,7 +2879,9 @@ describe('CkEditableArray Component', () => {
       verifiedCheckbox.checked = false;
 
       // Call mirroring method
-      (element as unknown as { _updateFormValueFromControls: () => void })._updateFormValueFromControls();
+      (
+        element as unknown as { _updateFormValueFromControls: () => void }
+      )._updateFormValueFromControls();
       expect(true).toBe(true); // Method executed successfully
     });
 
@@ -2918,7 +2916,9 @@ describe('CkEditableArray Component', () => {
       userRadio.checked = true;
 
       // Call mirroring method
-      (element as unknown as { _updateFormValueFromControls: () => void })._updateFormValueFromControls();
+      (
+        element as unknown as { _updateFormValueFromControls: () => void }
+      )._updateFormValueFromControls();
       expect(true).toBe(true); // Method executed successfully
     });
 
@@ -2947,7 +2947,9 @@ describe('CkEditableArray Component', () => {
       element.connectedCallback();
 
       // Call mirroring method
-      (element as unknown as { _updateFormValueFromControls: () => void })._updateFormValueFromControls();
+      (
+        element as unknown as { _updateFormValueFromControls: () => void }
+      )._updateFormValueFromControls();
       expect(true).toBe(true); // Method executed successfully
     });
 
@@ -2970,7 +2972,9 @@ describe('CkEditableArray Component', () => {
       element.connectedCallback();
 
       // Call mirroring method - should not error
-      (element as unknown as { _updateFormValueFromControls: () => void })._updateFormValueFromControls();
+      (
+        element as unknown as { _updateFormValueFromControls: () => void }
+      )._updateFormValueFromControls();
       expect(true).toBe(true); // Method executed successfully
     });
   });
@@ -3223,7 +3227,7 @@ describe('CkEditableArray Component', () => {
 
       // Internal key should be namespaced: users[0].email
       expect(shadowEmail.getAttribute('name')).toBe('users[0].email');
-      
+
       // This is different from a plain "email" field in the parent form
       // so there's no collision
       expect(shadowEmail.getAttribute('name')).not.toBe('email');
@@ -3258,7 +3262,9 @@ describe('CkEditableArray Component', () => {
       element.connectedCallback();
 
       // Call _updateFormValueFromControls
-      (element as unknown as { _updateFormValueFromControls: () => void })._updateFormValueFromControls();
+      (
+        element as unknown as { _updateFormValueFromControls: () => void }
+      )._updateFormValueFromControls();
 
       // External input should remain unchanged
       expect(externalInput.value).toBe('outside');
@@ -3287,8 +3293,11 @@ describe('CkEditableArray Component', () => {
 
       // Verify method exists
       expect(
-        typeof (element as unknown as { formDisabledCallback: (disabled: boolean) => void })
-          .formDisabledCallback
+        typeof (
+          element as unknown as {
+            formDisabledCallback: (disabled: boolean) => void;
+          }
+        ).formDisabledCallback
       ).toBe('function');
     });
 
@@ -3323,9 +3332,11 @@ describe('CkEditableArray Component', () => {
       expect(input.disabled).toBe(false);
 
       // Call formDisabledCallback(true)
-      (element as unknown as { formDisabledCallback: (disabled: boolean) => void }).formDisabledCallback(
-        true
-      );
+      (
+        element as unknown as {
+          formDisabledCallback: (disabled: boolean) => void;
+        }
+      ).formDisabledCallback(true);
 
       // Input should now be disabled
       expect(input.disabled).toBe(true);
@@ -3359,15 +3370,19 @@ describe('CkEditableArray Component', () => {
       ) as HTMLInputElement;
 
       // Disable first
-      (element as unknown as { formDisabledCallback: (disabled: boolean) => void }).formDisabledCallback(
-        true
-      );
+      (
+        element as unknown as {
+          formDisabledCallback: (disabled: boolean) => void;
+        }
+      ).formDisabledCallback(true);
       expect(input.disabled).toBe(true);
 
       // Enable
-      (element as unknown as { formDisabledCallback: (disabled: boolean) => void }).formDisabledCallback(
-        false
-      );
+      (
+        element as unknown as {
+          formDisabledCallback: (disabled: boolean) => void;
+        }
+      ).formDisabledCallback(false);
       expect(input.disabled).toBe(false);
     });
 
@@ -3391,9 +3406,11 @@ describe('CkEditableArray Component', () => {
         '_updateFormValueFromControls'
       );
 
-      (element as unknown as { formDisabledCallback: (disabled: boolean) => void }).formDisabledCallback(
-        true
-      );
+      (
+        element as unknown as {
+          formDisabledCallback: (disabled: boolean) => void;
+        }
+      ).formDisabledCallback(true);
 
       expect(updateSpy).toHaveBeenCalled();
       updateSpy.mockRestore();
@@ -3441,7 +3458,9 @@ describe('CkEditableArray Component', () => {
       element.data = [{ name: 'Bob' }];
 
       // Call formResetCallback
-      (element as unknown as { formResetCallback: () => void }).formResetCallback();
+      (
+        element as unknown as { formResetCallback: () => void }
+      ).formResetCallback();
 
       // Data should be restored to initial
       expect(element.data).toEqual(initialData);
@@ -3467,7 +3486,9 @@ describe('CkEditableArray Component', () => {
         '_updateFormValueFromControls'
       );
 
-      (element as unknown as { formResetCallback: () => void }).formResetCallback();
+      (
+        element as unknown as { formResetCallback: () => void }
+      ).formResetCallback();
 
       expect(updateSpy).toHaveBeenCalled();
       updateSpy.mockRestore();
@@ -3478,7 +3499,7 @@ describe('CkEditableArray Component', () => {
   describe('FACE Integration Tests (Phase 3.7)', () => {
     test('should include component fields alongside other form inputs in submission', () => {
       const form = document.createElement('form');
-      
+
       // Other form inputs
       const emailInput = document.createElement('input');
       emailInput.type = 'email';
@@ -3499,7 +3520,7 @@ describe('CkEditableArray Component', () => {
 
       element.name = 'items';
       element.data = [{ name: 'Alice' }];
-      
+
       form.appendChild(element);
       document.body.appendChild(form);
       element.connectedCallback();
@@ -3539,7 +3560,9 @@ describe('CkEditableArray Component', () => {
       checkbox.checked = false;
 
       // Call the update method
-      (element as unknown as { _updateFormValueFromControls: () => void })._updateFormValueFromControls();
+      (
+        element as unknown as { _updateFormValueFromControls: () => void }
+      )._updateFormValueFromControls();
 
       // Unchecked checkbox should not be included in form data
       // (This is verified by the implementation not calling fd.append for unchecked checkboxes)
@@ -3708,6 +3731,520 @@ describe('CkEditableArray Component', () => {
       expect(input.getAttribute('name')).not.toContain('JSON');
       expect(input.getAttribute('name')).not.toContain('{');
       expect(input.getAttribute('name')).not.toContain('}');
+    });
+  });
+
+  // Phase 4: Accessibility + UX Polish
+  describe('Phase 4: Accessibility + UX Polish', () => {
+    // Feature 4.1: Contextual Button Labels + State
+    describe('Feature 4.1: Contextual Button Labels + State', () => {
+      test('should add aria-label with row context to edit button', () => {
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        const editTemplate = document.createElement('template');
+        editTemplate.setAttribute('slot', 'edit');
+        editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+        element.appendChild(editTemplate);
+
+        element.data = [
+          { name: 'Item 1' },
+          { name: 'Item 2' },
+          { name: 'Item 3' },
+        ];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+        const row2 = rowsHost?.querySelector('[data-row="2"]') as HTMLElement;
+
+        const editButton0 = row0?.querySelector('[data-action="toggle"]');
+        const editButton1 = row1?.querySelector('[data-action="toggle"]');
+        const editButton2 = row2?.querySelector('[data-action="toggle"]');
+
+        expect(editButton0?.getAttribute('aria-label')).toBe('Edit item 1');
+        expect(editButton1?.getAttribute('aria-label')).toBe('Edit item 2');
+        expect(editButton2?.getAttribute('aria-label')).toBe('Edit item 3');
+      });
+
+      test('should add aria-label with row context to save button', () => {
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        const editTemplate = document.createElement('template');
+        editTemplate.setAttribute('slot', 'edit');
+        editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+        element.appendChild(editTemplate);
+
+        element.data = [{ name: 'Item 1' }, { name: 'Item 2' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+
+        const saveButton0 = row0?.querySelector('[data-action="save"]');
+        const saveButton1 = row1?.querySelector('[data-action="save"]');
+
+        expect(saveButton0?.getAttribute('aria-label')).toBe('Save item 1');
+        expect(saveButton1?.getAttribute('aria-label')).toBe('Save item 2');
+      });
+
+      test('should add aria-label with row context to cancel button', () => {
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        const editTemplate = document.createElement('template');
+        editTemplate.setAttribute('slot', 'edit');
+        editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+        element.appendChild(editTemplate);
+
+        element.data = [{ name: 'Item 1' }, { name: 'Item 2' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+
+        const cancelButton0 = row0?.querySelector('[data-action="cancel"]');
+        const cancelButton1 = row1?.querySelector('[data-action="cancel"]');
+
+        expect(cancelButton0?.getAttribute('aria-label')).toBe(
+          'Cancel edits for item 1'
+        );
+        expect(cancelButton1?.getAttribute('aria-label')).toBe(
+          'Cancel edits for item 2'
+        );
+      });
+
+      test('should set aria-expanded="false" on edit button when in display mode', () => {
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        const editTemplate = document.createElement('template');
+        editTemplate.setAttribute('slot', 'edit');
+        editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+        element.appendChild(editTemplate);
+
+        element.data = [{ name: 'Item 1' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const editButton = row0?.querySelector('[data-action="toggle"]');
+
+        expect(editButton?.getAttribute('aria-expanded')).toBe('false');
+      });
+
+      test('should set aria-expanded="true" on edit button when in edit mode', () => {
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        const editTemplate = document.createElement('template');
+        editTemplate.setAttribute('slot', 'edit');
+        editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+        element.appendChild(editTemplate);
+
+        element.data = [{ name: 'Item 1' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const editButton = row0?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+
+        // Enter edit mode
+        editButton?.click();
+
+        expect(editButton?.getAttribute('aria-expanded')).toBe('true');
+      });
+
+      test('should update aria-expanded when toggling between modes', () => {
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        const editTemplate = document.createElement('template');
+        editTemplate.setAttribute('slot', 'edit');
+        editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+        element.appendChild(editTemplate);
+
+        element.data = [{ name: 'Item 1' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const editButton = row0?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+        const saveButton = row0?.querySelector(
+          '[data-action="save"]'
+        ) as HTMLButtonElement;
+
+        // Initially in display mode
+        expect(editButton?.getAttribute('aria-expanded')).toBe('false');
+
+        // Enter edit mode
+        editButton?.click();
+        expect(editButton?.getAttribute('aria-expanded')).toBe('true');
+
+        // Save (back to display mode)
+        saveButton?.click();
+        expect(editButton?.getAttribute('aria-expanded')).toBe('false');
+      });
+
+      test('should preserve aria-labels when data changes', () => {
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        const editTemplate = document.createElement('template');
+        editTemplate.setAttribute('slot', 'edit');
+        editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+        element.appendChild(editTemplate);
+
+        element.data = [{ name: 'Item 1' }, { name: 'Item 2' }];
+        element.connectedCallback();
+
+        // Change data (simulate reorder or update)
+        element.data = [
+          { name: 'Item 2' },
+          { name: 'Item 1' },
+          { name: 'Item 3' },
+        ];
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+        const row2 = rowsHost?.querySelector('[data-row="2"]') as HTMLElement;
+
+        const editButton0 = row0?.querySelector('[data-action="toggle"]');
+        const editButton1 = row1?.querySelector('[data-action="toggle"]');
+        const editButton2 = row2?.querySelector('[data-action="toggle"]');
+
+        expect(editButton0?.getAttribute('aria-label')).toBe('Edit item 1');
+        expect(editButton1?.getAttribute('aria-label')).toBe('Edit item 2');
+        expect(editButton2?.getAttribute('aria-label')).toBe('Edit item 3');
+      });
+    });
+
+    // Feature 4.2: Live Region Announcements
+    describe('Feature 4.2: Live Region Announcements', () => {
+      test('should announce "Editing item N" when entering edit mode', () => {
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        const editTemplate = document.createElement('template');
+        editTemplate.setAttribute('slot', 'edit');
+        editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+        element.appendChild(editTemplate);
+
+        element.data = [{ name: 'Item 1' }, { name: 'Item 2' }];
+        element.connectedCallback();
+
+        const statusRegion = element.shadowRoot?.querySelector(
+          '[role="status"]'
+        ) as HTMLElement;
+
+        // Enter edit mode for row 0
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const editButton0 = row0?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+        editButton0?.click();
+
+        expect(statusRegion?.textContent).toBe('Editing item 1');
+
+        // Enter edit mode for row 1 (after canceling row 0)
+        const cancelButton0 = row0?.querySelector(
+          '[data-action="cancel"]'
+        ) as HTMLButtonElement;
+        cancelButton0?.click();
+
+        const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+        const editButton1 = row1?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+        editButton1?.click();
+
+        expect(statusRegion?.textContent).toBe('Editing item 2');
+      });
+
+      test('should announce "Saved item N" when saving', () => {
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        const editTemplate = document.createElement('template');
+        editTemplate.setAttribute('slot', 'edit');
+        editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+        element.appendChild(editTemplate);
+
+        element.data = [{ name: 'Item 1' }];
+        element.connectedCallback();
+
+        const statusRegion = element.shadowRoot?.querySelector(
+          '[role="status"]'
+        ) as HTMLElement;
+
+        // Enter edit mode
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const editButton = row0?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+        editButton?.click();
+
+        // Save
+        const saveButton = row0?.querySelector(
+          '[data-action="save"]'
+        ) as HTMLButtonElement;
+        saveButton?.click();
+
+        expect(statusRegion?.textContent).toBe('Saved item 1');
+      });
+
+      test('should announce "Canceled edits for item N" when canceling', () => {
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        const editTemplate = document.createElement('template');
+        editTemplate.setAttribute('slot', 'edit');
+        editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+        element.appendChild(editTemplate);
+
+        element.data = [{ name: 'Item 1' }];
+        element.connectedCallback();
+
+        const statusRegion = element.shadowRoot?.querySelector(
+          '[role="status"]'
+        ) as HTMLElement;
+
+        // Enter edit mode
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const editButton = row0?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+        editButton?.click();
+
+        // Cancel
+        const cancelButton = row0?.querySelector(
+          '[data-action="cancel"]'
+        ) as HTMLButtonElement;
+        cancelButton?.click();
+
+        expect(statusRegion?.textContent).toBe('Canceled edits for item 1');
+      });
+
+      test('should preserve announcements when multiple rows are edited sequentially', () => {
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        const editTemplate = document.createElement('template');
+        editTemplate.setAttribute('slot', 'edit');
+        editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+        element.appendChild(editTemplate);
+
+        element.data = [
+          { name: 'Item 1' },
+          { name: 'Item 2' },
+          { name: 'Item 3' },
+        ];
+        element.connectedCallback();
+
+        const statusRegion = element.shadowRoot?.querySelector(
+          '[role="status"]'
+        ) as HTMLElement;
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+
+        // Edit row 0, save
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const editButton0 = row0?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+        editButton0?.click();
+        expect(statusRegion?.textContent).toBe('Editing item 1');
+
+        const saveButton0 = row0?.querySelector(
+          '[data-action="save"]'
+        ) as HTMLButtonElement;
+        saveButton0?.click();
+        expect(statusRegion?.textContent).toBe('Saved item 1');
+
+        // Edit row 1, cancel
+        const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+        const editButton1 = row1?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+        editButton1?.click();
+        expect(statusRegion?.textContent).toBe('Editing item 2');
+
+        const cancelButton1 = row1?.querySelector(
+          '[data-action="cancel"]'
+        ) as HTMLButtonElement;
+        cancelButton1?.click();
+        expect(statusRegion?.textContent).toBe('Canceled edits for item 2');
+
+        // Edit row 2, save
+        const row2 = rowsHost?.querySelector('[data-row="2"]') as HTMLElement;
+        const editButton2 = row2?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+        editButton2?.click();
+        expect(statusRegion?.textContent).toBe('Editing item 3');
+
+        const saveButton2 = row2?.querySelector(
+          '[data-action="save"]'
+        ) as HTMLButtonElement;
+        saveButton2?.click();
+        expect(statusRegion?.textContent).toBe('Saved item 3');
+      });
+    });
+
+    // Feature 4.3: Focus Restoration
+    describe('Feature 4.3: Focus Restoration', () => {
+      test('should restore focus to edit button after save', () => {
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        const editTemplate = document.createElement('template');
+        editTemplate.setAttribute('slot', 'edit');
+        editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+        element.appendChild(editTemplate);
+
+        element.data = [{ name: 'Item 1' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const editButton = row0?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+
+        // Enter edit mode
+        editButton?.click();
+
+        // Save
+        const saveButton = row0?.querySelector(
+          '[data-action="save"]'
+        ) as HTMLButtonElement;
+        saveButton?.click();
+
+        // Focus should be on edit button
+        expect(element.shadowRoot?.activeElement).toBe(editButton);
+      });
+
+      test('should restore focus to edit button after cancel', () => {
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        const editTemplate = document.createElement('template');
+        editTemplate.setAttribute('slot', 'edit');
+        editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+        element.appendChild(editTemplate);
+
+        element.data = [{ name: 'Item 1' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const editButton = row0?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+
+        // Enter edit mode
+        editButton?.click();
+
+        // Cancel
+        const cancelButton = row0?.querySelector(
+          '[data-action="cancel"]'
+        ) as HTMLButtonElement;
+        cancelButton?.click();
+
+        // Focus should be on edit button
+        expect(element.shadowRoot?.activeElement).toBe(editButton);
+      });
+
+      test('should restore focus correctly when multiple rows are edited sequentially', () => {
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        const editTemplate = document.createElement('template');
+        editTemplate.setAttribute('slot', 'edit');
+        editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+        element.appendChild(editTemplate);
+
+        element.data = [{ name: 'Item 1' }, { name: 'Item 2' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+
+        const editButton0 = row0?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+        const editButton1 = row1?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+
+        // Edit and save row 0
+        editButton0?.click();
+        const saveButton0 = row0?.querySelector(
+          '[data-action="save"]'
+        ) as HTMLButtonElement;
+        saveButton0?.click();
+        expect(element.shadowRoot?.activeElement).toBe(editButton0);
+
+        // Edit and cancel row 1
+        editButton1?.click();
+        const cancelButton1 = row1?.querySelector(
+          '[data-action="cancel"]'
+        ) as HTMLButtonElement;
+        cancelButton1?.click();
+        expect(element.shadowRoot?.activeElement).toBe(editButton1);
+      });
+    });
+
+    // Feature 4.4: Modern clip-path
+    describe('Feature 4.4: Modern clip-path', () => {
+      test('should use clip-path: inset(50%) instead of deprecated clip property', () => {
+        // Should contain modern clip-path
+        expect(ckEditableArrayCSS).toContain('clip-path');
+        expect(ckEditableArrayCSS).toContain('inset(50%)');
+
+        // Should NOT contain deprecated clip: rect()
+        expect(ckEditableArrayCSS).not.toContain('clip: rect');
+      });
     });
   });
 });

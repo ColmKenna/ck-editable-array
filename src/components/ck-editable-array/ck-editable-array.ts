@@ -151,12 +151,12 @@ export class CkEditableArray extends HTMLElement {
   set data(value: unknown) {
     this._clearDataChangeTimer();
     this._data = Array.isArray(value) ? this._deepClone(value) : [];
-    
+
     // Store initial data for formResetCallback (only if not already set)
     if (this._initialData.length === 0) {
       this._initialData = this._deepClone(this._data);
     }
-    
+
     this._currentEditIndex = null;
 
     // Clear internal edit state when data changes
@@ -464,6 +464,7 @@ export class CkEditableArray extends HTMLElement {
       editButton.type = 'button';
       editButton.setAttribute('data-action', 'toggle');
       editButton.textContent = 'Edit';
+      editButton.setAttribute('aria-expanded', 'false');
       actionsWrapper.appendChild(editButton);
       const saveButton = document.createElement('button');
       saveButton.type = 'button';
@@ -510,6 +511,24 @@ export class CkEditableArray extends HTMLElement {
     // Always update attributes and bindings for current index/data
     rowEl.setAttribute('data-row', String(index));
     rowEl.setAttribute('aria-rowindex', String(index + 1));
+
+    // Update contextual aria-labels for buttons (Feature 4.1)
+    const editButton = rowEl.querySelector('[data-action="toggle"]');
+    const saveButton = rowEl.querySelector('[data-action="save"]');
+    const cancelButton = rowEl.querySelector('[data-action="cancel"]');
+    const itemNumber = index + 1;
+    if (editButton) {
+      editButton.setAttribute('aria-label', `Edit item ${itemNumber}`);
+    }
+    if (saveButton) {
+      saveButton.setAttribute('aria-label', `Save item ${itemNumber}`);
+    }
+    if (cancelButton) {
+      cancelButton.setAttribute(
+        'aria-label',
+        `Cancel edits for item ${itemNumber}`
+      );
+    }
 
     // Re-apply bindings and semantics with cached elements
     this._applyBindingsOptimized(boundEls, rowData);
@@ -745,6 +764,15 @@ export class CkEditableArray extends HTMLElement {
     }
   }
 
+  private _announceAction(message: string) {
+    const statusRegion = this.shadowRoot?.querySelector(
+      '[role="status"]'
+    ) as HTMLElement | null;
+    if (statusRegion) {
+      statusRegion.textContent = message;
+    }
+  }
+
   private _attachInputListeners(boundEls: HTMLElement[]): void {
     boundEls.forEach(el => {
       // Only attach listeners to form elements
@@ -921,6 +949,9 @@ export class CkEditableArray extends HTMLElement {
       composed: true,
     });
     this.dispatchEvent(afterEvent);
+
+    // Announce edit mode for screen readers (Feature 4.2)
+    this._announceAction(`Editing item ${rowIndex + 1}`);
   }
 
   private _saveRow(rowEl: HTMLElement, rowIndex: number) {
@@ -940,6 +971,15 @@ export class CkEditableArray extends HTMLElement {
       composed: true,
     });
     this.dispatchEvent(afterEvent);
+
+    // Announce save for screen readers (Feature 4.2)
+    this._announceAction(`Saved item ${rowIndex + 1}`);
+
+    // Restore focus to edit button (Feature 4.3)
+    const editButton = rowEl.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLElement | null;
+    editButton?.focus();
 
     if (this._getDataChangeMode() === 'save') {
       this._dispatchDataChanged();
@@ -985,6 +1025,15 @@ export class CkEditableArray extends HTMLElement {
       composed: true,
     });
     this.dispatchEvent(afterEvent);
+
+    // Announce cancel for screen readers (Feature 4.2)
+    this._announceAction(`Canceled edits for item ${rowIndex + 1}`);
+
+    // Restore focus to edit button (Feature 4.3)
+    const editButton = rowEl.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLElement | null;
+    editButton?.focus();
 
     // Update form value after cancel
     this._updateFormValueFromControls();
@@ -1047,6 +1096,11 @@ export class CkEditableArray extends HTMLElement {
     ) as HTMLElement | null;
     if (editButton) {
       editButton.classList.toggle('ck-hidden', mode === 'edit');
+      // Update aria-expanded based on mode (Feature 4.1)
+      editButton.setAttribute(
+        'aria-expanded',
+        mode === 'edit' ? 'true' : 'false'
+      );
     }
     if (saveButton) {
       saveButton.classList.toggle('ck-hidden', mode !== 'edit');
