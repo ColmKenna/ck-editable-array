@@ -3,6 +3,11 @@ import {
   ckEditableArrayCSS,
 } from './ck-editable-array.styles';
 
+interface EditState {
+  editing: boolean;
+  originalSnapshot: unknown;
+}
+
 export class CkEditableArray extends HTMLElement {
   private shadow: ShadowRoot;
   private _data: unknown[] = [];
@@ -16,6 +21,10 @@ export class CkEditableArray extends HTMLElement {
   private _currentEditIndex: number | null = null;
   private _onShadowClick = (event: Event) =>
     this._handleShadowClick(event as MouseEvent);
+
+  // Internal edit state tracking (prevents polluting user data)
+  private _editStateMap = new WeakMap<object, EditState>();
+  private _primitiveEditState: (EditState | null)[] = [];
 
   constructor() {
     super();
@@ -105,6 +114,10 @@ export class CkEditableArray extends HTMLElement {
   set data(value: unknown) {
     this._data = Array.isArray(value) ? this._deepClone(value) : [];
     this._currentEditIndex = null;
+
+    // Clear internal edit state when data changes
+    this._primitiveEditState = [];
+
     if (this.isConnected) {
       this.render();
       this._announceDataChange();
@@ -331,7 +344,7 @@ export class CkEditableArray extends HTMLElement {
       rowEl.setAttribute('role', 'listitem');
       rowEl.setAttribute('data-mode', 'display');
       rowEl.addEventListener('keydown', event =>
-        this._handleRowKeydown(event as KeyboardEvent, index)
+        this._handleRowKeydown(event as KeyboardEvent)
       );
       rowsHost.appendChild(rowEl);
 
@@ -375,7 +388,7 @@ export class CkEditableArray extends HTMLElement {
       this._setFormControlAttributes(boundEls, index);
 
       // Add input event listeners for bidirectional binding
-      this._attachInputListeners(boundEls, index, rowEl);
+      this._attachInputListeners(boundEls);
     } else {
       // Retrieve cached bound elements
       boundEls =
@@ -588,7 +601,17 @@ export class CkEditableArray extends HTMLElement {
     }, obj);
   }
 
-  private _handleRowKeydown(event: KeyboardEvent, rowIndex: number) {
+  private _handleRowKeydown(event: KeyboardEvent) {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    const rowEl = target.closest('[data-row]') as HTMLElement | null;
+    if (!rowEl) return;
+
+    // Compute index from DOM at runtime, not from captured closure
+    const rowIndex = Number(rowEl.getAttribute('data-row'));
+    if (!Number.isFinite(rowIndex)) return;
+
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       const rows = this.shadowRoot?.querySelectorAll('[data-row]') as
@@ -624,11 +647,7 @@ export class CkEditableArray extends HTMLElement {
     }
   }
 
-  private _attachInputListeners(
-    boundEls: HTMLElement[],
-    rowIndex: number,
-    rowEl: HTMLElement
-  ): void {
+  private _attachInputListeners(boundEls: HTMLElement[]): void {
     boundEls.forEach(el => {
       // Only attach listeners to form elements
       if (!this._isFormElement(el)) return;
@@ -645,21 +664,26 @@ export class CkEditableArray extends HTMLElement {
           : 'input';
 
       el.addEventListener(eventType, event =>
-        this._handleInputChange(event, rowIndex, bindPath, rowEl)
+        this._handleInputChange(event, bindPath)
       );
     });
   }
 
   private _handleInputChange(
     event: Event,
-    rowIndex: number,
-    bindPath: string,
-    rowEl: HTMLElement
+    bindPath: string
   ): void {
     const target = event.target as
       | HTMLInputElement
       | HTMLSelectElement
       | HTMLTextAreaElement;
+
+    // Compute row index from DOM at runtime, not from captured closure
+    const rowEl = target.closest('[data-row]') as HTMLElement | null;
+    if (!rowEl) return;
+
+    const rowIndex = Number(rowEl.getAttribute('data-row'));
+    if (!Number.isFinite(rowIndex) || rowIndex < 0 || rowIndex >= this._data.length) return;
 
     // Get the new value from the input
     let newValue: unknown;
@@ -756,13 +780,13 @@ export class CkEditableArray extends HTMLElement {
     if (beforeEvent.defaultPrevented) return;
 
     const rowData = this._data[rowIndex];
-    if (typeof rowData === 'object' && rowData !== null) {
-      const snapshot = this._cloneValue(rowData);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (rowData as any).__originalSnapshot = snapshot;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (rowData as any).editing = true;
-    }
+    const snapshot = this._cloneValue(rowData);
+
+    // Store edit state internally, don't pollute user data
+    this._setEditState(rowData, rowIndex, {
+      editing: true,
+      originalSnapshot: snapshot,
+    });
 
     this._currentEditIndex = rowIndex;
     this._setRowMode(rowEl, 'edit');
@@ -780,12 +804,9 @@ export class CkEditableArray extends HTMLElement {
     if (this._currentEditIndex !== rowIndex) return;
 
     const rowData = this._data[rowIndex];
-    if (typeof rowData === 'object' && rowData !== null) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (rowData as any).editing;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (rowData as any).__originalSnapshot;
-    }
+
+    // Clear internal edit state (don't pollute user data)
+    this._setEditState(rowData, rowIndex, null);
 
     this._currentEditIndex = null;
     this._setRowMode(rowEl, 'display');
@@ -811,17 +832,15 @@ export class CkEditableArray extends HTMLElement {
     if (beforeEvent.defaultPrevented) return;
 
     const rowData = this._data[rowIndex];
-    if (typeof rowData === 'object' && rowData !== null) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const snapshot = (rowData as any).__originalSnapshot;
-      if (snapshot !== undefined) {
-        this._data[rowIndex] = this._cloneValue(snapshot);
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (this._data[rowIndex] as any).editing;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (this._data[rowIndex] as any).__originalSnapshot;
+
+    // Restore from internal snapshot (don't pollute user data)
+    const editState = this._getEditState(rowData, rowIndex);
+    if (editState?.originalSnapshot !== undefined) {
+      this._data[rowIndex] = this._cloneValue(editState.originalSnapshot);
     }
+
+    // Clear internal edit state
+    this._setEditState(this._data[rowIndex], rowIndex, null);
 
     const boundEls =
       (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls || [];
@@ -838,11 +857,35 @@ export class CkEditableArray extends HTMLElement {
     this.dispatchEvent(afterEvent);
   }
 
-  private _isRowEditing(rowData: unknown, rowIndex: number): boolean {
+  private _getEditState(rowData: unknown, rowIndex: number): EditState | null {
     if (typeof rowData === 'object' && rowData !== null) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((rowData as any).editing === true) return true;
+      return this._editStateMap.get(rowData) || null;
+    } else {
+      // For primitives, use parallel array
+      return this._primitiveEditState[rowIndex] || null;
     }
+  }
+
+  private _setEditState(
+    rowData: unknown,
+    rowIndex: number,
+    state: EditState | null
+  ): void {
+    if (typeof rowData === 'object' && rowData !== null) {
+      if (state === null) {
+        this._editStateMap.delete(rowData);
+      } else {
+        this._editStateMap.set(rowData, state);
+      }
+    } else {
+      // For primitives, use parallel array
+      this._primitiveEditState[rowIndex] = state;
+    }
+  }
+
+  private _isRowEditing(rowData: unknown, rowIndex: number): boolean {
+    const editState = this._getEditState(rowData, rowIndex);
+    if (editState?.editing) return true;
     return this._currentEditIndex === rowIndex;
   }
 

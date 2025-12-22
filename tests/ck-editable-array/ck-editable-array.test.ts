@@ -434,7 +434,7 @@ describe('CkEditableArray Component', () => {
       expect(beforeHandler).toHaveBeenCalledTimes(1);
     });
 
-    test('should enter edit mode, snapshot data, and set editing flag', () => {
+    test('should enter edit mode and transition to edit UI state', () => {
       const displayTemplate = document.createElement('template');
       displayTemplate.setAttribute('slot', 'display');
       displayTemplate.innerHTML = `<span data-bind="name"></span>`;
@@ -461,14 +461,15 @@ describe('CkEditableArray Component', () => {
       ) as HTMLElement;
       const editContent = row.querySelector('.edit-content') as HTMLElement;
 
+      // Verify edit mode UI state
       expect(row.getAttribute('data-mode')).toBe('edit');
       expect(displayContent.classList.contains('ck-hidden')).toBe(true);
       expect(editContent.classList.contains('ck-hidden')).toBe(false);
 
+      // Verify user data is NOT polluted (uses internal state tracking)
       const data = element.data as { name: string; editing?: boolean; __originalSnapshot?: { name: string } }[];
-      expect(data[0].editing).toBe(true);
-      expect(data[0].__originalSnapshot).toEqual({ name: 'First' });
-      expect(data[0].__originalSnapshot).not.toBe(data[0]);
+      expect(data[0].editing).toBeUndefined();
+      expect(data[0].__originalSnapshot).toBeUndefined();
     });
 
     test('should enforce exclusive editing lock across rows', () => {
@@ -1829,6 +1830,422 @@ describe('CkEditableArray Component', () => {
       // Row 1 display should NOT change
       expect(display1.textContent).toBe(initialDisplay1);
       expect(display1.textContent).toBe('Bob');
+    });
+  });
+
+  // Stale Index Closure Tests (Feature 1.3: TDD RED phase)
+  describe('Index Closure Consistency', () => {
+    test('should compute index from DOM data-row attribute in keyboard handler', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      element.data = [{ name: 'Alice' }, { name: 'Bob' }, { name: 'Charlie' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
+
+      // Manually change data-row attribute to simulate index mismatch
+      rows[0].setAttribute('data-row', '5');
+
+      rows[0].focus();
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowDown',
+        bubbles: true,
+      });
+      rows[0].dispatchEvent(event);
+
+      // If handler uses data-row attribute, it would try to access rows[6] which doesn't exist
+      // If handler uses captured closure index (0), it correctly accesses rows[1]
+      // We want it to use data-row, so this test verifies the DESIRED behavior
+
+      // Expected: Handler reads data-row="5", tries rows[6], nothing happens (stays on row 0)
+      // Current (with closure): Handler uses index=0, focuses rows[1]
+
+      // For now, focus should NOT move because rows[6] doesn't exist
+      expect(element.shadowRoot?.activeElement).toBe(rows[0]);
+    });
+
+    test('should compute index from DOM data-row attribute in input handler', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Alice' }, { name: 'Bob' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
+      const input0 = rows[0].querySelector('input[data-bind="name"]') as HTMLInputElement;
+
+      // Manually change data-row attribute
+      rows[0].setAttribute('data-row', '1');
+
+      // Type in the input
+      input0.value = 'Alice Updated';
+      input0.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // If handler uses data-row attribute, it should update this._data[1]
+      // If handler uses captured closure index (0), it updates this._data[0]
+
+      const updatedData = element.data as { name: string }[];
+
+      // Expected (with data-row): this._data[1] updated, this._data[0] unchanged
+      // Current (with closure): this._data[0] updated, this._data[1] unchanged
+
+      // We want data-row behavior:
+      expect(updatedData[0].name).toBe('Alice'); // Unchanged
+      expect(updatedData[1].name).toBe('Alice Updated'); // Updated
+    });
+
+    test('should update name/id attributes when row index changes due to data shift', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.setAttribute('name', 'users');
+
+      // Set initial data with 2 items
+      element.data = [
+        { name: 'Alice' },
+        { name: 'Bob' }
+      ];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      let rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
+
+      // Verify initial name attributes
+      const input0Initial = rows[0].querySelector('input[data-bind="name"]') as HTMLInputElement;
+      expect(input0Initial.getAttribute('name')).toBe('users[0].name');
+      expect(input0Initial.getAttribute('id')).toBe('users__0__name');
+
+      // Add a NEW item at the beginning (shifts existing items down)
+      element.data = [
+        { name: 'New First' },  // New item at index 0
+        { name: 'Alice' },      // Alice shifted from index 0 to index 1
+        { name: 'Bob' }         // Bob shifted from index 1 to index 2
+      ];
+
+      // Re-query rows
+      rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
+
+      // The input in what is NOW row 1 (showing Alice) should have name="users[1].name"
+      // not the original name="users[0].name" from when it was created
+      const input1AfterShift = rows[1].querySelector('input[data-bind="name"]') as HTMLInputElement;
+
+      // BUG: This will likely still be "users[0].name" because name/id were set at creation time
+      // and never updated when the row was reused at a different index
+      expect(input1AfterShift.getAttribute('name')).toBe('users[1].name'); // Should be index 1 now
+      expect(input1AfterShift.getAttribute('id')).toBe('users__1__name'); // Should be index 1 now
+    });
+
+    test('should use current DOM index for keyboard navigation after data reorder', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      // Set initial data
+      element.data = [{ name: 'Alice' }, { name: 'Bob' }, { name: 'Charlie' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      let rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
+
+      // Verify initial order
+      expect(rows[0].textContent).toContain('Alice');
+      expect(rows[1].textContent).toContain('Bob');
+      expect(rows[2].textContent).toContain('Charlie');
+
+      // Reorder data (same length, different content)
+      element.data = [{ name: 'Charlie' }, { name: 'Alice' }, { name: 'Bob' }];
+
+      // Re-query rows after data change
+      rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
+
+      // Verify new order
+      expect(rows[0].textContent).toContain('Charlie');
+      expect(rows[1].textContent).toContain('Alice');
+      expect(rows[2].textContent).toContain('Bob');
+
+      // Focus first row (Charlie)
+      rows[0].focus();
+      expect(element.shadowRoot?.activeElement).toBe(rows[0]);
+
+      // Press ArrowDown - should move to second row (Alice), not based on old index
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowDown',
+        bubbles: true,
+      });
+      rows[0].dispatchEvent(event);
+
+      // Should focus the current second row (Alice), not the row that was at index 1 before
+      expect(element.shadowRoot?.activeElement).toBe(rows[1]);
+    });
+
+    test('should use current DOM index for ArrowUp navigation after data reorder', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      // Set initial data
+      element.data = [{ name: 'Alice' }, { name: 'Bob' }, { name: 'Charlie' }];
+      element.connectedCallback();
+
+      // Reorder data
+      element.data = [{ name: 'Charlie' }, { name: 'Alice' }, { name: 'Bob' }];
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
+
+      // Focus second row (Alice)
+      rows[1].focus();
+      expect(element.shadowRoot?.activeElement).toBe(rows[1]);
+
+      // Press ArrowUp - should move to first row (Charlie)
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowUp',
+        bubbles: true,
+      });
+      rows[1].dispatchEvent(event);
+
+      // Should focus the current first row (Charlie)
+      expect(element.shadowRoot?.activeElement).toBe(rows[0]);
+    });
+
+    test('should apply edit action to current visual row after data reorder', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      // Set initial data
+      element.data = [{ name: 'Alice' }, { name: 'Bob' }, { name: 'Charlie' }];
+      element.connectedCallback();
+
+      // Reorder data (same length)
+      element.data = [{ name: 'Charlie' }, { name: 'Alice' }, { name: 'Bob' }];
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as NodeListOf<HTMLElement>;
+
+      // Verify order
+      expect(rows[0].textContent).toContain('Charlie');
+      expect(rows[1].textContent).toContain('Alice');
+      expect(rows[2].textContent).toContain('Bob');
+
+      // Click edit button on first row (Charlie)
+      const editButton = rows[0].querySelector('[data-action="toggle"]') as HTMLButtonElement;
+      editButton.click();
+
+      // Verify first row is in edit mode (should be Charlie, not Alice from old index 0)
+      expect(rows[0].getAttribute('data-mode')).toBe('edit');
+      const input = rows[0].querySelector('input[data-bind="name"]') as HTMLInputElement;
+      expect(input.value).toBe('Charlie'); // Should be Charlie, not Alice
+
+      // Edit the value
+      input.value = 'Charlie Updated';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Save
+      const saveButton = rows[0].querySelector('[data-action="save"]') as HTMLButtonElement;
+      saveButton.click();
+
+      // Verify the correct row was updated in data
+      const updatedData = element.data as { name: string }[];
+      expect(updatedData[0].name).toBe('Charlie Updated'); // First row (Charlie) should be updated
+      expect(updatedData[1].name).toBe('Alice'); // Alice unchanged
+      expect(updatedData[2].name).toBe('Bob'); // Bob unchanged
+    });
+  });
+
+  // Data Pollution Prevention Tests (Feature 1.4: TDD RED phase)
+  describe('Data Pollution Prevention', () => {
+    test('should not add editing property to user data when entering edit mode', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Alice' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const editButton = row.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+
+      // Enter edit mode
+      editButton.click();
+
+      // User data should NOT have 'editing' property injected
+      const data = element.data as { name: string; editing?: boolean }[];
+      expect(data[0].editing).toBeUndefined();
+      expect('editing' in data[0]).toBe(false);
+    });
+
+    test('should not add __originalSnapshot property to user data when entering edit mode', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Bob' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const editButton = row.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+
+      // Enter edit mode
+      editButton.click();
+
+      // User data should NOT have '__originalSnapshot' property injected
+      const data = element.data as { name: string; __originalSnapshot?: unknown }[];
+      expect(data[0].__originalSnapshot).toBeUndefined();
+      expect('__originalSnapshot' in data[0]).toBe(false);
+    });
+
+    test('should emit clean data in datachanged event during edit mode', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Charlie' }];
+      element.connectedCallback();
+
+      const eventHandler = jest.fn();
+      element.addEventListener('datachanged', eventHandler);
+      eventHandler.mockClear(); // Clear initial datachanged from setting data
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const editButton = row.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+
+      // Enter edit mode
+      editButton.click();
+
+      // Edit the value
+      const input = row.querySelector('input[data-bind="name"]') as HTMLInputElement;
+      input.value = 'Charlie Updated';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Check emitted event data
+      expect(eventHandler).toHaveBeenCalled();
+      const lastCall = eventHandler.mock.calls[eventHandler.mock.calls.length - 1][0] as CustomEvent;
+      const emittedData = lastCall.detail.data[0] as { name: string; editing?: boolean; __originalSnapshot?: unknown };
+
+      // Emitted data should be clean (no internal properties)
+      expect(emittedData.name).toBe('Charlie Updated');
+      expect(emittedData.editing).toBeUndefined();
+      expect(emittedData.__originalSnapshot).toBeUndefined();
+
+      element.removeEventListener('datachanged', eventHandler);
+    });
+
+    test('should restore from internal snapshot on cancel without polluting data', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ name: 'Original' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const editButton = row.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+
+      // Enter edit mode
+      editButton.click();
+
+      // Edit the value
+      const input = row.querySelector('input[data-bind="name"]') as HTMLInputElement;
+      input.value = 'Modified';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Cancel
+      const cancelButton = row.querySelector('[data-action="cancel"]') as HTMLButtonElement;
+      cancelButton.click();
+
+      // Data should be restored to original value
+      const data = element.data as { name: string; editing?: boolean; __originalSnapshot?: unknown }[];
+      expect(data[0].name).toBe('Original');
+
+      // Data should NOT have internal properties
+      expect(data[0].editing).toBeUndefined();
+      expect(data[0].__originalSnapshot).toBeUndefined();
+      expect('editing' in data[0]).toBe(false);
+      expect('__originalSnapshot' in data[0]).toBe(false);
+    });
+
+    test('should handle primitive row data without pollution', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind=""></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="" />`;
+      element.appendChild(editTemplate);
+
+      // Set primitive values (strings)
+      element.data = ['Alice', 'Bob', 'Charlie'];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+
+      // Try to enter edit mode (component should handle gracefully)
+      const editButton = row.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+      editButton?.click();
+
+      // Data should still be clean primitives
+      const data = element.data as unknown[];
+      expect(data[0]).toBe('Alice');
+      expect(typeof data[0]).toBe('string');
     });
   });
 });
