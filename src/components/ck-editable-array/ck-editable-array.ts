@@ -539,7 +539,6 @@ export class CkEditableArray extends HTMLElement {
 
     // Always update attributes and bindings for current index/data
     rowEl.setAttribute('data-row', String(index));
-    rowEl.setAttribute('aria-rowindex', String(index + 1));
 
     // Update contextual aria-labels for buttons (Feature 4.1)
     const editButton = rowEl.querySelector('[data-action="toggle"]');
