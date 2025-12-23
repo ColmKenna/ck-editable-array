@@ -61,22 +61,6 @@ const attachTemplates = (
   element.appendChild(createEditTemplate(editBindPath));
 };
 
-/**
- * Sets up element with templates, data, and calls connectedCallback.
- * @param element - The CkEditableArray element
- * @param data - The data array to assign
- * @param displayBindPath - The bind path for the display template
- */
-const _setupElementWithTemplates = (
-  element: CkEditableArray,
-  data: unknown[],
-  displayBindPath: string
-): void => {
-  attachTemplates(element, displayBindPath);
-  element.data = data;
-  element.connectedCallback();
-};
-
 describe('CkEditableArray Component', () => {
   let element: CkEditableArray;
 
@@ -4195,7 +4179,9 @@ describe('CkEditableArray Component', () => {
 
         const shadowDOM = element.shadowRoot as ShadowRoot;
         const hiddenCheckboxes = Array.from(
-          shadowDOM.querySelectorAll('input[type="checkbox"][data-bind="isDeleted"]')
+          shadowDOM.querySelectorAll(
+            'input[type="checkbox"][data-bind="isDeleted"]'
+          )
         );
 
         expect(hiddenCheckboxes.length).toBeGreaterThan(0);

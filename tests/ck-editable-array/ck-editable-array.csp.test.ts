@@ -53,5 +53,4 @@ describe('CkEditableArray CSP Support', () => {
     );
     expect(styleEl).toBeNull();
   });
-
 });

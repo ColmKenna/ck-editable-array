@@ -415,7 +415,7 @@ export class CkEditableArray extends HTMLElement {
 
     rows.forEach((rowEl, index) => {
       const rowData = this._data[index];
-      const isDeleted = this._isRowDeleted(rowData, index);
+      const isDeleted = this._isRowDeleted(rowData);
 
       const editButton = rowEl.querySelector('[data-action="toggle"]');
       const saveButton = rowEl.querySelector('[data-action="save"]');
@@ -531,7 +531,9 @@ export class CkEditableArray extends HTMLElement {
       const displayWrapper = document.createElement('div');
       displayWrapper.className = 'display-content';
       displayWrapper.appendChild(
-        this._sanitizeClone(template.content.cloneNode(true) as DocumentFragment)
+        this._sanitizeClone(
+          template.content.cloneNode(true) as DocumentFragment
+        )
       );
       rowEl.appendChild(displayWrapper);
       rowEl.toggleAttribute('data-has-edit-template', !!editTemplate);
@@ -606,7 +608,7 @@ export class CkEditableArray extends HTMLElement {
     rowTokens.forEach(t => rowEl.classList.add(t));
 
     // Add ck-deleted class if row is deleted
-    if (this._isRowDeleted(rowData, index)) {
+    if (this._isRowDeleted(rowData)) {
       rowEl.classList.add('ck-deleted');
     }
 
@@ -629,7 +631,7 @@ export class CkEditableArray extends HTMLElement {
     const deleteButton = rowEl.querySelector('[data-action="delete"]');
     const itemNumber = index + 1;
 
-    const isDeleted = this._isRowDeleted(rowData, index);
+    const isDeleted = this._isRowDeleted(rowData);
 
     if (editButton) {
       editButton.setAttribute('aria-label', `Edit item ${itemNumber}`);
@@ -1171,7 +1173,7 @@ export class CkEditableArray extends HTMLElement {
     if (!rowData) return;
 
     // Toggle isDeleted property
-    const isCurrentlyDeleted = this._isRowDeleted(rowData, rowIndex);
+    const isCurrentlyDeleted = this._isRowDeleted(rowData);
     const newDeletedState = !isCurrentlyDeleted;
 
     // Add isDeleted property to data if it doesn't exist
@@ -1276,7 +1278,7 @@ export class CkEditableArray extends HTMLElement {
     return this._currentEditIndex === rowIndex;
   }
 
-  private _isRowDeleted(rowData: unknown, rowIndex: number): boolean {
+  private _isRowDeleted(rowData: unknown): boolean {
     if (typeof rowData === 'object' && rowData !== null) {
       return (rowData as Record<string, unknown>).isDeleted === true;
     }

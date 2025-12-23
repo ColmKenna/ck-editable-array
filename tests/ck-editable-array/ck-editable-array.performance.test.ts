@@ -29,8 +29,7 @@ describe('CkEditableArray Performance Benchmarks', () => {
   ): HTMLTemplateElement => {
     const template = document.createElement('template');
     template.setAttribute('slot', 'display');
-    template.innerHTML =
-      innerHTML || `<span data-bind="${bindPath}"></span>`;
+    template.innerHTML = innerHTML || `<span data-bind="${bindPath}"></span>`;
     return template;
   };
 
