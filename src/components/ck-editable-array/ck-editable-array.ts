@@ -449,13 +449,19 @@ export class CkEditableArray extends HTMLElement {
       // Clone template content into new row
       const displayWrapper = document.createElement('div');
       displayWrapper.className = 'display-content';
-      displayWrapper.appendChild(template.content.cloneNode(true));
+      displayWrapper.appendChild(
+        this._sanitizeClone(template.content.cloneNode(true) as DocumentFragment)
+      );
       rowEl.appendChild(displayWrapper);
       rowEl.toggleAttribute('data-has-edit-template', !!editTemplate);
       if (editTemplate) {
         const editWrapper = document.createElement('div');
         editWrapper.className = 'edit-content ck-hidden';
-        editWrapper.appendChild(editTemplate.content.cloneNode(true));
+        editWrapper.appendChild(
+          this._sanitizeClone(
+            editTemplate.content.cloneNode(true) as DocumentFragment
+          )
+        );
         rowEl.appendChild(editWrapper);
       }
       const actionsWrapper = document.createElement('div');
@@ -1135,6 +1141,23 @@ export class CkEditableArray extends HTMLElement {
 
     // Update form value
     this._updateFormValueFromControls();
+  }
+
+  private _sanitizeClone(fragment: DocumentFragment): DocumentFragment {
+    const scripts = fragment.querySelectorAll('script');
+    scripts.forEach(script => script.remove());
+
+    const allElements = fragment.querySelectorAll('*');
+    allElements.forEach(el => {
+      const attributes = el.getAttributeNames();
+      attributes.forEach(attr => {
+        if (attr.startsWith('on')) {
+          el.removeAttribute(attr);
+        }
+      });
+    });
+
+    return fragment;
   }
 
   private _getEditState(rowData: unknown, rowIndex: number): EditState | null {
