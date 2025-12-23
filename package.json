@@ -58,10 +58,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ColmKenna/ck-editable-array.git"
+    "url": "https://github.com/colmkenna/ck-editable-array.git"
   },
   "bugs": {
-    "url": "https://github.com/ColmKenna/ck-editable-array/issues"
+    "url": "https://github.com/colmkenna/ck-editable-array/issues"
   },
-  "homepage": "https://github.com/ColmKenna/ck-editable-array#readme"
+  "homepage": "https://github.com/colmkenna/ck-editable-array#readme"
 }
