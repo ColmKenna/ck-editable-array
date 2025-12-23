@@ -662,29 +662,6 @@ export class CkEditableArray extends HTMLElement {
     this._applyFormSemanticsOptimized(rowEl, boundEls, rowData, index);
   }
 
-  private _applyBindings(root: ParentNode, rowData: unknown) {
-    const boundEls = root.querySelectorAll('[data-bind]');
-    boundEls.forEach(el => {
-      if (!(el instanceof HTMLElement)) return;
-      const path = el.getAttribute('data-bind');
-      if (!path) {
-        el.textContent = '';
-        return;
-      }
-
-      const value = this._resolvePath(rowData, path);
-      if (Array.isArray(value)) {
-        el.textContent = value.map(v => String(v)).join(', ');
-        return;
-      }
-      if (value === null || value === undefined) {
-        el.textContent = '';
-        return;
-      }
-      el.textContent = String(value);
-    });
-  }
-
   private _applyFormSemantics(
     rowEl: HTMLElement,
     rowData: unknown,
