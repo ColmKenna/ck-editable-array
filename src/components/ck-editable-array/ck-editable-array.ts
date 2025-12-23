@@ -259,11 +259,20 @@ export class CkEditableArray extends HTMLElement {
 
   private render() {
     if (!ckEditableArraySheet) {
+      const disableFallback = this.hasAttribute('disable-style-fallback');
       if (
+        !disableFallback &&
         !this.shadow.querySelector('style[data-ck-editable-array-fallback]')
       ) {
         const style = document.createElement('style');
         style.setAttribute('data-ck-editable-array-fallback', '');
+
+        // Add CSP nonce support if attribute is present
+        const nonce = this.getAttribute('csp-nonce');
+        if (nonce) {
+          style.nonce = nonce;
+        }
+
         style.textContent = ckEditableArrayCSS;
         this.shadow.insertBefore(style, this._rootEl);
       }
