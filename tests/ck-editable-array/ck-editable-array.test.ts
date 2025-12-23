@@ -1826,6 +1826,234 @@ describe('CkEditableArray Component', () => {
       expect(display1.textContent).toBe(initialDisplay1);
       expect(display1.textContent).toBe('Bob');
     });
+
+    test('should handle null/undefined values in select elements gracefully', () => {
+      element.setAttribute('name', 'items');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="category"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `
+        <select data-bind="category">
+          <option value="">None</option>
+          <option value="A">Category A</option>
+          <option value="B">Category B</option>
+        </select>
+      `;
+      element.appendChild(editTemplate);
+
+      element.data = [
+        { category: null },
+        { category: undefined },
+        { category: 'A' },
+      ];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+
+      const select1 = rows?.[0]?.querySelector(
+        'select[data-bind="category"]'
+      ) as HTMLSelectElement;
+      const select2 = rows?.[1]?.querySelector(
+        'select[data-bind="category"]'
+      ) as HTMLSelectElement;
+      const select3 = rows?.[2]?.querySelector(
+        'select[data-bind="category"]'
+      ) as HTMLSelectElement;
+
+      // Null and undefined should result in empty string
+      expect(select1.value).toBe('');
+      expect(select2.value).toBe('');
+      expect(select3.value).toBe('A');
+    });
+
+    test('should handle null/undefined values in textarea elements gracefully', () => {
+      element.setAttribute('name', 'documents');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="description"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<textarea data-bind="description"></textarea>`;
+      element.appendChild(editTemplate);
+
+      element.data = [
+        { description: null },
+        { description: undefined },
+        { description: 'Hello world' },
+      ];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const rows = rowsHost?.querySelectorAll('[data-row]') as
+        | NodeListOf<HTMLElement>
+        | undefined;
+
+      const textarea1 = rows?.[0]?.querySelector(
+        'textarea[data-bind="description"]'
+      ) as HTMLTextAreaElement;
+      const textarea2 = rows?.[1]?.querySelector(
+        'textarea[data-bind="description"]'
+      ) as HTMLTextAreaElement;
+      const textarea3 = rows?.[2]?.querySelector(
+        'textarea[data-bind="description"]'
+      ) as HTMLTextAreaElement;
+
+      // Null and undefined should result in empty string
+      expect(textarea1.value).toBe('');
+      expect(textarea2.value).toBe('');
+      expect(textarea3.value).toBe('Hello world');
+    });
+
+    test('should handle change events in textarea elements', () => {
+      element.setAttribute('name', 'notes');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="text"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<textarea data-bind="text"></textarea>`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ text: 'Initial' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const textarea = row?.querySelector(
+        'textarea[data-bind="text"]'
+      ) as HTMLTextAreaElement;
+
+      // Change event should also trigger updates (like input)
+      textarea.value = 'Updated text';
+      textarea.dispatchEvent(new Event('change', { bubbles: true }));
+
+      const updatedData = element.data as { text: string }[];
+      expect(updatedData[0].text).toBe('Updated text');
+    });
+
+    test('should handle select with change event triggering data update', () => {
+      element.setAttribute('name', 'filters');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="priority"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `
+        <select data-bind="priority">
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      `;
+      element.appendChild(editTemplate);
+
+      element.data = [{ priority: 'low' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const select = row?.querySelector(
+        'select[data-bind="priority"]'
+      ) as HTMLSelectElement;
+      const displaySpan = row?.querySelector(
+        'span[data-bind="priority"]'
+      ) as HTMLElement;
+
+      expect(select.value).toBe('low');
+
+      // User changes select
+      select.value = 'high';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // Display and data should update
+      expect(displaySpan.textContent).toBe('high');
+      const updatedData = element.data as { priority: string }[];
+      expect(updatedData[0].priority).toBe('high');
+    });
+
+    test('should update select element when data changes', () => {
+      element.setAttribute('name', 'config');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="mode"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `
+        <select data-bind="mode">
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      `;
+      element.appendChild(editTemplate);
+
+      element.data = [{ mode: 'light' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const select = row?.querySelector(
+        'select[data-bind="mode"]'
+      ) as HTMLSelectElement;
+
+      expect(select.value).toBe('light');
+
+      // Change data
+      element.data = [{ mode: 'dark' }];
+
+      // Select should be updated
+      expect(select.value).toBe('dark');
+    });
+
+    test('should update textarea element when data changes', () => {
+      element.setAttribute('name', 'content');
+
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="body"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<textarea data-bind="body"></textarea>`;
+      element.appendChild(editTemplate);
+
+      element.data = [{ body: 'Original content' }];
+      element.connectedCallback();
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const textarea = row?.querySelector(
+        'textarea[data-bind="body"]'
+      ) as HTMLTextAreaElement;
+
+      expect(textarea.value).toBe('Original content');
+
+      // Change data
+      element.data = [{ body: 'New content' }];
+
+      // Textarea should be updated
+      expect(textarea.value).toBe('New content');
+    });
   });
 
   // Stale Index Closure Tests (Feature 1.3: TDD RED phase)
