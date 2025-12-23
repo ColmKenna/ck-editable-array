@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Button Customization - &lt;ck-editable-array&gt;</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+    nav a { color: inherit; text-decoration: none; }
+    .example { margin: 28px 0; padding: 18px; border: 1px solid #ddd; border-radius: 10px; }
+    .demo { padding: 14px; background: #f5f5f5; border-radius: 8px; margin: 12px 0; }
+    .code { background: #111; color: #eaeaea; padding: 12px; border-radius: 10px; overflow-x: auto; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 12px; background: #fff; }
+    .small { color: #444; font-size: 0.92rem; }
+
+    /* Example 1: Default */
+    ck-editable-array.default-buttons {
+      /* No customization */
+    }
+
+    /* Example 2: Emoji Buttons */
+    ck-editable-array.emoji-buttons::part(button) {
+      font-size: 1.2rem;
+      padding: 6px 10px;
+    }
+
+    /* Example 3: Translated Buttons */
+    ck-editable-array.french-buttons::part(button) {
+      font-family: system-ui;
+    }
+
+    /* Example 4: Icon-Only Buttons */
+    ck-editable-array.icon-only::part(button) {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: none;
+      border-radius: 4px;
+      background-size: 16px 16px;
+      background-position: center;
+      background-repeat: no-repeat;
+      text-indent: -9999px;
+      overflow: hidden;
+    }
+
+    ck-editable-array.icon-only::part(button-edit) {
+      background-color: #3b82f6;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>');
+    }
+
+    ck-editable-array.icon-only::part(button-save) {
+      background-color: #10b981;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>');
+    }
+
+    ck-editable-array.icon-only::part(button-cancel) {
+      background-color: #6b7280;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>');
+    }
+
+    ck-editable-array.icon-only::part(button-delete) {
+      background-color: #ef4444;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>');
+    }
+
+    /* Example 5: Styled Buttons with Text */
+    ck-editable-array.styled-buttons::part(button) {
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    ck-editable-array.styled-buttons::part(button-edit) {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    ck-editable-array.styled-buttons::part(button-edit):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+    }
+
+    ck-editable-array.styled-buttons::part(button-save) {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+    }
+
+    ck-editable-array.styled-buttons::part(button-save):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(245, 87, 108, 0.4);
+    }
+
+    ck-editable-array.styled-buttons::part(button-cancel) {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+    }
+
+    ck-editable-array.styled-buttons::part(button-cancel):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(79, 172, 254, 0.4);
+    }
+
+    ck-editable-array.styled-buttons::part(button-delete) {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      color: white;
+    }
+
+    ck-editable-array.styled-buttons::part(button-delete):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(250, 112, 154, 0.4);
+    }
+
+    /* Example 6: Minimal Buttons */
+    ck-editable-array.minimal-buttons::part(button) {
+      border: 1px solid #e5e7eb;
+      background: white;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      color: #374151;
+      transition: all 0.15s;
+    }
+
+    ck-editable-array.minimal-buttons::part(button):hover {
+      background: #f9fafb;
+      border-color: #d1d5db;
+    }
+
+    ck-editable-array.minimal-buttons::part(button-edit):hover {
+      border-color: #3b82f6;
+      color: #3b82f6;
+    }
+
+    ck-editable-array.minimal-buttons::part(button-save):hover {
+      border-color: #10b981;
+      color: #10b981;
+    }
+
+    ck-editable-array.minimal-buttons::part(button-cancel):hover {
+      border-color: #6b7280;
+      color: #6b7280;
+    }
+
+    ck-editable-array.minimal-buttons::part(button-delete):hover {
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+  </style>
+</head>
+<body>
+  <nav><a href="../index.html">← Back to Documentation</a></nav>
+
+  <h1>Button Customization</h1>
+  <p class="small">Demonstrates button text customization and CSS parts styling for themeable action buttons.</p>
+
+  <div class="example" id="default">
+    <h2>1. Default Buttons (Baseline)</h2>
+    <p class="small">No customization applied - shows default English button text.</p>
+    <div class="demo">
+      <ck-editable-array id="defaultEl" class="default-buttons" name="default">
+        <template slot="display">
+          <div><strong>Task:</strong> <span data-bind="task"></span></div>
+        </template>
+        <template slot="edit">
+          <label>Task <input data-bind="task" /></label>
+        </template>
+      </ck-editable-array>
+    </div>
+    <pre class="code"><code>&lt;ck-editable-array&gt;
+  &lt;!-- No button attributes - uses defaults: Edit, Save, Cancel, Delete --&gt;
+&lt;/ck-editable-array&gt;</code></pre>
+  </div>
+
+  <div class="example" id="emoji">
+    <h2>2. Emoji Buttons</h2>
+    <p class="small">Replace button text with emojis for a playful, visual interface.</p>
+    <div class="demo">
+      <ck-editable-array
+        id="emojiEl"
+        class="emoji-buttons"
+        name="emoji"
+        button-edit-text="✏️"
+        button-save-text="✓"
+        button-cancel-text="✗"
+        button-delete-text="🗑️"
+        button-restore-text="↶">
+        <template slot="display">
+          <div><strong>Item:</strong> <span data-bind="item"></span></div>
+        </template>
+        <template slot="edit">
+          <label>Item <input data-bind="item" /></label>
+        </template>
+      </ck-editable-array>
+    </div>
+    <pre class="code"><code>&lt;ck-editable-array
+  button-edit-text="✏️"
+  button-save-text="✓"
+  button-cancel-text="✗"
+  button-delete-text="🗑️"
+  button-restore-text="↶"&gt;
+&lt;/ck-editable-array&gt;
+
+&lt;style&gt;
+ck-editable-array.emoji-buttons::part(button) {
+  font-size: 1.2rem;
+  padding: 6px 10px;
+}
+&lt;/style&gt;</code></pre>
+  </div>
+
+  <div class="example" id="translated">
+    <h2>3. Translated Buttons (i18n)</h2>
+    <p class="small">Support internationalization by changing button text to any language.</p>
+    <div class="demo">
+      <ck-editable-array
+        id="frenchEl"
+        class="french-buttons"
+        name="french"
+        button-edit-text="Modifier"
+        button-save-text="Enregistrer"
+        button-cancel-text="Annuler"
+        button-delete-text="Supprimer"
+        button-restore-text="Restaurer">
+        <template slot="display">
+          <div><strong>Nom:</strong> <span data-bind="name"></span></div>
+        </template>
+        <template slot="edit">
+          <label>Nom <input data-bind="name" /></label>
+        </template>
+      </ck-editable-array>
+    </div>
+    <pre class="code"><code>&lt;!-- French example --&gt;
+&lt;ck-editable-array
+  button-edit-text="Modifier"
+  button-save-text="Enregistrer"
+  button-cancel-text="Annuler"
+  button-delete-text="Supprimer"
+  button-restore-text="Restaurer"&gt;
+&lt;/ck-editable-array&gt;</code></pre>
+  </div>
+
+  <div class="example" id="icon-only">
+    <h2>4. Icon-Only Buttons</h2>
+    <p class="small">Set text to empty string and use CSS background images for compact, icon-only buttons.</p>
+    <div class="demo">
+      <ck-editable-array
+        id="iconOnlyEl"
+        class="icon-only"
+        name="icononly"
+        button-edit-text=""
+        button-save-text=""
+        button-cancel-text=""
+        button-delete-text=""
+        button-restore-text="">
+        <template slot="display">
+          <div><strong>Note:</strong> <span data-bind="note"></span></div>
+        </template>
+        <template slot="edit">
+          <label>Note <input data-bind="note" /></label>
+        </template>
+      </ck-editable-array>
+    </div>
+    <pre class="code"><code>&lt;ck-editable-array
+  button-edit-text=""
+  button-save-text=""
+  button-cancel-text=""
+  button-delete-text=""
+  button-restore-text=""&gt;
+&lt;/ck-editable-array&gt;
+
+&lt;style&gt;
+ck-editable-array.icon-only::part(button) {
+  width: 32px;
+  height: 32px;
+  background-size: 16px 16px;
+  background-position: center;
+  background-repeat: no-repeat;
+  text-indent: -9999px; /* Hide empty text */
+}
+
+ck-editable-array.icon-only::part(button-edit) {
+  background-color: #3b82f6;
+  background-image: url('data:image/svg+xml...');
+}
+/* ... similar for other buttons ... */
+&lt;/style&gt;</code></pre>
+  </div>
+
+  <div class="example" id="styled">
+    <h2>5. Gradient Styled Buttons</h2>
+    <p class="small">Apply custom colors, gradients, and hover effects using CSS parts.</p>
+    <div class="demo">
+      <ck-editable-array
+        id="styledEl"
+        class="styled-buttons"
+        name="styled"
+        button-edit-text="Edit Row"
+        button-save-text="Save Changes"
+        button-cancel-text="Cancel"
+        button-delete-text="Remove">
+        <template slot="display">
+          <div><strong>Title:</strong> <span data-bind="title"></span></div>
+        </template>
+        <template slot="edit">
+          <label>Title <input data-bind="title" /></label>
+        </template>
+      </ck-editable-array>
+    </div>
+    <pre class="code"><code>&lt;ck-editable-array
+  button-edit-text="Edit Row"
+  button-save-text="Save Changes"&gt;
+&lt;/ck-editable-array&gt;
+
+&lt;style&gt;
+ck-editable-array.styled-buttons::part(button-edit) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+}
+
+ck-editable-array.styled-buttons::part(button-edit):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+}
+&lt;/style&gt;</code></pre>
+  </div>
+
+  <div class="example" id="minimal">
+    <h2>6. Minimal Buttons</h2>
+    <p class="small">Clean, minimal button design with subtle hover states.</p>
+    <div class="demo">
+      <ck-editable-array
+        id="minimalEl"
+        class="minimal-buttons"
+        name="minimal"
+        button-edit-text="edit"
+        button-save-text="save"
+        button-cancel-text="cancel"
+        button-delete-text="delete">
+        <template slot="display">
+          <div><strong>Label:</strong> <span data-bind="label"></span></div>
+        </template>
+        <template slot="edit">
+          <label>Label <input data-bind="label" /></label>
+        </template>
+      </ck-editable-array>
+    </div>
+    <pre class="code"><code>&lt;ck-editable-array
+  button-edit-text="edit"
+  button-save-text="save"&gt;
+&lt;/ck-editable-array&gt;
+
+&lt;style&gt;
+ck-editable-array.minimal-buttons::part(button) {
+  border: 1px solid #e5e7eb;
+  background: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  transition: all 0.15s;
+}
+
+ck-editable-array.minimal-buttons::part(button-edit):hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+&lt;/style&gt;</code></pre>
+  </div>
+
+  <div class="example" id="summary">
+    <h2>Summary</h2>
+    <p>Button customization provides:</p>
+    <ul>
+      <li><strong>Text Customization:</strong> 5 attributes (<code>button-edit-text</code>, <code>button-save-text</code>, <code>button-cancel-text</code>, <code>button-delete-text</code>, <code>button-restore-text</code>)</li>
+      <li><strong>CSS Parts:</strong> <code>::part(button)</code>, <code>::part(button-edit)</code>, <code>::part(button-save)</code>, <code>::part(button-cancel)</code>, <code>::part(button-delete)</code></li>
+      <li><strong>Use Cases:</strong> Emojis, internationalization, icons, custom themes, minimal designs</li>
+      <li><strong>Backward Compatible:</strong> All defaults match original behavior (Edit, Save, Cancel, Delete, Restore)</li>
+    </ul>
+  </div>
+
+  <script type="module">
+    import '../../dist/ck-editable-array/ck-editable-array.esm.js';
+
+    const defaultEl = document.querySelector('#defaultEl');
+    const emojiEl = document.querySelector('#emojiEl');
+    const frenchEl = document.querySelector('#frenchEl');
+    const iconOnlyEl = document.querySelector('#iconOnlyEl');
+    const styledEl = document.querySelector('#styledEl');
+    const minimalEl = document.querySelector('#minimalEl');
+
+    defaultEl.data = [
+      { task: 'Review pull request' },
+      { task: 'Update documentation' }
+    ];
+
+    emojiEl.data = [
+      { item: 'Shopping list' },
+      { item: 'Meeting notes' }
+    ];
+
+    frenchEl.data = [
+      { name: 'Pierre Dupont' },
+      { name: 'Marie Laurent' }
+    ];
+
+    iconOnlyEl.data = [
+      { note: 'Compact interface example' },
+      { note: 'Icon-only buttons' }
+    ];
+
+    styledEl.data = [
+      { title: 'Gradient themed buttons' },
+      { title: 'Hover effects demo' }
+    ];
+
+    minimalEl.data = [
+      { label: 'Clean minimal design' },
+      { label: 'Subtle hover states' }
+    ];
+  </script>
+</body>
+</html>

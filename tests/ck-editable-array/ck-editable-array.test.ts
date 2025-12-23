@@ -4447,4 +4447,282 @@ describe('CkEditableArray Component', () => {
       });
     });
   });
+
+  // ============================================================================
+  // Phase 7: Customizable Buttons
+  // ============================================================================
+
+  describe('Phase 7: Customizable Buttons', () => {
+    describe('7.1: Button Text Customization via Attributes', () => {
+      test('should use default button text when no attributes are set', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Test' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+
+        const editButton = row?.querySelector('[data-action="toggle"]');
+        const saveButton = row?.querySelector('[data-action="save"]');
+        const cancelButton = row?.querySelector('[data-action="cancel"]');
+        const deleteButton = row?.querySelector('[data-action="delete"]');
+
+        expect(editButton?.textContent).toBe('Edit');
+        expect(saveButton?.textContent).toBe('Save');
+        expect(cancelButton?.textContent).toBe('Cancel');
+        expect(deleteButton?.textContent).toBe('Delete');
+
+        document.body.removeChild(element);
+      });
+
+      test('should customize edit button text via button-edit-text attribute', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('button-edit-text', '✏️ Modify');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Test' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const editButton = row?.querySelector('[data-action="toggle"]');
+
+        expect(editButton?.textContent).toBe('✏️ Modify');
+
+        document.body.removeChild(element);
+      });
+
+      test('should customize save button text via button-save-text attribute', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('button-save-text', '✓ Confirm');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Test' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const saveButton = row?.querySelector('[data-action="save"]');
+
+        expect(saveButton?.textContent).toBe('✓ Confirm');
+
+        document.body.removeChild(element);
+      });
+
+      test('should customize cancel button text via button-cancel-text attribute', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('button-cancel-text', '✗ Discard');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Test' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const cancelButton = row?.querySelector('[data-action="cancel"]');
+
+        expect(cancelButton?.textContent).toBe('✗ Discard');
+
+        document.body.removeChild(element);
+      });
+
+      test('should customize delete button text via button-delete-text attribute', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('button-delete-text', '🗑️ Remove');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Test' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const deleteButton = row?.querySelector('[data-action="delete"]');
+
+        expect(deleteButton?.textContent).toBe('🗑️ Remove');
+
+        document.body.removeChild(element);
+      });
+
+      test('should customize restore button text via button-restore-text attribute', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('button-restore-text', '↩️ Undo');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Test', isDeleted: true }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const deleteButton = row?.querySelector('[data-action="delete"]');
+
+        // Should show restore text when isDeleted is true
+        expect(deleteButton?.textContent).toBe('↩️ Undo');
+
+        document.body.removeChild(element);
+      });
+
+      test('should update button text when attributes change', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Test' }];
+        element.connectedCallback();
+
+        // Change the edit button text
+        element.setAttribute('button-edit-text', 'Customize');
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const editButton = row?.querySelector('[data-action="toggle"]');
+
+        expect(editButton?.textContent).toBe('Customize');
+
+        document.body.removeChild(element);
+      });
+
+      test('should use icon-only buttons when text is empty string', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('button-edit-text', '');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Test' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const editButton = row?.querySelector('[data-action="toggle"]');
+
+        // Empty text should result in empty textContent (icon-only via CSS)
+        expect(editButton?.textContent).toBe('');
+
+        document.body.removeChild(element);
+      });
+    });
+
+    describe('7.2: Button CSS Parts for Theming', () => {
+      test('should expose part attribute on edit button', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Test' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const editButton = row?.querySelector('[data-action="toggle"]');
+
+        expect(editButton?.getAttribute('part')).toBe('button button-edit');
+
+        document.body.removeChild(element);
+      });
+
+      test('should expose part attribute on save button', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Test' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const saveButton = row?.querySelector('[data-action="save"]');
+
+        expect(saveButton?.getAttribute('part')).toBe('button button-save');
+
+        document.body.removeChild(element);
+      });
+
+      test('should expose part attribute on cancel button', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Test' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const cancelButton = row?.querySelector('[data-action="cancel"]');
+
+        expect(cancelButton?.getAttribute('part')).toBe('button button-cancel');
+
+        document.body.removeChild(element);
+      });
+
+      test('should expose part attribute on delete button', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Test' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const deleteButton = row?.querySelector('[data-action="delete"]');
+
+        expect(deleteButton?.getAttribute('part')).toBe('button button-delete');
+
+        document.body.removeChild(element);
+      });
+
+      test('should allow styling buttons via ::part() selector', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Test' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const editButton = row?.querySelector('[data-action="toggle"]');
+
+        // Verify part attribute exists for CSS targeting
+        expect(editButton?.hasAttribute('part')).toBe(true);
+        expect(editButton?.getAttribute('part')).toContain('button');
+        expect(editButton?.getAttribute('part')).toContain('button-edit');
+
+        document.body.removeChild(element);
+      });
+    });
+  });
 });

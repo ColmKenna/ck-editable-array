@@ -306,6 +306,56 @@
         </table>
         <p><strong>Description:</strong> When the fallback stylesheet injection path is used, the component applies <code>nonce</code> to the injected <code>&lt;style&gt;</code> element so it can work under strict CSP. This attribute has no effect when constructable stylesheets are supported and used.</p>
         <p><strong>Examples:</strong> <a href="examples/edge-cases.html#csp">Edge Cases</a></p>
+
+        <h3><code>button-edit-text</code></h3>
+        <table>
+          <tr><th>Property</th><td>(attribute only)</td></tr>
+          <tr><th>Type</th><td>string</td></tr>
+          <tr><th>Default</th><td><code>"Edit"</code></td></tr>
+          <tr><th>Valid Values</th><td>Any string (including emojis/icons, empty string for icon-only)</td></tr>
+        </table>
+        <p><strong>Description:</strong> Customizes the text displayed on the Edit button for each row. Supports icons, emojis, or translations. Set to empty string <code>""</code> for icon-only buttons (combine with CSS <code>::part(button-edit)</code> for background icons).</p>
+        <p><strong>Examples:</strong> <code>button-edit-text="✏️"</code>, <code>button-edit-text="Modifier"</code>, <code>button-edit-text=""</code></p>
+
+        <h3><code>button-save-text</code></h3>
+        <table>
+          <tr><th>Property</th><td>(attribute only)</td></tr>
+          <tr><th>Type</th><td>string</td></tr>
+          <tr><th>Default</th><td><code>"Save"</code></td></tr>
+          <tr><th>Valid Values</th><td>Any string (including emojis/icons, empty string for icon-only)</td></tr>
+        </table>
+        <p><strong>Description:</strong> Customizes the text displayed on the Save button for each row. Supports icons, emojis, or translations. Set to empty string for icon-only buttons.</p>
+        <p><strong>Examples:</strong> <code>button-save-text="✓"</code>, <code>button-save-text="Enregistrer"</code>, <code>button-save-text="💾"</code></p>
+
+        <h3><code>button-cancel-text</code></h3>
+        <table>
+          <tr><th>Property</th><td>(attribute only)</td></tr>
+          <tr><th>Type</th><td>string</td></tr>
+          <tr><th>Default</th><td><code>"Cancel"</code></td></tr>
+          <tr><th>Valid Values</th><td>Any string (including emojis/icons, empty string for icon-only)</td></tr>
+        </table>
+        <p><strong>Description:</strong> Customizes the text displayed on the Cancel button for each row. Supports icons, emojis, or translations. Set to empty string for icon-only buttons.</p>
+        <p><strong>Examples:</strong> <code>button-cancel-text="✗"</code>, <code>button-cancel-text="Annuler"</code>, <code>button-cancel-text="↩️"</code></p>
+
+        <h3><code>button-delete-text</code></h3>
+        <table>
+          <tr><th>Property</th><td>(attribute only)</td></tr>
+          <tr><th>Type</th><td>string</td></tr>
+          <tr><th>Default</th><td><code>"Delete"</code></td></tr>
+          <tr><th>Valid Values</th><td>Any string (including emojis/icons, empty string for icon-only)</td></tr>
+        </table>
+        <p><strong>Description:</strong> Customizes the text displayed on the Delete button for each row. Supports icons, emojis, or translations. Set to empty string for icon-only buttons.</p>
+        <p><strong>Examples:</strong> <code>button-delete-text="🗑️"</code>, <code>button-delete-text="Supprimer"</code>, <code>button-delete-text="❌"</code></p>
+
+        <h3><code>button-restore-text</code></h3>
+        <table>
+          <tr><th>Property</th><td>(attribute only)</td></tr>
+          <tr><th>Type</th><td>string</td></tr>
+          <tr><th>Default</th><td><code>"Restore"</code></td></tr>
+          <tr><th>Valid Values</th><td>Any string (including emojis/icons, empty string for icon-only)</td></tr>
+        </table>
+        <p><strong>Description:</strong> Customizes the text displayed on the Restore button when a row is soft-deleted (the Delete button changes to Restore when <code>isDeleted</code> is true). Supports icons, emojis, or translations.</p>
+        <p><strong>Examples:</strong> <code>button-restore-text="↩️"</code>, <code>button-restore-text="Restaurer"</code>, <code>button-restore-text="🔄"</code></p>
       </section>
 
       <section id="css-properties">
@@ -402,6 +452,90 @@
   border-radius: 10px;
 }</code></pre>
         <p><strong>Example:</strong> <a href="examples/styling.html#part-rows">Part styling examples</a></p>
+
+        <h3><code>::part(button)</code></h3>
+        <p><strong>Targets:</strong> All action buttons (Edit, Save, Cancel, Delete/Restore).</p>
+        <p><strong>Description:</strong> Generic part selector that targets all row action buttons. Use this to apply consistent styling to all buttons at once.</p>
+        <p><strong>Common Use Cases:</strong></p>
+        <ul>
+          <li>Apply uniform padding, border-radius, and transitions to all buttons</li>
+          <li>Set default font size, weight, or spacing</li>
+          <li>Create a base button style that can be overridden by specific button parts</li>
+        </ul>
+        <pre><code>ck-editable-array::part(button) {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}</code></pre>
+
+        <h3><code>::part(button-edit)</code></h3>
+        <p><strong>Targets:</strong> The Edit button for each row.</p>
+        <p><strong>Description:</strong> Specific part selector for the Edit button. Styles defined here override the generic <code>::part(button)</code> styles.</p>
+        <pre><code>ck-editable-array::part(button-edit) {
+  background: #3b82f6;
+  color: white;
+}
+
+ck-editable-array::part(button-edit):hover {
+  background: #2563eb;
+}</code></pre>
+
+        <h3><code>::part(button-save)</code></h3>
+        <p><strong>Targets:</strong> The Save button for each row.</p>
+        <p><strong>Description:</strong> Specific part selector for the Save button.</p>
+        <pre><code>ck-editable-array::part(button-save) {
+  background: #10b981;
+  color: white;
+}</code></pre>
+
+        <h3><code>::part(button-cancel)</code></h3>
+        <p><strong>Targets:</strong> The Cancel button for each row.</p>
+        <p><strong>Description:</strong> Specific part selector for the Cancel button.</p>
+        <pre><code>ck-editable-array::part(button-cancel) {
+  background: #6b7280;
+  color: white;
+}</code></pre>
+
+        <h3><code>::part(button-delete)</code></h3>
+        <p><strong>Targets:</strong> The Delete/Restore button for each row.</p>
+        <p><strong>Description:</strong> Specific part selector for the Delete button (which changes to "Restore" when row is soft-deleted).</p>
+        <pre><code>ck-editable-array::part(button-delete) {
+  background: #ef4444;
+  color: white;
+}</code></pre>
+
+        <h3>Icon-Only Buttons with CSS Parts</h3>
+        <p>Combine empty button text attributes with <code>::part()</code> selectors to create icon-only buttons:</p>
+        <pre><code>&lt;ck-editable-array
+  button-edit-text=""
+  button-save-text=""
+  button-cancel-text=""
+  button-delete-text=""&gt;
+&lt;/ck-editable-array&gt;
+
+&lt;style&gt;
+  ck-editable-array::part(button) {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background-size: 16px;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  ck-editable-array::part(button-edit) {
+    background-color: #3b82f6;
+    background-image: url('data:image/svg+xml,...');
+  }
+
+  ck-editable-array::part(button-save) {
+    background-color: #10b981;
+    background-image: url('data:image/svg+xml,...');
+  }
+&lt;/style&gt;</code></pre>
       </section>
 
       <section id="themes">
@@ -551,6 +685,7 @@ ck-editable-array[theme="dark"] {
         <h3>Styling & Themes</h3>
         <ul>
           <li><a href="examples/styling.html">Component Styling</a> - CSS custom properties and parts</li>
+          <li><a href="examples/button-customization.html">Button Customization</a> - Text customization, emojis, i18n, icon-only buttons, and CSS parts theming</li>
           <li><a href="examples/themes.html">Themes</a> - Working, host-defined theme switcher and variable controls</li>
         </ul>
 

@@ -78,6 +78,11 @@ export class CkEditableArray extends HTMLElement {
       'row-class',
       'datachange-mode',
       'datachange-debounce',
+      'button-edit-text',
+      'button-save-text',
+      'button-cancel-text',
+      'button-delete-text',
+      'button-restore-text',
     ];
   }
 
@@ -93,6 +98,14 @@ export class CkEditableArray extends HTMLElement {
         this._updateWrapperClassesOnly();
       } else if (name === 'datachange-mode' || name === 'datachange-debounce') {
         this._clearDataChangeTimer();
+      } else if (
+        name === 'button-edit-text' ||
+        name === 'button-save-text' ||
+        name === 'button-cancel-text' ||
+        name === 'button-delete-text' ||
+        name === 'button-restore-text'
+      ) {
+        this._updateButtonText();
       } else {
         this.render();
       }
@@ -217,6 +230,26 @@ export class CkEditableArray extends HTMLElement {
       return DEFAULT_DATA_CHANGE_DEBOUNCE_MS;
     }
     return Math.floor(parsed);
+  }
+
+  private _getButtonEditText(): string {
+    return this.getAttribute('button-edit-text') ?? 'Edit';
+  }
+
+  private _getButtonSaveText(): string {
+    return this.getAttribute('button-save-text') ?? 'Save';
+  }
+
+  private _getButtonCancelText(): string {
+    return this.getAttribute('button-cancel-text') ?? 'Cancel';
+  }
+
+  private _getButtonDeleteText(): string {
+    return this.getAttribute('button-delete-text') ?? 'Delete';
+  }
+
+  private _getButtonRestoreText(): string {
+    return this.getAttribute('button-restore-text') ?? 'Restore';
   }
 
   private _clearDataChangeTimer(): void {
@@ -372,6 +405,42 @@ export class CkEditableArray extends HTMLElement {
     this._applyWrapperClasses();
   }
 
+  private _updateButtonText() {
+    // Fast path: update button text without full re-render
+    if (!this._rowsHostEl) return;
+
+    const rows = Array.from(
+      this._rowsHostEl.querySelectorAll('[data-row]')
+    ) as HTMLElement[];
+
+    rows.forEach((rowEl, index) => {
+      const rowData = this._data[index];
+      const isDeleted = this._isRowDeleted(rowData, index);
+
+      const editButton = rowEl.querySelector('[data-action="toggle"]');
+      const saveButton = rowEl.querySelector('[data-action="save"]');
+      const cancelButton = rowEl.querySelector('[data-action="cancel"]');
+      const deleteButton = rowEl.querySelector('[data-action="delete"]');
+
+      if (editButton) {
+        editButton.textContent = this._getButtonEditText();
+      }
+      if (saveButton) {
+        saveButton.textContent = this._getButtonSaveText();
+      }
+      if (cancelButton) {
+        cancelButton.textContent = this._getButtonCancelText();
+      }
+      if (deleteButton) {
+        if (isDeleted) {
+          deleteButton.textContent = this._getButtonRestoreText();
+        } else {
+          deleteButton.textContent = this._getButtonDeleteText();
+        }
+      }
+    });
+  }
+
   private _getEditTemplate() {
     if (this._editTemplate) return this._editTemplate;
     const template = this.querySelector('template[slot="edit"]');
@@ -481,23 +550,27 @@ export class CkEditableArray extends HTMLElement {
       const editButton = document.createElement('button');
       editButton.type = 'button';
       editButton.setAttribute('data-action', 'toggle');
-      editButton.textContent = 'Edit';
+      editButton.setAttribute('part', 'button button-edit');
+      editButton.textContent = this._getButtonEditText();
       editButton.setAttribute('aria-expanded', 'false');
       actionsWrapper.appendChild(editButton);
       const saveButton = document.createElement('button');
       saveButton.type = 'button';
       saveButton.setAttribute('data-action', 'save');
-      saveButton.textContent = 'Save';
+      saveButton.setAttribute('part', 'button button-save');
+      saveButton.textContent = this._getButtonSaveText();
       actionsWrapper.appendChild(saveButton);
       const cancelButton = document.createElement('button');
       cancelButton.type = 'button';
       cancelButton.setAttribute('data-action', 'cancel');
-      cancelButton.textContent = 'Cancel';
+      cancelButton.setAttribute('part', 'button button-cancel');
+      cancelButton.textContent = this._getButtonCancelText();
       actionsWrapper.appendChild(cancelButton);
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
       deleteButton.setAttribute('data-action', 'delete');
-      deleteButton.textContent = 'Delete';
+      deleteButton.setAttribute('part', 'button button-delete');
+      deleteButton.textContent = this._getButtonDeleteText();
       actionsWrapper.appendChild(deleteButton);
       rowEl.appendChild(actionsWrapper);
 
@@ -574,10 +647,10 @@ export class CkEditableArray extends HTMLElement {
     }
     if (deleteButton) {
       if (isDeleted) {
-        deleteButton.textContent = 'Restore';
+        deleteButton.textContent = this._getButtonRestoreText();
         deleteButton.setAttribute('aria-label', `Restore item ${itemNumber}`);
       } else {
-        deleteButton.textContent = 'Delete';
+        deleteButton.textContent = this._getButtonDeleteText();
         deleteButton.setAttribute('aria-label', `Delete item ${itemNumber}`);
       }
     }
@@ -1112,10 +1185,10 @@ export class CkEditableArray extends HTMLElement {
     ) as HTMLButtonElement | null;
     if (deleteButton) {
       if (newDeletedState) {
-        deleteButton.textContent = 'Restore';
+        deleteButton.textContent = this._getButtonRestoreText();
         deleteButton.setAttribute('aria-label', `Restore item ${rowIndex + 1}`);
       } else {
-        deleteButton.textContent = 'Delete';
+        deleteButton.textContent = this._getButtonDeleteText();
         deleteButton.setAttribute('aria-label', `Delete item ${rowIndex + 1}`);
       }
     }
