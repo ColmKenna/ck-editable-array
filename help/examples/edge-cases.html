@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edge Cases - &lt;ck-editable-array&gt;</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+    nav a { color: inherit; text-decoration: none; }
+    .example { margin: 28px 0; padding: 18px; border: 1px solid #ddd; border-radius: 10px; }
+    .demo { padding: 14px; background: #f5f5f5; border-radius: 8px; margin: 12px 0; }
+    .code { background: #111; color: #eaeaea; padding: 12px; border-radius: 10px; overflow-x: auto; }
+    .note { background: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; border-radius: 8px; margin: 10px 0; }
+    button { padding: 6px 10px; }
+  </style>
+</head>
+<body>
+  <nav><a href="../index.html">← Back to Documentation</a></nav>
+
+  <h1>Edge Cases</h1>
+  <p>Demonstrates coercion behavior, template sanitization, prototype pollution protection, and style fallback toggles.</p>
+
+  <div class="example" id="coercion">
+    <h2>1) Data coercion and cloning</h2>
+    <p>The <code>data</code> setter deep-clones arrays and coerces non-arrays to <code>[]</code>. Circular structures fall back and become <code>[]</code> (clone uses structuredClone/JSON fallback).</p>
+    <div class="demo">
+      <ck-editable-array id="coerceEl" name="coerce">
+        <template slot="display">
+          <div><span data-bind="label"></span></div>
+        </template>
+      </ck-editable-array>
+      <div style="margin-top: 10px; display:flex; gap: 8px; flex-wrap: wrap;">
+        <button id="setNonArray">Set non-array</button>
+        <button id="setCircular">Set circular</button>
+        <button id="setArray">Set normal array</button>
+      </div>
+      <pre class="code" style="margin-bottom:0;"><code id="coerceOut"></code></pre>
+    </div>
+  </div>
+
+  <div class="example" id="sanitize">
+    <h2>2) Template sanitization (scripts and on* handlers removed)</h2>
+    <p>
+      The component sanitizes cloned template fragments: it removes <code>&lt;script&gt;</code> tags and strips attributes starting with <code>on</code> (like <code>onclick</code>).
+      This protects against accidental script execution if templates come from untrusted sources.
+    </p>
+    <div class="demo">
+      <ck-editable-array id="sanitizeEl" name="sanitize">
+        <template slot="display">
+          <div>
+            <span data-bind="text"></span>
+            <button onclick="alert('should not exist')" data-bind="noop">Bad onclick (should be stripped)</button>
+            <script>console.log('should be removed')</script>
+          </div>
+        </template>
+      </ck-editable-array>
+      <button id="inspectSanitize">Inspect cloned row HTML</button>
+      <pre class="code" style="margin-bottom:0;"><code id="sanitizeOut"></code></pre>
+    </div>
+  </div>
+
+  <div class="example" id="prototype-pollution">
+    <h2>3) Prototype pollution prevention in <code>data-bind</code> paths</h2>
+    <p>
+      When a bound form control updates data, the component uses a guarded path setter that rejects reserved keys:
+      <code>__proto__</code>, <code>constructor</code>, and <code>prototype</code>.
+    </p>
+    <div class="note">
+      <strong>Try it:</strong> edit the "Danger" field. The attempted update to <code>__proto__.polluted</code> will be ignored.
+    </div>
+    <div class="demo">
+      <ck-editable-array id="ppEl" name="pp" datachange-mode="change">
+        <template slot="display">
+          <div><strong>Safe:</strong> <span data-bind="safe"></span></div>
+          <div><strong>Danger:</strong> <span data-bind="__proto__.polluted"></span></div>
+        </template>
+        <template slot="edit">
+          <label>Safe <input data-bind="safe" /></label>
+          <label>Danger <input data-bind="__proto__.polluted" placeholder="attempted proto write" /></label>
+        </template>
+      </ck-editable-array>
+      <button id="checkProto">Check Object.prototype</button>
+      <pre class="code" style="margin-bottom:0;"><code id="ppOut"></code></pre>
+    </div>
+  </div>
+
+  <div class="example" id="style-fallback">
+    <h2>4) Style fallback toggles</h2>
+    <p>
+      If constructable stylesheets are unsupported, the component injects a fallback <code>&lt;style&gt;</code> into the shadow root.
+      You can disable that with <code>disable-style-fallback</code>.
+    </p>
+    <div class="demo">
+      <ck-editable-array id="fallbackEl" name="fallback">
+        <template slot="display"><div><span data-bind="label"></span></div></template>
+      </ck-editable-array>
+
+      <ck-editable-array id="noFallbackEl" name="nofallback" disable-style-fallback>
+        <template slot="display"><div><span data-bind="label"></span></div></template>
+      </ck-editable-array>
+
+      <button id="inspectFallback">Inspect shadow styles</button>
+      <pre class="code" style="margin-bottom:0;"><code id="fallbackOut"></code></pre>
+    </div>
+  </div>
+
+  <div class="example" id="csp">
+    <h2>5) CSP nonce attribute (for fallback style tag)</h2>
+    <p>If fallback stylesheet injection occurs, the component applies the <code>csp-nonce</code> attribute value to the injected <code>&lt;style&gt;</code> element’s <code>nonce</code> property.</p>
+    <div class="demo">
+      <ck-editable-array id="nonceEl" csp-nonce="demo-nonce">
+        <template slot="display"><div><span data-bind="x"></span></div></template>
+      </ck-editable-array>
+      <button id="inspectNonce">Inspect injected style nonce</button>
+      <pre class="code" style="margin-bottom:0;"><code id="nonceOut"></code></pre>
+    </div>
+  </div>
+
+  <script type="module">
+    import '../../dist/ck-editable-array/ck-editable-array.esm.js';
+
+    // 1) coercion
+    const coerceEl = document.querySelector('#coerceEl');
+    const coerceOut = document.querySelector('#coerceOut');
+    const showCoerce = (label) => {
+      coerceOut.textContent = `${label}\n` + JSON.stringify(coerceEl.data, null, 2);
+    };
+
+    document.querySelector('#setNonArray').addEventListener('click', () => {
+      coerceEl.data = { not: 'an array' };
+      showCoerce('Set non-array => []');
+    });
+
+    document.querySelector('#setCircular').addEventListener('click', () => {
+      const a = { label: 'circular' };
+      a.self = a;
+      coerceEl.data = [a];
+      showCoerce('Set circular => clone fallback may yield [] depending on environment');
+    });
+
+    document.querySelector('#setArray').addEventListener('click', () => {
+      coerceEl.data = [{ label: 'ok' }];
+      showCoerce('Set normal array');
+    });
+
+    coerceEl.data = [{ label: 'initial' }];
+    showCoerce('Initial');
+
+    // 2) sanitize
+    const sanitizeEl = document.querySelector('#sanitizeEl');
+    const sanitizeOut = document.querySelector('#sanitizeOut');
+    sanitizeEl.data = [{ text: 'Hello' }];
+
+    document.querySelector('#inspectSanitize').addEventListener('click', () => {
+      const root = sanitizeEl.shadowRoot;
+      const row0 = root?.querySelector('[data-row="0"] .display-content');
+      const html = row0 ? row0.innerHTML : '(no row)';
+      sanitizeOut.textContent = html;
+    });
+
+    // 3) prototype pollution prevention
+    const ppEl = document.querySelector('#ppEl');
+    const ppOut = document.querySelector('#ppOut');
+    ppEl.data = [{ safe: 'safe value' }];
+
+    function checkProto() {
+      // If pollution happened, Object.prototype.polluted would exist.
+      const polluted = Object.prototype.polluted;
+      ppOut.textContent = JSON.stringify({ ObjectPrototypePolluted: polluted !== undefined, value: polluted }, null, 2);
+    }
+
+    document.querySelector('#checkProto').addEventListener('click', checkProto);
+    checkProto();
+
+    // 4) style fallback inspection
+    const fallbackEl = document.querySelector('#fallbackEl');
+    const noFallbackEl = document.querySelector('#noFallbackEl');
+    fallbackEl.data = [{ label: 'styled (fallback may apply)' }];
+    noFallbackEl.data = [{ label: 'fallback disabled' }];
+
+    const fallbackOut = document.querySelector('#fallbackOut');
+    document.querySelector('#inspectFallback').addEventListener('click', () => {
+      const a = fallbackEl.shadowRoot?.querySelector('style[data-ck-editable-array-fallback]');
+      const b = noFallbackEl.shadowRoot?.querySelector('style[data-ck-editable-array-fallback]');
+      fallbackOut.textContent = JSON.stringify({
+        fallbackHasInjectedStyleTag: Boolean(a),
+        noFallbackHasInjectedStyleTag: Boolean(b)
+      }, null, 2);
+    });
+
+    // 5) nonce inspection
+    const nonceEl = document.querySelector('#nonceEl');
+    const nonceOut = document.querySelector('#nonceOut');
+    nonceEl.data = [{ x: 'nonce test' }];
+
+    document.querySelector('#inspectNonce').addEventListener('click', () => {
+      const style = nonceEl.shadowRoot?.querySelector('style[data-ck-editable-array-fallback]');
+      nonceOut.textContent = JSON.stringify({
+        injectedStyleTagPresent: Boolean(style),
+        styleNonceProperty: style?.nonce || null,
+        requestedNonceAttribute: nonceEl.getAttribute('csp-nonce')
+      }, null, 2);
+    });
+  </script>
+</body>
+</html>

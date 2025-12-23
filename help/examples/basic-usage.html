@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Basic Usage - &lt;ck-editable-array&gt;</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+    nav a { color: inherit; text-decoration: none; }
+    .example { margin: 28px 0; padding: 18px; border: 1px solid #ddd; border-radius: 10px; }
+    .demo { padding: 14px; background: #f5f5f5; border-radius: 8px; margin: 12px 0; }
+    .code { background: #111; color: #eaeaea; padding: 12px; border-radius: 10px; overflow-x: auto; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .panel { border: 1px solid #ddd; border-radius: 10px; padding: 12px; background: #fff; }
+    button { padding: 6px 10px; }
+    .small { font-size: 0.92rem; color: #444; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { border: 1px solid #ddd; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: #fafafa; width: 220px; }
+  </style>
+</head>
+<body>
+  <nav><a href="../index.html">← Back to Documentation</a></nav>
+
+  <h1>Basic Usage</h1>
+  <p class="small">These examples show the minimum you need to render rows, plus a few commonly used attributes and how to observe component behavior via events and shadow DOM inspection.</p>
+
+  <div class="example" id="minimal">
+    <h2>1) Minimal setup (no templates)</h2>
+    <p>With zero configuration, the component renders its container and shows an empty-state message because no <code>&lt;template slot="display"&gt;</code> exists.</p>
+    <div class="demo">
+      <ck-editable-array id="minimalEl"></ck-editable-array>
+    </div>
+    <pre class="code"><code>&lt;ck-editable-array&gt;&lt;/ck-editable-array&gt;</code></pre>
+  </div>
+
+  <div class="example" id="name">
+    <h2>2) Provide a display template + set <code>name</code></h2>
+    <p>This is the smallest useful setup: a display template to render rows and a tiny data array assigned via the <code>data</code> property.</p>
+    <div class="demo">
+      <ck-editable-array id="basicEl" name="people">
+        <template slot="display">
+          <div>
+            <strong>Name:</strong> <span data-bind="name"></span>
+          </div>
+          <div>
+            <strong>Role:</strong> <span data-bind="role"></span>
+          </div>
+        </template>
+
+        <template slot="edit">
+          <label>
+            Name
+            <input data-bind="name" placeholder="Name" />
+          </label>
+          <label>
+            Role
+            <input data-bind="role" placeholder="Role" />
+          </label>
+        </template>
+      </ck-editable-array>
+    </div>
+
+    <div class="row">
+      <div class="panel">
+        <h3 style="margin-top: 0;">Controls</h3>
+        <button id="setData">Set sample data</button>
+        <button id="clearData">Clear data</button>
+        <button id="toggleFirstRowEdit">Toggle edit on first row (via shadow click)</button>
+        <p class="small">Edit buttons live in the shadow DOM; this demonstrates that the shadow root is <code>open</code>.</p>
+      </div>
+
+      <div class="panel">
+        <h3 style="margin-top: 0;">Live inspector</h3>
+        <table>
+          <tr><th>data (property)</th><td><pre class="code" style="margin:0;"><code id="dataOut"></code></pre></td></tr>
+          <tr><th>row modes</th><td><pre class="code" style="margin:0;"><code id="modesOut"></code></pre></td></tr>
+          <tr><th>events</th><td><pre class="code" style="margin:0; max-height: 220px;"><code id="eventsOut"></code></pre></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <h3>HTML</h3>
+    <pre class="code"><code>&lt;ck-editable-array name="people"&gt;
+  &lt;template slot="display"&gt;
+    &lt;div&gt;&lt;strong&gt;Name:&lt;/strong&gt; &lt;span data-bind="name"&gt;&lt;/span&gt;&lt;/div&gt;
+    &lt;div&gt;&lt;strong&gt;Role:&lt;/strong&gt; &lt;span data-bind="role"&gt;&lt;/span&gt;&lt;/div&gt;
+  &lt;/template&gt;
+
+  &lt;template slot="edit"&gt;
+    &lt;label&gt;Name &lt;input data-bind="name" /&gt;&lt;/label&gt;
+    &lt;label&gt;Role &lt;input data-bind="role" /&gt;&lt;/label&gt;
+  &lt;/template&gt;
+&lt;/ck-editable-array&gt;</code></pre>
+  </div>
+
+  <div class="example" id="classes">
+    <h2>3) Common class attributes</h2>
+    <p>These attributes let you attach extra class tokens to internal shadow wrappers (root, rows host, row elements). They update without a full re-render.</p>
+    <div class="demo">
+      <ck-editable-array id="classEl" name="items" root-class="demo-root" rows-class="demo-rows" row-class="demo-row">
+        <template slot="display">
+          <div><span data-bind="title"></span></div>
+        </template>
+        <template slot="edit">
+          <input data-bind="title" />
+        </template>
+      </ck-editable-array>
+    </div>
+    <pre class="code"><code>&lt;ck-editable-array
+  root-class="demo-root"
+  rows-class="demo-rows"
+  row-class="demo-row"&gt;
+  ...
+&lt;/ck-editable-array&gt;</code></pre>
+    <p class="small">Tip: prefer CSS variables and <code>::part(rows)</code> for styling rather than relying on internal class names.</p>
+  </div>
+
+  <script type="module">
+    import '../../dist/ck-editable-array/ck-editable-array.esm.js';
+
+    const minimalEl = document.querySelector('#minimalEl');
+    // Show that data must be set by property, not attribute
+    minimalEl.data = [{ name: 'This will not render because no template' }];
+
+    const basicEl = document.querySelector('#basicEl');
+    const dataOut = document.querySelector('#dataOut');
+    const modesOut = document.querySelector('#modesOut');
+    const eventsOut = document.querySelector('#eventsOut');
+
+    const eventLines = [];
+    const log = (msg) => {
+      eventLines.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
+      eventsOut.textContent = eventLines.slice(0, 20).join('\n');
+    };
+
+    basicEl.addEventListener('datachanged', (e) => {
+      log(`datachanged: items=${e.detail.data.length}`);
+      renderInspector();
+    });
+    basicEl.addEventListener('rowchanged', (e) => {
+      log(`rowchanged: index=${e.detail.index}`);
+      renderInspector();
+    });
+    basicEl.addEventListener('beforetogglemode', (e) => {
+      log(`beforetogglemode: mode=${e.detail.mode} rowIndex=${e.detail.rowIndex} (cancelable)`);
+    });
+    basicEl.addEventListener('aftertogglemode', (e) => {
+      log(`aftertogglemode: mode=${e.detail.mode} rowIndex=${e.detail.rowIndex}`);
+      renderInspector();
+    });
+
+    function readRowModes() {
+      const root = basicEl.shadowRoot;
+      if (!root) return [];
+      return Array.from(root.querySelectorAll('[data-row]')).map((rowEl) => {
+        return {
+          row: rowEl.getAttribute('data-row'),
+          mode: rowEl.getAttribute('data-mode'),
+          deleted: rowEl.classList.contains('ck-deleted')
+        };
+      });
+    }
+
+    function renderInspector() {
+      dataOut.textContent = JSON.stringify(basicEl.data, null, 2);
+      modesOut.textContent = JSON.stringify(readRowModes(), null, 2);
+    }
+
+    document.querySelector('#setData').addEventListener('click', () => {
+      basicEl.data = [
+        { name: 'Ada', role: 'Engineer' },
+        { name: 'Linus', role: 'Maintainer' }
+      ];
+      renderInspector();
+    });
+
+    document.querySelector('#clearData').addEventListener('click', () => {
+      basicEl.data = [];
+      renderInspector();
+    });
+
+    document.querySelector('#toggleFirstRowEdit').addEventListener('click', () => {
+      const root = basicEl.shadowRoot;
+      if (!root) return;
+      const firstToggle = root.querySelector('[data-row="0"] [data-action="toggle"]');
+      firstToggle?.click();
+    });
+
+    const classEl = document.querySelector('#classEl');
+    classEl.data = [{ title: 'Row 1' }, { title: 'Row 2' }];
+
+    // Initial
+    renderInspector();
+    log('Ready. Use the buttons to interact.');
+  </script>
+</body>
+</html>

@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Themes - &lt;ck-editable-array&gt;</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      max-width: 1400px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    nav a { color: inherit; text-decoration: none; }
+
+    .controls {
+      background: #f5f5f5;
+      padding: 16px;
+      border-radius: 10px;
+      margin: 16px 0;
+      border: 1px solid #ddd;
+    }
+
+    .controls-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .theme-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 14px;
+      margin: 14px 0;
+    }
+
+    .theme-card {
+      padding: 14px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .theme-card h3 { margin-top: 0; }
+
+    .code {
+      background: #111;
+      color: #eaeaea;
+      padding: 12px;
+      border-radius: 10px;
+      overflow-x: auto;
+    }
+
+    .variable-control { margin: 10px 0; }
+    .variable-control label { display: block; font-weight: 600; margin-bottom: 4px; }
+    .variable-control input { width: 100%; }
+
+    button { padding: 6px 10px; }
+
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+    }
+    .comparison-table th, .comparison-table td {
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      text-align: left;
+      vertical-align: top;
+    }
+    .comparison-table th { background: #fafafa; }
+
+    .note {
+      background: #fff3cd;
+      padding: 10px;
+      border-left: 4px solid #ffc107;
+      border-radius: 8px;
+      margin: 12px 0;
+    }
+
+    /*
+      PART 1: Theme CSS in the HOST PAGE.
+      These rules target the component and set CSS vars that the component consumes internally.
+    */
+
+    ck-editable-array[theme="light"] {
+      --cea-background: #ffffff;
+      --cea-color: #111111;
+      --cea-padding: 16px;
+      --cea-border-radius: 12px;
+      --cea-message-color: #111111;
+      --cea-row-border-radius: 12px;
+      --cea-focus-color: #0b5ed7;
+      --cea-focus-background: rgba(11, 94, 215, 0.12);
+    }
+
+    ck-editable-array[theme="dark"] {
+      --cea-background: #0f1115;
+      --cea-color: #e8e8ea;
+      --cea-padding: 16px;
+      --cea-border-radius: 12px;
+      --cea-message-color: #e8e8ea;
+      --cea-row-border-radius: 12px;
+      --cea-focus-color: #22c55e;
+      --cea-focus-background: rgba(34, 197, 94, 0.14);
+    }
+
+    ck-editable-array[theme="high-contrast"] {
+      --cea-background: #000000;
+      --cea-color: #ffffff;
+      --cea-padding: 16px;
+      --cea-border-radius: 0;
+      --cea-message-color: #ffffff;
+      --cea-row-border-radius: 0;
+      --cea-focus-color: #ffff00;
+      --cea-focus-background: rgba(255, 255, 0, 0.18);
+    }
+
+    /* A few custom themes for the tutorial section */
+    ck-editable-array[theme="ocean"] {
+      --cea-background: #e6f6ff;
+      --cea-color: #06314a;
+      --cea-padding: 16px;
+      --cea-border-radius: 14px;
+      --cea-message-color: #06314a;
+      --cea-row-border-radius: 14px;
+      --cea-focus-color: #0277bd;
+      --cea-focus-background: rgba(2, 119, 189, 0.16);
+    }
+
+    ck-editable-array[theme="sunset"] {
+      --cea-background: #fff3e6;
+      --cea-color: #4a1f57;
+      --cea-padding: 16px;
+      --cea-border-radius: 14px;
+      --cea-message-color: #4a1f57;
+      --cea-row-border-radius: 14px;
+      --cea-focus-color: #f97316;
+      --cea-focus-background: rgba(249, 115, 22, 0.16);
+    }
+
+    ck-editable-array[theme="forest"] {
+      --cea-background: #edf7ed;
+      --cea-color: #103b1f;
+      --cea-padding: 16px;
+      --cea-border-radius: 14px;
+      --cea-message-color: #103b1f;
+      --cea-row-border-radius: 14px;
+      --cea-focus-color: #16a34a;
+      --cea-focus-background: rgba(22, 163, 74, 0.16);
+    }
+
+    ck-editable-array[theme="corporate"] {
+      --cea-background: #f6f7f9;
+      --cea-color: #111827;
+      --cea-padding: 16px;
+      --cea-border-radius: 10px;
+      --cea-message-color: #111827;
+      --cea-row-border-radius: 10px;
+      --cea-focus-color: #111827;
+      --cea-focus-background: rgba(17, 24, 39, 0.12);
+    }
+
+    /* Smooth transitions (respects prefers-reduced-motion) */
+    ck-editable-array {
+      transition: background-color 180ms ease, color 180ms ease;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      ck-editable-array { transition: none; }
+    }
+
+    /* Forced colors note: we don't override forced-color adjustments, but show how to account for it */
+    @media (forced-colors: active) {
+      .note-forced {
+        border: 2px solid CanvasText;
+        background: Canvas;
+        color: CanvasText;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav><a href="../index.html">← Back to Documentation</a></nav>
+
+  <h1>Themes</h1>
+  <p>
+    This component is themed via CSS custom properties. The host page defines theme rules (like <code>ck-editable-array[theme="dark"]</code>)
+    and JavaScript changes the <code>theme</code> attribute to switch.
+  </p>
+
+  <div class="note">
+    <strong>Important:</strong> <code>theme</code> is not a built-in component attribute; it’s a convenient selector used by this demo page.
+    The component itself reacts because its internal styles consume the <code>--cea-*</code> variables.
+  </div>
+
+  <h2>1) Built-in themes gallery (host-defined)</h2>
+  <div class="theme-gallery" id="gallery">
+    <div class="theme-card">
+      <h3>Light</h3>
+      <ck-editable-array theme="light" name="light">
+        <template slot="display">
+          <div><strong>Title:</strong> <span data-bind="title"></span></div>
+          <div><strong>Owner:</strong> <span data-bind="owner"></span></div>
+        </template>
+        <template slot="edit">
+          <label>Title <input data-bind="title" /></label>
+          <label>Owner <input data-bind="owner" /></label>
+        </template>
+      </ck-editable-array>
+    </div>
+
+    <div class="theme-card">
+      <h3>Dark</h3>
+      <ck-editable-array theme="dark" name="dark">
+        <template slot="display">
+          <div><strong>Title:</strong> <span data-bind="title"></span></div>
+          <div><strong>Owner:</strong> <span data-bind="owner"></span></div>
+        </template>
+        <template slot="edit">
+          <label>Title <input data-bind="title" /></label>
+          <label>Owner <input data-bind="owner" /></label>
+        </template>
+      </ck-editable-array>
+    </div>
+
+    <div class="theme-card">
+      <h3>High Contrast</h3>
+      <ck-editable-array theme="high-contrast" name="hc">
+        <template slot="display">
+          <div><strong>Title:</strong> <span data-bind="title"></span></div>
+          <div><strong>Owner:</strong> <span data-bind="owner"></span></div>
+        </template>
+        <template slot="edit">
+          <label>Title <input data-bind="title" /></label>
+          <label>Owner <input data-bind="owner" /></label>
+        </template>
+      </ck-editable-array>
+    </div>
+  </div>
+
+  <h2>2) Theme variables reference</h2>
+  <table class="comparison-table">
+    <tr>
+      <th>Variable</th>
+      <th>Light</th>
+      <th>Dark</th>
+      <th>High Contrast</th>
+      <th>Purpose</th>
+    </tr>
+    <tr><td><code>--cea-background</code></td><td>#ffffff</td><td>#0f1115</td><td>#000000</td><td>Container background</td></tr>
+    <tr><td><code>--cea-color</code></td><td>#111111</td><td>#e8e8ea</td><td>#ffffff</td><td>Container text color</td></tr>
+    <tr><td><code>--cea-padding</code></td><td>16px</td><td>16px</td><td>16px</td><td>Container padding</td></tr>
+    <tr><td><code>--cea-border-radius</code></td><td>12px</td><td>12px</td><td>0</td><td>Container radius</td></tr>
+    <tr><td><code>--cea-message-color</code></td><td>#111111</td><td>#e8e8ea</td><td>#ffffff</td><td>Header color</td></tr>
+    <tr><td><code>--cea-row-border-radius</code></td><td>12px</td><td>12px</td><td>0</td><td>Row radius</td></tr>
+    <tr><td><code>--cea-focus-color</code></td><td>#0b5ed7</td><td>#22c55e</td><td>#ffff00</td><td>Row focus outline</td></tr>
+    <tr><td><code>--cea-focus-background</code></td><td>rgba(11,94,215,0.12)</td><td>rgba(34,197,94,0.14)</td><td>rgba(255,255,0,0.18)</td><td>Row focus background</td></tr>
+  </table>
+
+  <h2>3) Theme switching (interactive)</h2>
+  <div class="controls">
+    <div class="controls-row">
+      <div>
+        <div style="display:flex; gap: 8px; flex-wrap: wrap;">
+          <button data-theme="light" data-theme-scope="global">Light</button>
+          <button data-theme="dark" data-theme-scope="global">Dark</button>
+          <button data-theme="high-contrast" data-theme-scope="global">High Contrast</button>
+          <button id="resetTheme">Reset (Light)</button>
+        </div>
+        <p style="margin: 10px 0 0 0;">Applies the theme to all components in this page section and persists to <code>localStorage</code>.</p>
+      </div>
+      <div>
+        <pre class="code" style="margin:0;"><code id="switcherCode">function switchTheme(themeName) {
+  document.querySelectorAll('ck-editable-array.themed')
+    .forEach(el =&gt; el.setAttribute('theme', themeName));
+}
+</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <h2>4) Theme variables controls (live)</h2>
+  <div class="controls">
+    <p style="margin-top:0;">Adjust variables on a single component instance in real time.</p>
+    <div class="controls-row">
+      <div>
+        <div class="variable-control">
+          <label for="bg">--cea-background</label>
+          <input id="bg" type="color" value="#ffffff" />
+        </div>
+        <div class="variable-control">
+          <label for="color">--cea-color</label>
+          <input id="color" type="color" value="#111111" />
+        </div>
+        <div class="variable-control">
+          <label for="msg">--cea-message-color</label>
+          <input id="msg" type="color" value="#111111" />
+        </div>
+        <div class="variable-control">
+          <label for="focus">--cea-focus-color</label>
+          <input id="focus" type="color" value="#0b5ed7" />
+        </div>
+        <div class="variable-control">
+          <label for="padding">--cea-padding (px)</label>
+          <input id="padding" type="range" min="0" max="40" value="16" />
+        </div>
+        <div class="variable-control">
+          <label for="radius">--cea-border-radius (px)</label>
+          <input id="radius" type="range" min="0" max="24" value="12" />
+        </div>
+        <div class="variable-control">
+          <label for="rowRadius">--cea-row-border-radius (px)</label>
+          <input id="rowRadius" type="range" min="0" max="24" value="12" />
+        </div>
+        <button id="varsReset">Reset variables</button>
+      </div>
+      <div>
+        <ck-editable-array id="varsTarget" class="themed" theme="light" name="varsTarget">
+          <template slot="display">
+            <div><strong>Title:</strong> <span data-bind="title"></span></div>
+            <div><strong>Owner:</strong> <span data-bind="owner"></span></div>
+          </template>
+          <template slot="edit">
+            <label>Title <input data-bind="title" /></label>
+            <label>Owner <input data-bind="owner" /></label>
+          </template>
+        </ck-editable-array>
+        <pre class="code" style="margin-top: 12px;"><code id="varsCode"></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <h2>5) Custom theme creation tutorial (live)</h2>
+  <div class="controls">
+    <p style="margin-top:0;">These are host-defined themes using the existing <code>--cea-*</code> variables.</p>
+    <div style="display:flex; gap: 8px; flex-wrap: wrap;">
+      <button data-theme="ocean">Ocean</button>
+      <button data-theme="sunset">Sunset</button>
+      <button data-theme="forest">Forest</button>
+      <button data-theme="corporate">Corporate</button>
+    </div>
+    <div class="theme-gallery" style="margin-top: 14px;">
+      <div class="theme-card">
+        <h3>Preview</h3>
+        <ck-editable-array id="customPreview" theme="ocean" name="custom">
+          <template slot="display">
+            <div><strong>Title:</strong> <span data-bind="title"></span></div>
+            <div><strong>Owner:</strong> <span data-bind="owner"></span></div>
+          </template>
+          <template slot="edit">
+            <label>Title <input data-bind="title" /></label>
+            <label>Owner <input data-bind="owner" /></label>
+          </template>
+        </ck-editable-array>
+      </div>
+      <div class="theme-card">
+        <h3>CSS (pattern)</h3>
+        <pre class="code" style="margin:0;"><code>ck-editable-array[theme="ocean"] {
+  --cea-background: #e6f6ff;
+  --cea-color: #06314a;
+  --cea-message-color: #06314a;
+  --cea-focus-color: #0277bd;
+  --cea-focus-background: rgba(2,119,189,0.16);
+  --cea-padding: 16px;
+  --cea-border-radius: 14px;
+  --cea-row-border-radius: 14px;
+}
+</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <h2>6) System theme integration</h2>
+  <div class="controls">
+    <p style="margin-top:0;">
+      Matches <code>prefers-color-scheme</code> unless the user overrides it.
+      Use the buttons to simulate preference changes without changing OS settings.
+    </p>
+    <div style="display:flex; gap: 8px; flex-wrap: wrap;">
+      <button id="followSystem">Follow system</button>
+      <button id="forceLight">Force light</button>
+      <button id="forceDark">Force dark</button>
+    </div>
+    <p class="note note-forced" id="systemOut" style="margin-bottom:0;"></p>
+  </div>
+
+  <h2>7) Theme transitions and reduced motion</h2>
+  <div class="controls">
+    <p style="margin-top:0;">The page adds a small transition to the host element. With <code>prefers-reduced-motion: reduce</code>, it disables transitions.</p>
+  </div>
+
+  <h2>8) High contrast and accessibility</h2>
+  <div class="controls">
+    <p class="note note-forced" style="margin-top:0;">
+      If Windows High Contrast / forced-colors is active, browsers may override colors. Test with <code>@media (forced-colors: active)</code>
+      and ensure focus indicators remain visible.
+    </p>
+  </div>
+
+  <h2>9) Theme composition (cascade layers)</h2>
+  <div class="controls">
+    <p style="margin-top:0;">Global variables can be applied at a container level, then overridden per instance.</p>
+    <div style="padding: 12px; border: 1px dashed #aaa; border-radius: 10px;" id="compositionRoot">
+      <ck-editable-array theme="light" name="comp1"></ck-editable-array>
+      <ck-editable-array theme="light" name="comp2" style="--cea-message-color: #b91c1c;"></ck-editable-array>
+    </div>
+    <pre class="code"><code>/* Global layer */
+#compositionRoot ck-editable-array {
+  --cea-padding: 10px;
+}
+
+/* Instance override */
+&lt;ck-editable-array style="--cea-message-color: #b91c1c;"&gt;&lt;/ck-editable-array&gt;</code></pre>
+  </div>
+
+  <h2>10) Real-world theme examples</h2>
+  <div class="theme-gallery">
+    <div class="theme-card">
+      <h3>E-commerce card</h3>
+      <ck-editable-array theme="corporate" name="shop"></ck-editable-array>
+    </div>
+    <div class="theme-card">
+      <h3>Gaming/vibrant</h3>
+      <ck-editable-array theme="sunset" name="game"></ck-editable-array>
+    </div>
+  </div>
+
+  <script type="module">
+    // PART 2: import the actual component
+    import '../../dist/ck-editable-array/ck-editable-array.esm.js';
+
+    // Seed data for all instances
+    const sample = [
+      { title: 'Example item', owner: 'Team' },
+      { title: 'Second item', owner: 'You' }
+    ];
+
+    document.querySelectorAll('ck-editable-array').forEach((el) => {
+      // Ensure templates exist for the composition/real-world instances that were created without explicit templates
+      if (!el.querySelector('template[slot="display"]')) {
+        const display = document.createElement('template');
+        display.setAttribute('slot', 'display');
+        display.innerHTML = '<div><strong>Title:</strong> <span data-bind="title"></span></div><div><strong>Owner:</strong> <span data-bind="owner"></span></div>';
+        el.appendChild(display);
+      }
+      if (!el.querySelector('template[slot="edit"]')) {
+        const edit = document.createElement('template');
+        edit.setAttribute('slot', 'edit');
+        edit.innerHTML = '<label>Title <input data-bind="title" /></label><label>Owner <input data-bind="owner" /></label>';
+        el.appendChild(edit);
+      }
+      el.data = sample;
+    });
+
+    // PART 3: working theme switcher JS
+    const themed = () => Array.from(document.querySelectorAll('ck-editable-array.themed'));
+
+    function applyTheme(themeName, persist = true) {
+      themed().forEach((el) => el.setAttribute('theme', themeName));
+      if (persist) localStorage.setItem('cea-theme', themeName);
+    }
+
+    document.querySelectorAll('button[data-theme][data-theme-scope="global"]').forEach((btn) => {
+      btn.addEventListener('click', () => applyTheme(btn.getAttribute('data-theme')));
+    });
+
+    document.querySelector('#resetTheme').addEventListener('click', () => applyTheme('light'));
+
+    // Persisted theme
+    const saved = localStorage.getItem('cea-theme');
+    if (saved) applyTheme(saved, false);
+
+    // Variable controls: apply inline style vars to varsTarget
+    const varsTarget = document.querySelector('#varsTarget');
+    const varsCode = document.querySelector('#varsCode');
+
+    const defaults = {
+      bg: '#ffffff',
+      color: '#111111',
+      msg: '#111111',
+      focus: '#0b5ed7',
+      padding: 16,
+      radius: 12,
+      rowRadius: 12
+    };
+
+    function setVar(name, value) {
+      varsTarget.style.setProperty(name, value);
+    }
+
+    function updateVarsCode() {
+      const lines = [
+        'ck-editable-array {',
+        `  --cea-background: ${varsTarget.style.getPropertyValue('--cea-background') || '(inherited)'};`,
+        `  --cea-color: ${varsTarget.style.getPropertyValue('--cea-color') || '(inherited)'};`,
+        `  --cea-message-color: ${varsTarget.style.getPropertyValue('--cea-message-color') || '(inherited)'};`,
+        `  --cea-focus-color: ${varsTarget.style.getPropertyValue('--cea-focus-color') || '(inherited)'};`,
+        `  --cea-padding: ${varsTarget.style.getPropertyValue('--cea-padding') || '(inherited)'};`,
+        `  --cea-border-radius: ${varsTarget.style.getPropertyValue('--cea-border-radius') || '(inherited)'};`,
+        `  --cea-row-border-radius: ${varsTarget.style.getPropertyValue('--cea-row-border-radius') || '(inherited)'};`,
+        '}'
+      ];
+      varsCode.textContent = lines.join('\n');
+    }
+
+    const bg = document.querySelector('#bg');
+    const color = document.querySelector('#color');
+    const msg = document.querySelector('#msg');
+    const focus = document.querySelector('#focus');
+    const padding = document.querySelector('#padding');
+    const radius = document.querySelector('#radius');
+    const rowRadius = document.querySelector('#rowRadius');
+
+    function applyVars() {
+      setVar('--cea-background', bg.value);
+      setVar('--cea-color', color.value);
+      setVar('--cea-message-color', msg.value);
+      setVar('--cea-focus-color', focus.value);
+      setVar('--cea-padding', `${padding.value}px`);
+      setVar('--cea-border-radius', `${radius.value}px`);
+      setVar('--cea-row-border-radius', `${rowRadius.value}px`);
+      updateVarsCode();
+    }
+
+    [bg, color, msg, focus, padding, radius, rowRadius].forEach((i) => i.addEventListener('input', applyVars));
+    document.querySelector('#varsReset').addEventListener('click', () => {
+      bg.value = defaults.bg;
+      color.value = defaults.color;
+      msg.value = defaults.msg;
+      focus.value = defaults.focus;
+      padding.value = String(defaults.padding);
+      radius.value = String(defaults.radius);
+      rowRadius.value = String(defaults.rowRadius);
+      varsTarget.removeAttribute('style');
+      applyVars();
+    });
+
+    applyVars();
+
+    // Custom theme preview
+    const customPreview = document.querySelector('#customPreview');
+    document.querySelectorAll('button[data-theme="ocean"],button[data-theme="sunset"],button[data-theme="forest"],button[data-theme="corporate"]').forEach((btn) => {
+      btn.addEventListener('click', () => customPreview.setAttribute('theme', btn.getAttribute('data-theme')));
+    });
+
+    // System theme integration
+    const systemOut = document.querySelector('#systemOut');
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    let userOverride = localStorage.getItem('cea-theme-override') || 'follow';
+
+    function computeSystemTheme() {
+      return mq.matches ? 'dark' : 'light';
+    }
+
+    function applySystemOrOverride() {
+      const theme = userOverride === 'follow' ? computeSystemTheme() : userOverride;
+      applyTheme(theme, false);
+      systemOut.textContent = `prefers-color-scheme: ${mq.matches ? 'dark' : 'light'} | override: ${userOverride} | applied: ${theme}`;
+    }
+
+    mq.addEventListener('change', applySystemOrOverride);
+
+    document.querySelector('#followSystem').addEventListener('click', () => {
+      userOverride = 'follow';
+      localStorage.setItem('cea-theme-override', userOverride);
+      applySystemOrOverride();
+    });
+
+    document.querySelector('#forceLight').addEventListener('click', () => {
+      userOverride = 'light';
+      localStorage.setItem('cea-theme-override', userOverride);
+      applySystemOrOverride();
+    });
+
+    document.querySelector('#forceDark').addEventListener('click', () => {
+      userOverride = 'dark';
+      localStorage.setItem('cea-theme-override', userOverride);
+      applySystemOrOverride();
+    });
+
+    applySystemOrOverride();
+
+    // Composition root templates/data are already injected above. Also set a global padding rule.
+    const style = document.createElement('style');
+    style.textContent = `#compositionRoot ck-editable-array { --cea-padding: 10px; }`;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>

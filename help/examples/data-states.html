@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data States - &lt;ck-editable-array&gt;</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+    nav a { color: inherit; text-decoration: none; }
+    .example { margin: 28px 0; padding: 18px; border: 1px solid #ddd; border-radius: 10px; }
+    .demo { padding: 14px; background: #f5f5f5; border-radius: 8px; margin: 12px 0; }
+    .code { background: #111; color: #eaeaea; padding: 12px; border-radius: 10px; overflow-x: auto; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .panel { border: 1px solid #ddd; border-radius: 10px; padding: 12px; background: #fff; }
+    button { padding: 6px 10px; }
+    .note { background: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; border-radius: 8px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <nav><a href="../index.html">← Back to Documentation</a></nav>
+
+  <h1>Data States</h1>
+  <p>This page focuses on observable internal states for this component: empty-template state, edit/display mode per row, deleted state, and disabled state.</p>
+
+  <div class="example" id="empty">
+    <h2>1) Empty state (missing display template)</h2>
+    <p>If no display template is present, the rows host shows an empty-state message regardless of <code>data</code>.</p>
+    <div class="demo">
+      <ck-editable-array id="emptyEl"></ck-editable-array>
+    </div>
+  </div>
+
+  <div class="example" id="edit">
+    <h2>2) Edit vs Display mode</h2>
+    <p>Each row wrapper has a <code>data-mode</code> attribute in the shadow DOM. Only one row can be in edit mode at a time.</p>
+
+    <div class="row">
+      <div class="panel">
+        <button id="edit0">Edit row 0</button>
+        <button id="edit1">Edit row 1</button>
+        <button id="save">Save current</button>
+        <button id="cancel">Cancel current</button>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0;">Shadow state snapshot</h3>
+        <pre class="code" style="margin:0;"><code id="modeOut"></code></pre>
+      </div>
+    </div>
+
+    <div class="demo">
+      <ck-editable-array id="modeEl" name="states" datachange-mode="save">
+        <template slot="display">
+          <div><strong>Label:</strong> <span data-bind="label"></span></div>
+        </template>
+        <template slot="edit">
+          <label>Label <input data-bind="label" /></label>
+        </template>
+      </ck-editable-array>
+    </div>
+  </div>
+
+  <div class="example" id="deleted">
+    <h2>3) Deleted (soft delete) state</h2>
+    <p>Clicking Delete/Restore toggles an <code>isDeleted</code> property on object items and adds/removes the <code>ck-deleted</code> class on the row element.</p>
+    <div class="demo">
+      <ck-editable-array id="delEl" name="del" datachange-mode="save">
+        <template slot="display">
+          <div>
+            <strong>Title:</strong> <span data-bind="title"></span>
+            (<strong>isDeleted:</strong> <span data-bind="isDeleted"></span>)
+          </div>
+        </template>
+        <template slot="edit">
+          <input data-bind="title" />
+        </template>
+      </ck-editable-array>
+    </div>
+    <div class="note">Rows marked deleted have edit disabled by the component.</div>
+  </div>
+
+  <div class="example" id="disabled">
+    <h2>4) Disabled via form association</h2>
+    <p>If the component is in a disabled fieldset, it disables all internal form controls.</p>
+    <div class="row">
+      <div class="panel">
+        <label><input id="fsToggle" type="checkbox" /> Disable fieldset</label>
+      </div>
+      <div class="panel">
+        <pre class="code" style="margin:0;"><code id="disabledOut"></code></pre>
+      </div>
+    </div>
+    <div class="demo">
+      <form>
+        <fieldset id="fs">
+          <ck-editable-array id="fsEl" name="fsitems">
+            <template slot="display">
+              <div><span data-bind="title"></span></div>
+            </template>
+            <template slot="edit">
+              <input data-bind="title" />
+            </template>
+          </ck-editable-array>
+        </fieldset>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import '../../dist/ck-editable-array/ck-editable-array.esm.js';
+
+    const emptyEl = document.querySelector('#emptyEl');
+    emptyEl.data = [{ any: 'value' }];
+
+    const modeEl = document.querySelector('#modeEl');
+    modeEl.data = [{ label: 'First' }, { label: 'Second' }];
+
+    const modeOut = document.querySelector('#modeOut');
+    function snapshotModes() {
+      const root = modeEl.shadowRoot;
+      const rows = root ? Array.from(root.querySelectorAll('[data-row]')) : [];
+      return rows.map((row) => ({
+        row: row.getAttribute('data-row'),
+        mode: row.getAttribute('data-mode'),
+        deleted: row.classList.contains('ck-deleted')
+      }));
+    }
+    function renderModes() {
+      modeOut.textContent = JSON.stringify(snapshotModes(), null, 2);
+    }
+
+    function clickAction(rowIndex, action) {
+      const root = modeEl.shadowRoot;
+      const btn = root?.querySelector(`[data-row="${rowIndex}"] [data-action="${action}"]`);
+      btn?.click();
+    }
+
+    document.querySelector('#edit0').addEventListener('click', () => { clickAction(0, 'toggle'); renderModes(); });
+    document.querySelector('#edit1').addEventListener('click', () => { clickAction(1, 'toggle'); renderModes(); });
+    document.querySelector('#save').addEventListener('click', () => {
+      const root = modeEl.shadowRoot;
+      const active = root?.querySelector('[data-row][data-mode="edit"]');
+      const idx = active?.getAttribute('data-row');
+      if (idx != null) clickAction(Number(idx), 'save');
+      renderModes();
+    });
+    document.querySelector('#cancel').addEventListener('click', () => {
+      const root = modeEl.shadowRoot;
+      const active = root?.querySelector('[data-row][data-mode="edit"]');
+      const idx = active?.getAttribute('data-row');
+      if (idx != null) clickAction(Number(idx), 'cancel');
+      renderModes();
+    });
+
+    modeEl.addEventListener('aftertogglemode', renderModes);
+    renderModes();
+
+    const delEl = document.querySelector('#delEl');
+    delEl.data = [{ title: 'Keep me' }, { title: 'Delete me' }];
+
+    const fsEl = document.querySelector('#fsEl');
+    fsEl.data = [{ title: 'A' }, { title: 'B' }];
+
+    const fs = document.querySelector('#fs');
+    const fsToggle = document.querySelector('#fsToggle');
+    const disabledOut = document.querySelector('#disabledOut');
+
+    function updateDisabled() {
+      fs.disabled = fsToggle.checked;
+      const root = fsEl.shadowRoot;
+      const controls = root ? Array.from(root.querySelectorAll('input,select,textarea')) : [];
+      disabledOut.textContent = JSON.stringify({
+        fieldsetDisabled: fs.disabled,
+        controlCount: controls.length,
+        disabledCount: controls.filter(c => c.disabled).length
+      }, null, 2);
+    }
+
+    fsToggle.addEventListener('change', updateDisabled);
+    updateDisabled();
+  </script>
+</body>
+</html>

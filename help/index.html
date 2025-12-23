@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>&lt;ck-editable-array&gt; - Documentation</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      line-height: 1.45;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      padding: 28px 20px;
+      border-bottom: 1px solid #e5e5e5;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    nav {
+      position: sticky;
+      top: 12px;
+      border: 1px solid #e5e5e5;
+      border-radius: 10px;
+      padding: 14px 14px;
+      background: rgba(0,0,0,0.02);
+    }
+
+    nav h2 {
+      font-size: 0.95rem;
+      margin: 0 0 10px 0;
+    }
+
+    nav a {
+      display: block;
+      padding: 6px 8px;
+      border-radius: 8px;
+      color: inherit;
+      text-decoration: none;
+    }
+
+    nav a:hover {
+      background: rgba(0,0,0,0.06);
+    }
+
+    section {
+      padding-top: 8px;
+      margin-top: 22px;
+    }
+
+    h1, h2, h3, h4 {
+      line-height: 1.2;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.8rem;
+    }
+
+    h2 {
+      margin: 22px 0 10px;
+      font-size: 1.35rem;
+    }
+
+    h3 {
+      margin: 18px 0 8px;
+      font-size: 1.1rem;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 0.95em;
+    }
+
+    pre {
+      margin: 10px 0;
+      padding: 12px;
+      border-radius: 10px;
+      overflow-x: auto;
+      background: #111;
+      color: #eaeaea;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+    }
+
+    th, td {
+      text-align: left;
+      border: 1px solid #d9d9d9;
+      padding: 8px 10px;
+      vertical-align: top;
+    }
+
+    th {
+      background: rgba(0,0,0,0.03);
+      width: 170px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      background: rgba(0,0,0,0.06);
+    }
+
+    .note {
+      border-left: 4px solid #999;
+      padding: 10px 12px;
+      background: rgba(0,0,0,0.03);
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+
+    .warn {
+      border-left-color: #b45309;
+      background: rgba(180, 83, 9, 0.08);
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 920px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+      nav {
+        position: relative;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div style="max-width: 1100px; margin: 0 auto; padding: 0 20px;">
+      <h1><code>&lt;ck-editable-array&gt;</code></h1>
+      <p style="margin: 8px 0 0 0; max-width: 70ch;">
+        Form-associated web component for displaying and editing an array of items using user-provided templates.
+        It supports per-row edit mode, soft delete/restore, two-way data binding to form controls via <code>data-bind</code>, and emits change events.
+      </p>
+      <p style="margin: 10px 0 0 0;">
+        <span class="pill">Custom element: <code>ck-editable-array</code></span>
+        <span class="pill">Form-associated</span>
+        <span class="pill">Shadow DOM: open</span>
+      </p>
+    </div>
+  </header>
+
+  <main>
+    <nav>
+      <h2>Contents</h2>
+      <a href="#overview">Overview</a>
+      <a href="#installation">Installation</a>
+      <a href="#attributes">Attributes</a>
+      <a href="#css-properties">CSS Custom Properties</a>
+      <a href="#css-parts">CSS Parts</a>
+      <a href="#themes">Themes</a>
+      <a href="#api">API (Properties/Methods)</a>
+      <a href="#events">Events</a>
+      <a href="#examples">Examples</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+
+    <div>
+      <section id="overview">
+        <h2>Overview</h2>
+        <p>
+          <code>&lt;ck-editable-array&gt;</code> renders a list of rows based on its <code>data</code> property.
+          You provide a <code>&lt;template slot="display"&gt;</code> (required for row rendering) and optionally a <code>&lt;template slot="edit"&gt;</code>.
+          Inside those templates, you can bind elements to item fields using <code>data-bind</code> (supports nested paths like <code>user.name</code>).
+        </p>
+        <div class="grid2">
+          <div class="note">
+            <strong>Key behaviors</strong>
+            <ul style="margin: 8px 0 0 18px;">
+              <li>Rows are keyboard-navigable with ArrowUp/ArrowDown.</li>
+              <li>Edit mode is per-row; only one row can be edited at a time.</li>
+              <li>Soft delete toggles <code>isDeleted</code> on object items and adds <code>ck-deleted</code> class.</li>
+              <li>Two-way binding: form controls inside templates update the underlying data.</li>
+            </ul>
+          </div>
+          <div class="note warn">
+            <strong>Important</strong>
+            <ul style="margin: 8px 0 0 18px;">
+              <li>If no <code>slot="display"</code> template is provided, the component shows an “empty state” message.</li>
+              <li>There is no built-in constraint validation (no <code>internals.setValidity()</code> calls).</li>
+              <li>Module examples require serving over HTTP (not <code>file://</code>).</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="installation">
+        <h2>Installation</h2>
+        <p>
+          This repo builds ESM output in <code>dist/</code>. The examples in <code>help/examples</code> import the ESM bundle.
+        </p>
+        <h3>Import (ESM)</h3>
+        <pre><code>import '../dist/ck-editable-array/ck-editable-array.esm.js';</code></pre>
+        <h3>Run locally</h3>
+        <p>
+          The existing <code>npm run serve</code> serves only <code>dist/</code>. For the help pages, serve the repository root:
+        </p>
+        <pre><code>npx http-server . -p 8080 -o /help/index.html</code></pre>
+      </section>
+
+      <section id="attributes">
+        <h2>Attributes</h2>
+
+        <h3><code>name</code></h3>
+        <table>
+          <tr><th>Property</th><td><code>name</code></td></tr>
+          <tr><th>Type</th><td>string</td></tr>
+          <tr><th>Default</th><td><code>"items"</code></td></tr>
+          <tr><th>Valid Values</th><td>Any non-empty string</td></tr>
+        </table>
+        <p><strong>Description:</strong> Sets the component name and also acts as the prefix used when the component assigns <code>name</code> attributes to bound form controls inside row templates (for form submission via ElementInternals). It also controls the greeting header (“Hello, …”). For predictable form field names, set this before first render.</p>
+        <p><strong>Examples:</strong> <a href="examples/basic-usage.html#name">Basic Usage</a>, <a href="examples/form-integration.html#names">Form Integration</a></p>
+
+        <h3><code>root-class</code></h3>
+        <table>
+          <tr><th>Property</th><td><code>rootClass</code></td></tr>
+          <tr><th>Type</th><td>string</td></tr>
+          <tr><th>Default</th><td><code>""</code></td></tr>
+          <tr><th>Valid Values</th><td>Space-separated CSS class tokens</td></tr>
+        </table>
+        <p><strong>Description:</strong> Appends extra classes to the component’s internal root wrapper element (in the shadow DOM). This is useful for layout tweaks via shadow-exposed CSS variables (set on host) or for debugging and targeting in tests. Updating this attribute updates classes without forcing a full re-render.</p>
+        <p><strong>Examples:</strong> <a href="examples/basic-usage.html#classes">Basic Usage</a></p>
+
+        <h3><code>rows-class</code></h3>
+        <table>
+          <tr><th>Property</th><td><code>rowsClass</code></td></tr>
+          <tr><th>Type</th><td>string</td></tr>
+          <tr><th>Default</th><td><code>""</code></td></tr>
+          <tr><th>Valid Values</th><td>Space-separated CSS class tokens</td></tr>
+        </table>
+        <p><strong>Description:</strong> Adds classes to the internal rows host element (shadow DOM). This can be used for layout adjustments and for targeting <code>::part(rows)</code> styling alongside custom properties. Updating this attribute updates classes without forcing a full re-render.</p>
+        <p><strong>Examples:</strong> <a href="examples/basic-usage.html#classes">Basic Usage</a></p>
+
+        <h3><code>row-class</code></h3>
+        <table>
+          <tr><th>Property</th><td><code>rowClass</code></td></tr>
+          <tr><th>Type</th><td>string</td></tr>
+          <tr><th>Default</th><td><code>""</code></td></tr>
+          <tr><th>Valid Values</th><td>Space-separated CSS class tokens</td></tr>
+        </table>
+        <p><strong>Description:</strong> Adds classes to each internal row wrapper element. This is useful when you want to apply additional spacing or hover styles to each row from within shadow styling patterns (e.g., with CSS variables and <code>::part(rows)</code>). Updating this attribute also updates classes on existing rows.</p>
+        <p><strong>Examples:</strong> <a href="examples/basic-usage.html#classes">Basic Usage</a></p>
+
+        <h3><code>datachange-mode</code></h3>
+        <table>
+          <tr><th>Property</th><td><code>datachangeMode</code></td></tr>
+          <tr><th>Type</th><td><code>"debounced" | "change" | "save"</code></td></tr>
+          <tr><th>Default</th><td><code>"debounced"</code></td></tr>
+          <tr><th>Valid Values</th><td><code>debounced</code>, <code>change</code>, <code>save</code></td></tr>
+        </table>
+        <p><strong>Description:</strong> Controls when the component emits the <code>datachanged</code> event due to user edits. In <code>debounced</code> mode, the component schedules a consolidated event after a debounce window. In <code>change</code> mode, it emits only on <code>change</code> events (e.g., blur/commit). In <code>save</code> mode, it emits when the row is explicitly saved (and also on delete/restore).</p>
+        <p><strong>Examples:</strong> <a href="examples/advanced-usage.html#datachange">Advanced Usage</a></p>
+
+        <h3><code>datachange-debounce</code></h3>
+        <table>
+          <tr><th>Property</th><td><code>datachangeDebounce</code></td></tr>
+          <tr><th>Type</th><td>number (milliseconds)</td></tr>
+          <tr><th>Default</th><td><code>300</code></td></tr>
+          <tr><th>Valid Values</th><td>Any finite number $\ge 0$ (non-finite/negative falls back to default)</td></tr>
+        </table>
+        <p><strong>Description:</strong> Debounce duration used when <code>datachange-mode="debounced"</code>. This allows you to control how quickly <code>datachanged</code> fires while the user is typing in bound inputs. The value is read from the attribute when scheduling, and changing it clears any pending scheduled emission.</p>
+        <p><strong>Examples:</strong> <a href="examples/advanced-usage.html#datachange">Advanced Usage</a></p>
+
+        <h3><code>disable-style-fallback</code></h3>
+        <table>
+          <tr><th>Property</th><td>(attribute only)</td></tr>
+          <tr><th>Type</th><td>boolean attribute</td></tr>
+          <tr><th>Default</th><td>absent</td></tr>
+          <tr><th>Valid Values</th><td>present/absent</td></tr>
+        </table>
+        <p><strong>Description:</strong> The component prefers constructable stylesheets (<code>adoptedStyleSheets</code>). If unavailable, it injects a fallback <code>&lt;style&gt;</code> into the shadow root. Set this attribute to prevent that injection (useful if your app has its own styling strategy). If you disable fallback, you must provide your own CSS or accept unstyled output.</p>
+        <p><strong>Examples:</strong> <a href="examples/edge-cases.html#style-fallback">Edge Cases</a></p>
+
+        <h3><code>csp-nonce</code></h3>
+        <table>
+          <tr><th>Property</th><td>(attribute only)</td></tr>
+          <tr><th>Type</th><td>string</td></tr>
+          <tr><th>Default</th><td><code>""</code></td></tr>
+          <tr><th>Valid Values</th><td>Any CSP nonce string</td></tr>
+        </table>
+        <p><strong>Description:</strong> When the fallback stylesheet injection path is used, the component applies <code>nonce</code> to the injected <code>&lt;style&gt;</code> element so it can work under strict CSP. This attribute has no effect when constructable stylesheets are supported and used.</p>
+        <p><strong>Examples:</strong> <a href="examples/edge-cases.html#csp">Edge Cases</a></p>
+      </section>
+
+      <section id="css-properties">
+        <h2>CSS Custom Properties</h2>
+        <p>
+          The component exposes theming via CSS custom properties (variables) consumed inside its shadow CSS.
+          Set these on the host element (<code>ck-editable-array { ... }</code>) or via theme selectors.
+        </p>
+
+        <h3><code>--cea-background</code></h3>
+        <table>
+          <tr><th>Default</th><td><code>transparent</code></td></tr>
+          <tr><th>Valid Values</th><td>Any valid CSS background value</td></tr>
+        </table>
+        <p><strong>Description:</strong> Controls the background of the component’s internal root wrapper.</p>
+        <p><strong>Usage Example:</strong></p>
+        <pre><code>ck-editable-array {
+  --cea-background: #f6f7f9;
+}</code></pre>
+        <p><strong>Visual Example:</strong> <a href="examples/styling.html#cea-background">Styling examples</a></p>
+
+        <h3><code>--cea-color</code></h3>
+        <table>
+          <tr><th>Default</th><td><code>inherit</code></td></tr>
+          <tr><th>Valid Values</th><td>Any valid CSS color value</td></tr>
+        </table>
+        <p><strong>Description:</strong> Text color used within the component container.</p>
+        <p><strong>Visual Example:</strong> <a href="examples/styling.html#cea-color">Styling examples</a></p>
+
+        <h3><code>--cea-padding</code></h3>
+        <table>
+          <tr><th>Default</th><td><code>0</code></td></tr>
+          <tr><th>Valid Values</th><td>Any valid CSS length</td></tr>
+        </table>
+        <p><strong>Description:</strong> Padding applied to the component container.</p>
+        <p><strong>Visual Example:</strong> <a href="examples/styling.html#cea-padding">Styling examples</a></p>
+
+        <h3><code>--cea-border-radius</code></h3>
+        <table>
+          <tr><th>Default</th><td><code>0</code></td></tr>
+          <tr><th>Valid Values</th><td>Any valid CSS border-radius</td></tr>
+        </table>
+        <p><strong>Description:</strong> Corner rounding for the component container.</p>
+        <p><strong>Visual Example:</strong> <a href="examples/styling.html#cea-border-radius">Styling examples</a></p>
+
+        <h3><code>--cea-message-color</code></h3>
+        <table>
+          <tr><th>Default</th><td><code>inherit</code></td></tr>
+          <tr><th>Valid Values</th><td>Any valid CSS color</td></tr>
+        </table>
+        <p><strong>Description:</strong> Text color for the “Hello, …” header inside the component.</p>
+        <p><strong>Visual Example:</strong> <a href="examples/styling.html#cea-message-color">Styling examples</a></p>
+
+        <h3><code>--cea-row-border-radius</code></h3>
+        <table>
+          <tr><th>Default</th><td><code>0.25rem</code></td></tr>
+          <tr><th>Valid Values</th><td>Any valid CSS border-radius</td></tr>
+        </table>
+        <p><strong>Description:</strong> Corner rounding for each row wrapper element.</p>
+        <p><strong>Visual Example:</strong> <a href="examples/styling.html#cea-row-border-radius">Styling examples</a></p>
+
+        <h3><code>--cea-focus-color</code></h3>
+        <table>
+          <tr><th>Default</th><td><code>#4a90e2</code></td></tr>
+          <tr><th>Valid Values</th><td>Any valid CSS color</td></tr>
+        </table>
+        <p><strong>Description:</strong> Outline color used when a row has <code>:focus-visible</code>.</p>
+        <p><strong>Visual Example:</strong> <a href="examples/styling.html#cea-focus-color">Styling examples</a></p>
+
+        <h3><code>--cea-focus-background</code></h3>
+        <table>
+          <tr><th>Default</th><td><code>rgba(74, 144, 226, 0.1)</code></td></tr>
+          <tr><th>Valid Values</th><td>Any valid CSS color</td></tr>
+        </table>
+        <p><strong>Description:</strong> Background color applied to a row when it is focused.</p>
+        <p><strong>Visual Example:</strong> <a href="examples/styling.html#cea-focus-background">Styling examples</a></p>
+      </section>
+
+      <section id="css-parts">
+        <h2>CSS Parts</h2>
+
+        <h3><code>::part(rows)</code></h3>
+        <p><strong>Targets:</strong> The internal rows host wrapper (contains all rows).</p>
+        <p><strong>Description:</strong> The rows container element inside the component’s shadow DOM. Use it to change layout (gap, borders, grid) without relying on internal class names.</p>
+        <p><strong>Common Use Cases:</strong></p>
+        <ul>
+          <li>Switch row layout (stack vs grid)</li>
+          <li>Add a border or background behind the list</li>
+          <li>Adjust spacing around the row list</li>
+        </ul>
+        <pre><code>ck-editable-array::part(rows) {
+  border: 1px dashed #999;
+  padding: 12px;
+  border-radius: 10px;
+}</code></pre>
+        <p><strong>Example:</strong> <a href="examples/styling.html#part-rows">Part styling examples</a></p>
+      </section>
+
+      <section id="themes">
+        <h2>Themes</h2>
+        <p>
+          The component does not implement a built-in <code>theme</code> API, but it is highly themeable through CSS custom properties.
+          A common pattern is to use a <code>theme</code> attribute (or class) on the host and define theme rules in your app stylesheet.
+        </p>
+        <pre><code>/* Host-defined themes */
+ck-editable-array[theme="light"] {
+  --cea-background: #ffffff;
+  --cea-color: #111;
+  --cea-message-color: #111;
+}
+
+ck-editable-array[theme="dark"] {
+  --cea-background: #111;
+  --cea-color: #eaeaea;
+  --cea-message-color: #eaeaea;
+}</code></pre>
+        <p><strong>Preview:</strong> <a href="examples/themes.html">Themes Gallery</a></p>
+      </section>
+
+      <section id="api">
+        <h2>API (Properties/Methods)</h2>
+
+        <h3>Properties</h3>
+        <table>
+          <tr><th><code>data</code></th><td>Get/set array data. Setter deep-clones inputs; non-arrays become <code>[]</code>. Setting triggers render (if connected) and emits <code>datachanged</code>.</td></tr>
+          <tr><th><code>name</code></th><td>See <a href="#attributes">Attributes</a>. Also used as the default field prefix for form control <code>name</code> assignment.</td></tr>
+          <tr><th><code>rootClass</code></th><td>Mirrors <code>root-class</code>.</td></tr>
+          <tr><th><code>rowsClass</code></th><td>Mirrors <code>rows-class</code>.</td></tr>
+          <tr><th><code>rowClass</code></th><td>Mirrors <code>row-class</code>.</td></tr>
+          <tr><th><code>datachangeMode</code></th><td>Mirrors <code>datachange-mode</code>.</td></tr>
+          <tr><th><code>datachangeDebounce</code></th><td>Mirrors <code>datachange-debounce</code>.</td></tr>
+        </table>
+
+        <h3>Public methods</h3>
+        <p>
+          This component currently does not expose additional public methods (beyond standard element lifecycle callbacks and the properties above).
+          Interaction is driven by user actions in the shadow DOM (Edit/Save/Cancel/Delete) and by setting the <code>data</code> property.
+        </p>
+      </section>
+
+      <section id="events">
+        <h2>Events</h2>
+
+        <h3><code>datachanged</code></h3>
+        <h4>Payload Structure</h4>
+        <pre><code>{
+  detail: {
+    data: unknown[] // deep-cloned snapshot
+  },
+  bubbles: true,
+  composed: true,
+  cancelable: false
+}</code></pre>
+        <h4>When Fired</h4>
+        <ul>
+          <li>Immediately when <code>data</code> property is set programmatically</li>
+          <li>When user edits bound inputs, depending on <code>datachange-mode</code></li>
+          <li>When a row is saved in <code>datachange-mode="save"</code></li>
+          <li>When a row is deleted/restored (mode-dependent)</li>
+        </ul>
+        <p><strong>Interactive Example:</strong> <a href="examples/internal-state.html#events">Event visualization</a></p>
+
+        <h3><code>rowchanged</code></h3>
+        <h4>Payload Structure</h4>
+        <pre><code>{
+  detail: {
+    index: number,
+    row: unknown // cloned row snapshot
+  },
+  bubbles: true,
+  composed: true,
+  cancelable: false
+}</code></pre>
+        <h4>When Fired</h4>
+        <ul>
+          <li>Whenever a bound form control changes a specific row</li>
+          <li>When a row is deleted/restored</li>
+        </ul>
+        <p><strong>Interactive Example:</strong> <a href="examples/internal-state.html#events">Event visualization</a></p>
+
+        <h3><code>beforetogglemode</code></h3>
+        <h4>Payload Structure</h4>
+        <pre><code>{
+  detail: {
+    mode: 'edit' | 'display',
+    rowIndex: number
+  },
+  bubbles: true,
+  composed: true,
+  cancelable: true
+}</code></pre>
+        <h4>When Fired</h4>
+        <ul>
+          <li>Before entering edit mode</li>
+          <li>Before leaving edit mode due to cancel</li>
+        </ul>
+        <p><strong>Note:</strong> Call <code>event.preventDefault()</code> to block the toggle.</p>
+        <p><strong>Interactive Example:</strong> <a href="examples/advanced-usage.html#toggle-guard">Advanced usage</a></p>
+
+        <h3><code>aftertogglemode</code></h3>
+        <h4>Payload Structure</h4>
+        <pre><code>{
+  detail: {
+    mode: 'edit' | 'display',
+    rowIndex: number
+  },
+  bubbles: true,
+  composed: true,
+  cancelable: false
+}</code></pre>
+        <h4>When Fired</h4>
+        <ul>
+          <li>After entering edit mode</li>
+          <li>After saving (back to display mode)</li>
+          <li>After canceling (back to display mode)</li>
+        </ul>
+        <p><strong>Interactive Example:</strong> <a href="examples/internal-state.html#events">Event visualization</a></p>
+      </section>
+
+      <section id="examples">
+        <h2>Examples</h2>
+        <h3>Basic Usage</h3>
+        <ul>
+          <li><a href="examples/basic-usage.html">Getting Started</a> - Minimal setup, attributes, and a simple template</li>
+        </ul>
+
+        <h3>Advanced Usage</h3>
+        <ul>
+          <li><a href="examples/advanced-usage.html">Advanced Usage</a> - Data change modes, nested binding, toggle guards, and performance notes</li>
+        </ul>
+
+        <h3>Integration Patterns</h3>
+        <ul>
+          <li><a href="examples/form-integration.html">Form Integration</a> - Submitting and resetting with FACE <code>setFormValue</code></li>
+        </ul>
+
+        <h3>Edge Cases & States</h3>
+        <ul>
+          <li><a href="examples/data-states.html">Data States</a> - Empty state, edit state, deleted state, disabled state</li>
+          <li><a href="examples/edge-cases.html">Edge Cases</a> - Invalid inputs, template sanitization, prototype pollution prevention</li>
+        </ul>
+
+        <h3>Styling & Themes</h3>
+        <ul>
+          <li><a href="examples/styling.html">Component Styling</a> - CSS custom properties and parts</li>
+          <li><a href="examples/themes.html">Themes</a> - Working, host-defined theme switcher and variable controls</li>
+        </ul>
+
+        <h3>Internal State & Debugging</h3>
+        <ul>
+          <li><a href="examples/internal-state.html">Internal State</a> - Inspect shadow state, row modes, and event logs</li>
+        </ul>
+      </section>
+
+      <section id="faq">
+        <h2>FAQ</h2>
+
+        <h3>Common issues</h3>
+
+        <h4>Why do I see “No display template found”?</h4>
+        <p><strong>Problem:</strong> Rows don’t render unless a <code>&lt;template slot="display"&gt;</code> is provided.</p>
+        <p><strong>Solution:</strong> Provide a display template with at least one bound element:</p>
+        <pre><code>&lt;ck-editable-array&gt;
+  &lt;template slot="display"&gt;
+    &lt;div&gt;Title: &lt;span data-bind="title"&gt;&lt;/span&gt;&lt;/div&gt;
+  &lt;/template&gt;
+&lt;/ck-editable-array&gt;</code></pre>
+
+        <h4>Why doesn’t setting a <code>data</code> attribute work?</h4>
+        <p><strong>Problem:</strong> Attributes are strings; the component reads data from the <code>data</code> property.</p>
+        <p><strong>Solution:</strong> Assign the property in JavaScript:</p>
+        <pre><code>const el = document.querySelector('ck-editable-array');
+el.data = [{ title: 'Hello' }];</code></pre>
+
+        <h4>Why isn’t my theme applying?</h4>
+        <p><strong>Problem:</strong> The component has no built-in theme system; theming is via CSS variables.</p>
+        <p><strong>Solution:</strong> Set CSS variables on the host element or on a selector that matches it:</p>
+        <pre><code>ck-editable-array {
+  --cea-background: #111;
+  --cea-color: #eee;
+}</code></pre>
+
+        <h4>Can I block edit mode or cancel?</h4>
+        <p><strong>Answer:</strong> Yes. Listen to <code>beforetogglemode</code> and call <code>preventDefault()</code>.</p>
+
+        <h4>Does this component do validation?</h4>
+        <p><strong>Answer:</strong> Not currently. It does not call <code>internals.setValidity()</code>. You can implement validation in your application by listening to <code>rowchanged</code>/<code>datachanged</code> and setting UI outside the component.</p>
+
+        <h4>Why did my form field names not update when I changed <code>name</code>?</h4>
+        <p><strong>Answer:</strong> Bound form control <code>name</code>/<code>id</code> attributes are assigned when each row is first created. Changing <code>name</code> later updates only the greeting, not existing control names. Set <code>name</code> before first render or re-create rows by resetting <code>data</code>.</p>
+
+        <h4>Why won’t my example open from disk?</h4>
+        <p><strong>Problem:</strong> ES modules are blocked by browsers from <code>file://</code> due to CORS.</p>
+        <p><strong>Solution:</strong> Use a local server (see <a href="#installation">Installation</a>).</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

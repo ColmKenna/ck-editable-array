@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Form Integration - &lt;ck-editable-array&gt;</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+    nav a { color: inherit; text-decoration: none; }
+    .example { margin: 28px 0; padding: 18px; border: 1px solid #ddd; border-radius: 10px; }
+    .demo { padding: 14px; background: #f5f5f5; border-radius: 8px; margin: 12px 0; }
+    .code { background: #111; color: #eaeaea; padding: 12px; border-radius: 10px; overflow-x: auto; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .panel { border: 1px solid #ddd; border-radius: 10px; padding: 12px; background: #fff; }
+    label { display: block; margin: 8px 0; }
+    input { width: 100%; padding: 6px; }
+    button { padding: 6px 10px; }
+    .note { background: #e7f5ff; padding: 10px; border-left: 4px solid #339af0; border-radius: 8px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <nav><a href="../index.html">← Back to Documentation</a></nav>
+
+  <h1>Form Integration</h1>
+  <p>This component is form-associated and uses <code>ElementInternals.setFormValue()</code> to contribute values during form submission.</p>
+
+  <div class="example" id="basic-form">
+    <h2>1) Basic form submit</h2>
+
+    <div class="row">
+      <div class="panel">
+        <form id="demoForm">
+          <label>
+            Unrelated field
+            <input name="outside" value="outside-value" />
+          </label>
+
+          <ck-editable-array id="formEl" name="items" datachange-mode="save">
+            <template slot="display">
+              <div><strong>Title:</strong> <span data-bind="title"></span></div>
+              <div><strong>Qty:</strong> <span data-bind="qty"></span></div>
+              <div><strong>Deleted:</strong> <span data-bind="isDeleted"></span></div>
+            </template>
+
+            <template slot="edit">
+              <label>
+                Title
+                <input data-bind="title" placeholder="Title" />
+              </label>
+              <label>
+                Qty
+                <input data-bind="qty" type="number" min="0" />
+              </label>
+            </template>
+          </ck-editable-array>
+
+          <div style="margin-top: 12px; display:flex; gap: 8px;">
+            <button type="submit">Submit</button>
+            <button type="reset">Reset</button>
+          </div>
+        </form>
+
+        <div class="note">
+          <strong>Try it:</strong> Click Edit on a row, change values, click Save, then Submit.
+          The submitted FormData will include the nested field names like <code>items[0].title</code>.
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 style="margin-top: 0;">Submitted FormData</h3>
+        <pre class="code" style="margin:0; max-height: 360px;"><code id="formOut"></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="example" id="names">
+    <h2>2) Name prefix behavior</h2>
+    <p>
+      The component assigns <code>name</code> and <code>id</code> attributes to bound form controls when each row is first created.
+      The generated pattern is:
+    </p>
+    <pre class="code"><code>name: ${'items'}[rowIndex].bindPath
+id:   ${'items'}__rowIndex__bindPathWithDotsAsUnderscores</code></pre>
+    <p>
+      For example: <code>items[1].user.name</code> becomes an <code>id</code> like <code>items__1__user_name</code>.
+    </p>
+  </div>
+
+  <div class="example" id="disabled">
+    <h2>3) Disabled behavior (fieldset disabled)</h2>
+    <p>Disabling the surrounding form via <code>&lt;fieldset disabled&gt;</code> triggers the component’s <code>formDisabledCallback</code> and disables internal controls.</p>
+
+    <div class="row">
+      <div class="panel">
+        <label><input id="disableFs" type="checkbox" /> Disable fieldset</label>
+      </div>
+      <div class="panel">
+        <pre class="code" style="margin:0;"><code id="disabledOut"></code></pre>
+      </div>
+    </div>
+
+    <div class="demo">
+      <form>
+        <fieldset id="fs">
+          <ck-editable-array id="disabledEl" name="disabledItems">
+            <template slot="display">
+              <div><span data-bind="title"></span></div>
+            </template>
+            <template slot="edit">
+              <input data-bind="title" />
+            </template>
+          </ck-editable-array>
+        </fieldset>
+      </form>
+    </div>
+  </div>
+
+  <div class="example" id="reset">
+    <h2>4) Reset behavior (form reset)</h2>
+    <p>
+      When the form resets, the component restores its internal data to the initial value it first captured.
+      In this implementation, the initial data is captured the first time you assign to <code>data</code>.
+    </p>
+    <div class="note">
+      If you need a different “reset baseline”, assign <code>data</code> once at initialization to establish the baseline.
+    </div>
+  </div>
+
+  <script type="module">
+    import '../../dist/ck-editable-array/ck-editable-array.esm.js';
+
+    const formEl = document.querySelector('#formEl');
+    const formOut = document.querySelector('#formOut');
+    const demoForm = document.querySelector('#demoForm');
+
+    formEl.data = [
+      { title: 'Apples', qty: 2 },
+      { title: 'Bananas', qty: 5 }
+    ];
+
+    demoForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(demoForm);
+      const entries = Array.from(fd.entries()).map(([k, v]) => `${k} = ${v}`);
+      formOut.textContent = entries.join('\n');
+    });
+
+    // Disabled behavior
+    const disabledEl = document.querySelector('#disabledEl');
+    disabledEl.data = [{ title: 'Row A' }, { title: 'Row B' }];
+
+    const fs = document.querySelector('#fs');
+    const disableFs = document.querySelector('#disableFs');
+    const disabledOut = document.querySelector('#disabledOut');
+
+    function updateDisabled() {
+      fs.disabled = disableFs.checked;
+      const root = disabledEl.shadowRoot;
+      const anyDisabled = root ? Array.from(root.querySelectorAll('input,select,textarea')).some((c) => c.disabled) : false;
+      disabledOut.textContent = JSON.stringify({ fieldsetDisabled: fs.disabled, internalControlsDisabled: anyDisabled }, null, 2);
+    }
+
+    disableFs.addEventListener('change', updateDisabled);
+    updateDisabled();
+  </script>
+</body>
+</html>

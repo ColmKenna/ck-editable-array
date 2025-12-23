@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Usage - &lt;ck-editable-array&gt;</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+    nav a { color: inherit; text-decoration: none; }
+    .example { margin: 28px 0; padding: 18px; border: 1px solid #ddd; border-radius: 10px; }
+    .demo { padding: 14px; background: #f5f5f5; border-radius: 8px; margin: 12px 0; }
+    .code { background: #111; color: #eaeaea; padding: 12px; border-radius: 10px; overflow-x: auto; }
+    .note { background: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; border-radius: 8px; margin: 10px 0; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .panel { border: 1px solid #ddd; border-radius: 10px; padding: 12px; background: #fff; }
+    label { display: block; margin: 8px 0; }
+    input, select { width: 100%; padding: 6px; }
+    button { padding: 6px 10px; }
+  </style>
+</head>
+<body>
+  <nav><a href="../index.html">← Back to Documentation</a></nav>
+
+  <h1>Advanced Usage</h1>
+  <p>Shows nested binding, data change modes, cancelable mode toggling, and a light performance demo.</p>
+
+  <div class="example" id="datachange">
+    <h2>1) Data change modes</h2>
+    <p>The component emits <code>rowchanged</code> per row update. <code>datachanged</code> depends on <code>datachange-mode</code>:</p>
+    <ul>
+      <li><code>debounced</code>: schedules <code>datachanged</code> after <code>datachange-debounce</code> ms</li>
+      <li><code>change</code>: emits <code>datachanged</code> only on <code>change</code> events (not every keystroke)</li>
+      <li><code>save</code>: emits <code>datachanged</code> when you click Save (and on delete/restore)</li>
+    </ul>
+
+    <div class="row">
+      <div class="panel">
+        <label>
+          datachange-mode
+          <select id="modeSelect">
+            <option value="debounced">debounced</option>
+            <option value="change">change</option>
+            <option value="save">save</option>
+          </select>
+        </label>
+        <label>
+          datachange-debounce (ms)
+          <input id="debounceInput" type="number" min="0" step="50" value="300" />
+        </label>
+        <button id="resetData">Reset data</button>
+        <div class="note">
+          <strong>Try it:</strong> enter edit mode on a row, type into inputs, then watch the <code>datachanged</code> cadence change.
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 style="margin-top:0;">Event log</h3>
+        <pre class="code" style="margin:0; max-height: 260px;"><code id="eventLog"></code></pre>
+      </div>
+    </div>
+
+    <div class="demo">
+      <ck-editable-array id="modeEl" name="records" datachange-mode="debounced" datachange-debounce="300">
+        <template slot="display">
+          <div><strong>ID:</strong> <span data-bind="id"></span></div>
+          <div><strong>User:</strong> <span data-bind="user.name"></span></div>
+          <div><strong>Role:</strong> <span data-bind="user.role"></span></div>
+          <div><strong>Active:</strong> <span data-bind="user.active"></span></div>
+        </template>
+
+        <template slot="edit">
+          <label>ID <input data-bind="id" /></label>
+          <label>User name <input data-bind="user.name" /></label>
+          <label>User role <input data-bind="user.role" /></label>
+          <label>Active <input type="checkbox" data-bind="user.active" /></label>
+        </template>
+      </ck-editable-array>
+    </div>
+  </div>
+
+  <div class="example" id="toggle-guard">
+    <h2>2) Guard edit mode with <code>beforetogglemode</code> (cancelable)</h2>
+    <p>This demonstrates preventing edit mode for certain rows. Here we block editing row 1 (index 0) unless you enable the checkbox.</p>
+
+    <div class="row">
+      <div class="panel">
+        <label>
+          <input id="allowRow0" type="checkbox" /> Allow editing row 0
+        </label>
+        <p style="margin: 0;">Click Edit on row 0 and observe it being blocked.</p>
+      </div>
+      <div class="panel">
+        <pre class="code" style="margin:0;"><code id="guardLog"></code></pre>
+      </div>
+    </div>
+
+    <div class="demo">
+      <ck-editable-array id="guardEl" name="guarded" datachange-mode="save">
+        <template slot="display">
+          <div><strong>Title:</strong> <span data-bind="title"></span></div>
+          <div><strong>Notes:</strong> <span data-bind="notes"></span></div>
+        </template>
+        <template slot="edit">
+          <label>Title <input data-bind="title" /></label>
+          <label>Notes <input data-bind="notes" /></label>
+        </template>
+      </ck-editable-array>
+    </div>
+  </div>
+
+  <div class="example" id="performance">
+    <h2>3) Performance: large lists (basic measurement)</h2>
+    <p>This is a simple, practical measurement: set data to N rows and measure how long the assignment + render takes (in the main thread).</p>
+
+    <div class="row">
+      <div class="panel">
+        <label>Row count <input id="rowCount" type="number" min="0" value="500" /></label>
+        <button id="runPerf">Generate & set data</button>
+        <p id="perfOut" style="margin: 10px 0 0 0;"></p>
+      </div>
+      <div class="panel">
+        <div class="note">
+          Use <code>datachange-mode="change"</code> or <code>save</code> for very large lists if you want fewer aggregate <code>datachanged</code> events.
+        </div>
+      </div>
+    </div>
+
+    <div class="demo">
+      <ck-editable-array id="perfEl" name="perf" datachange-mode="change">
+        <template slot="display">
+          <div><span data-bind="i"></span> — <span data-bind="text"></span></div>
+        </template>
+        <template slot="edit">
+          <input data-bind="text" />
+        </template>
+      </ck-editable-array>
+    </div>
+  </div>
+
+  <script type="module">
+    import '../../dist/ck-editable-array/ck-editable-array.esm.js';
+
+    const modeEl = document.querySelector('#modeEl');
+    const eventLog = document.querySelector('#eventLog');
+    const lines = [];
+    const log = (msg) => {
+      lines.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
+      eventLog.textContent = lines.slice(0, 30).join('\n');
+    };
+
+    modeEl.addEventListener('rowchanged', (e) => log(`rowchanged index=${e.detail.index}`));
+    modeEl.addEventListener('datachanged', (e) => log(`datachanged count=${e.detail.data.length}`));
+    modeEl.addEventListener('aftertogglemode', (e) => log(`aftertogglemode ${e.detail.mode} row=${e.detail.rowIndex}`));
+
+    function resetModeData() {
+      modeEl.data = [
+        { id: '1', user: { name: 'Ava', role: 'Admin', active: true } },
+        { id: '2', user: { name: 'Ben', role: 'Viewer', active: false } }
+      ];
+    }
+
+    resetModeData();
+
+    const modeSelect = document.querySelector('#modeSelect');
+    const debounceInput = document.querySelector('#debounceInput');
+    modeSelect.addEventListener('change', () => {
+      modeEl.setAttribute('datachange-mode', modeSelect.value);
+      log(`set datachange-mode=${modeSelect.value}`);
+    });
+    debounceInput.addEventListener('change', () => {
+      modeEl.setAttribute('datachange-debounce', debounceInput.value);
+      log(`set datachange-debounce=${debounceInput.value}`);
+    });
+    document.querySelector('#resetData').addEventListener('click', () => {
+      lines.length = 0;
+      resetModeData();
+      log('data reset');
+    });
+
+    // Guard toggle example
+    const guardEl = document.querySelector('#guardEl');
+    guardEl.data = [
+      { title: 'Protected row', notes: 'Edit blocked unless enabled' },
+      { title: 'Free row', notes: 'Editable always' }
+    ];
+
+    const allowRow0 = document.querySelector('#allowRow0');
+    const guardLog = document.querySelector('#guardLog');
+    const guardLines = [];
+    const glog = (msg) => {
+      guardLines.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
+      guardLog.textContent = guardLines.slice(0, 15).join('\n');
+    };
+
+    guardEl.addEventListener('beforetogglemode', (e) => {
+      if (e.detail.mode === 'edit' && e.detail.rowIndex === 0 && !allowRow0.checked) {
+        e.preventDefault();
+        glog('Blocked edit mode for row 0');
+      } else {
+        glog(`Allowed toggle: ${e.detail.mode} row=${e.detail.rowIndex}`);
+      }
+    });
+
+    // Performance
+    const perfEl = document.querySelector('#perfEl');
+    const perfOut = document.querySelector('#perfOut');
+
+    document.querySelector('#runPerf').addEventListener('click', () => {
+      const count = Number(document.querySelector('#rowCount').value);
+      const start = performance.now();
+      const data = Array.from({ length: Math.max(0, count) }, (_, i) => ({ i, text: `Item ${i}` }));
+      perfEl.data = data;
+      const end = performance.now();
+      perfOut.textContent = `Set ${count} rows in ${(end - start).toFixed(1)}ms (includes render scheduling).`;
+    });
+  </script>
+</body>
+</html>

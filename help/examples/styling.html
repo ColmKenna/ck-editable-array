@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Styling - &lt;ck-editable-array&gt;</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+    nav a { color: inherit; text-decoration: none; }
+    .example { margin: 28px 0; padding: 18px; border: 1px solid #ddd; border-radius: 10px; }
+    .demo { padding: 14px; background: #f5f5f5; border-radius: 8px; margin: 12px 0; }
+    .code { background: #111; color: #eaeaea; padding: 12px; border-radius: 10px; overflow-x: auto; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 12px; background: #fff; }
+
+    /* Demonstrations */
+    ck-editable-array.demo-vars {
+      --cea-background: #ffffff;
+      --cea-color: #111;
+      --cea-padding: 16px;
+      --cea-border-radius: 12px;
+      --cea-message-color: #0b5ed7;
+      --cea-row-border-radius: 14px;
+      --cea-focus-color: #dc3545;
+      --cea-focus-background: rgba(220, 53, 69, 0.12);
+    }
+
+    ck-editable-array.demo-vars::part(rows) {
+      border: 1px dashed #999;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.02);
+    }
+
+    /* A second style to show before/after */
+    ck-editable-array.demo-default {
+      --cea-background: transparent;
+      --cea-color: inherit;
+      --cea-padding: 0;
+      --cea-border-radius: 0;
+      --cea-message-color: inherit;
+      --cea-row-border-radius: 0.25rem;
+      --cea-focus-color: #4a90e2;
+      --cea-focus-background: rgba(74, 144, 226, 0.1);
+    }
+
+    .small { color: #444; font-size: 0.92rem; }
+  </style>
+</head>
+<body>
+  <nav><a href="../index.html">← Back to Documentation</a></nav>
+
+  <h1>Styling</h1>
+  <p class="small">Demonstrates all supported CSS custom properties and the <code>::part(rows)</code> part.</p>
+
+  <div class="example" id="cea-background">
+    <h2>CSS variables overview</h2>
+    <pre class="code"><code>--cea-background
+--cea-color
+--cea-padding
+--cea-border-radius
+--cea-message-color
+--cea-row-border-radius
+--cea-focus-color
+--cea-focus-background</code></pre>
+  </div>
+
+  <div class="example" id="cea-color">
+    <h2>Before/After: default vs customized</h2>
+    <div class="grid">
+      <div class="card">
+        <h3 style="margin-top:0;">Default-ish</h3>
+        <div class="demo">
+          <ck-editable-array id="defaultEl" class="demo-default" name="default">
+            <template slot="display">
+              <div><strong>Title:</strong> <span data-bind="title"></span></div>
+            </template>
+            <template slot="edit">
+              <input data-bind="title" />
+            </template>
+          </ck-editable-array>
+        </div>
+        <p class="small">Focus a row with Tab to see default focus styles.</p>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0;">Customized variables</h3>
+        <div class="demo">
+          <ck-editable-array id="varsEl" class="demo-vars" name="vars">
+            <template slot="display">
+              <div><strong>Title:</strong> <span data-bind="title"></span></div>
+              <div><strong>Owner:</strong> <span data-bind="owner"></span></div>
+            </template>
+            <template slot="edit">
+              <label>Title <input data-bind="title" /></label>
+              <label>Owner <input data-bind="owner" /></label>
+            </template>
+          </ck-editable-array>
+        </div>
+        <p class="small">Focus a row to see custom focus outline/background.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="example" id="cea-padding">
+    <h2>CSS snippet: set variables on the host</h2>
+    <pre class="code"><code>ck-editable-array {
+  --cea-background: #ffffff;
+  --cea-padding: 16px;
+  --cea-border-radius: 12px;
+  --cea-message-color: #0b5ed7;
+  --cea-focus-color: #dc3545;
+  --cea-focus-background: rgba(220, 53, 69, 0.12);
+}</code></pre>
+  </div>
+
+  <div class="example" id="part-rows">
+    <h2>CSS part: <code>::part(rows)</code></h2>
+    <p class="small">The rows container is exposed as a part named <code>rows</code> and can be styled from outside the component.</p>
+    <pre class="code"><code>ck-editable-array::part(rows) {
+  border: 1px dashed #999;
+  padding: 12px;
+  border-radius: 12px;
+}</code></pre>
+  </div>
+
+  <script type="module">
+    import '../../dist/ck-editable-array/ck-editable-array.esm.js';
+
+    const defaultEl = document.querySelector('#defaultEl');
+    const varsEl = document.querySelector('#varsEl');
+
+    defaultEl.data = [{ title: 'Default styling' }, { title: 'Second row' }];
+    varsEl.data = [{ title: 'Styled component', owner: 'Team' }, { title: 'Focusable row', owner: 'You' }];
+  </script>
+</body>
+</html>
