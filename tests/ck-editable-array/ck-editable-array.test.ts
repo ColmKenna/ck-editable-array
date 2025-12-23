@@ -4047,4 +4047,404 @@ describe('CkEditableArray Component', () => {
       });
     });
   });
+
+  // Feature 6: Delete Button on Each Row
+  describe('Feature 6: Delete Button on Each Row', () => {
+    describe('Feature 6.1: Delete Button Presence', () => {
+      test('should render delete button on each row', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Item 1' }, { name: 'Item 2' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+
+        const deleteButton0 = row0?.querySelector(
+          '[data-action="delete"]'
+        ) as HTMLButtonElement;
+        const deleteButton1 = row1?.querySelector(
+          '[data-action="delete"]'
+        ) as HTMLButtonElement;
+
+        expect(deleteButton0).not.toBeNull();
+        expect(deleteButton1).not.toBeNull();
+        expect(deleteButton0?.textContent).toBeTruthy();
+        expect(deleteButton1?.textContent).toBeTruthy();
+      });
+
+      test('should have delete button with accessible label', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Item 1' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const deleteButton = row0?.querySelector(
+          '[data-action="delete"]'
+        ) as HTMLButtonElement;
+
+        expect(deleteButton?.getAttribute('aria-label')).toBeTruthy();
+        expect(deleteButton?.getAttribute('aria-label')).toContain('Delete');
+      });
+    });
+
+    describe('Feature 6.2: Soft Delete with isDeleted Property', () => {
+      test('should add isDeleted property to row when delete button is clicked', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Item 1' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const deleteButton = row0?.querySelector(
+          '[data-action="delete"]'
+        ) as HTMLButtonElement;
+
+        deleteButton?.click();
+
+        const updatedData = element.data;
+        expect(updatedData[0]).toHaveProperty('isDeleted');
+        expect(updatedData[0].isDeleted).toBe(true);
+      });
+
+      test('should change delete button to restore when isDeleted is true', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Item 1' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const deleteButton = row0?.querySelector(
+          '[data-action="delete"]'
+        ) as HTMLButtonElement;
+
+        deleteButton?.click();
+
+        const updatedButton = row0?.querySelector(
+          '[data-action="delete"]'
+        ) as HTMLButtonElement;
+        expect(updatedButton?.textContent).toBe('Restore');
+        expect(updatedButton?.getAttribute('aria-label')).toContain('Restore');
+      });
+
+      test('should set isDeleted to false when restore button is clicked', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Item 1', isDeleted: true }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const restoreButton = row0?.querySelector(
+          '[data-action="delete"]'
+        ) as HTMLButtonElement;
+
+        restoreButton?.click();
+
+        const updatedData = element.data;
+        expect(updatedData[0].isDeleted).toBe(false);
+      });
+
+      test('should render hidden checkbox for isDeleted property with correct name and id', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+        element.name = 'items';
+
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Item 1', isDeleted: false }];
+        element.connectedCallback();
+
+        const shadowDOM = element.shadowRoot as ShadowRoot;
+        const hiddenCheckboxes = Array.from(
+          shadowDOM.querySelectorAll('input[type="checkbox"][data-bind="isDeleted"]')
+        );
+
+        expect(hiddenCheckboxes.length).toBeGreaterThan(0);
+        const checkbox = hiddenCheckboxes[0] as HTMLInputElement;
+        expect(checkbox.name).toBe('items[0].isDeleted');
+        expect(checkbox.id).toBe('items__0__isDeleted');
+      });
+
+      test('should update checkbox checked state based on isDeleted property', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+        element.name = 'items';
+
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Item 1', isDeleted: false }];
+        element.connectedCallback();
+
+        const shadowDOM = element.shadowRoot as ShadowRoot;
+        const checkbox = shadowDOM.querySelector(
+          'input[type="checkbox"][data-bind="isDeleted"]'
+        ) as HTMLInputElement;
+
+        expect(checkbox.checked).toBe(false);
+
+        // Simulate delete action
+        const rowsHost = shadowDOM.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const deleteButton = row0?.querySelector(
+          '[data-action="delete"]'
+        ) as HTMLButtonElement;
+
+        deleteButton?.click();
+
+        // Get fresh checkbox reference
+        const updatedCheckbox = shadowDOM.querySelector(
+          'input[type="checkbox"][data-bind="isDeleted"]'
+        ) as HTMLInputElement;
+
+        expect(updatedCheckbox.checked).toBe(true);
+      });
+
+      test('should emit datachanged event when delete is clicked', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        element.setAttribute('datachange-mode', 'change');
+        element.data = [{ name: 'Item 1' }];
+        element.connectedCallback();
+
+        let datachangedFired = false;
+        element.addEventListener('datachanged', () => {
+          datachangedFired = true;
+        });
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const deleteButton = row0?.querySelector(
+          '[data-action="delete"]'
+        ) as HTMLButtonElement;
+
+        deleteButton?.click();
+
+        expect(datachangedFired).toBe(true);
+      });
+
+      test('should emit datachanged event when restore is clicked', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        element.setAttribute('datachange-mode', 'change');
+        element.data = [{ name: 'Item 1', isDeleted: true }];
+        element.connectedCallback();
+
+        let datachangedFired = false;
+        element.addEventListener('datachanged', () => {
+          datachangedFired = true;
+        });
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const restoreButton = row0?.querySelector(
+          '[data-action="delete"]'
+        ) as HTMLButtonElement;
+
+        restoreButton?.click();
+
+        expect(datachangedFired).toBe(true);
+      });
+
+      test('should add ck-deleted class to row when isDeleted is true', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Item 1' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+
+        // Initially, row should not have ck-deleted class
+        expect(row0?.classList.contains('ck-deleted')).toBe(false);
+
+        const deleteButton = row0?.querySelector(
+          '[data-action="delete"]'
+        ) as HTMLButtonElement;
+
+        deleteButton?.click();
+
+        // After delete, row should have ck-deleted class
+        expect(row0?.classList.contains('ck-deleted')).toBe(true);
+      });
+
+      test('should remove ck-deleted class from row when restored', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Item 1', isDeleted: true }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+
+        // Initially, row should have ck-deleted class
+        expect(row0?.classList.contains('ck-deleted')).toBe(true);
+
+        const restoreButton = row0?.querySelector(
+          '[data-action="delete"]'
+        ) as HTMLButtonElement;
+
+        restoreButton?.click();
+
+        // After restore, row should not have ck-deleted class
+        expect(row0?.classList.contains('ck-deleted')).toBe(false);
+      });
+
+      test('should disable edit button when isDeleted is true', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Item 1', isDeleted: true }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+
+        const editButton = row0?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+
+        // Edit button should be disabled when isDeleted is true
+        expect(editButton?.disabled).toBe(true);
+      });
+
+      test('should enable edit button when restored from deleted state', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        element.setAttribute('datachange-mode', 'change');
+        element.data = [{ name: 'Item 1', isDeleted: true }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+
+        const editButton = row0?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+
+        // Initially, edit button should be disabled
+        expect(editButton?.disabled).toBe(true);
+
+        const restoreButton = row0?.querySelector(
+          '[data-action="delete"]'
+        ) as HTMLButtonElement;
+
+        // Click restore to set isDeleted to false
+        restoreButton?.click();
+
+        // After restore, edit button should be enabled
+        expect(editButton?.disabled).toBe(false);
+      });
+
+      test('should disable edit button when row is deleted', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        element.setAttribute('datachange-mode', 'change');
+        element.data = [{ name: 'Item 1', isDeleted: false }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+
+        const editButton = row0?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+
+        // Initially, edit button should be enabled
+        expect(editButton?.disabled).toBe(false);
+
+        const deleteButton = row0?.querySelector(
+          '[data-action="delete"]'
+        ) as HTMLButtonElement;
+
+        // Click delete to set isDeleted to true
+        deleteButton?.click();
+
+        // After delete, edit button should be disabled
+        expect(editButton?.disabled).toBe(true);
+      });
+    });
+  });
 });

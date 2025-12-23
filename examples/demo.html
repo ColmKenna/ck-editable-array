@@ -439,7 +439,42 @@ console.log(element.data[0].name); // Still 'Original' ✓
             <div class="component-wrapper">
               <ck-editable-array id="templateDemo" name="Templated">
                 <template slot="display">
-                  <div>
+                  <style>
+                    .display-content {
+                      padding: 0.75rem;
+                      background: #f9f9f9;
+                      border-radius: 4px;
+                      transition: all 0.3s ease;
+                      border-left: 4px solid transparent;
+                    }
+                    .row.ck-in-edit .display-content {
+                      display: none;
+                    }
+                    .edit-content {
+                      padding: 0.75rem;
+                      background: #fff3cd;
+                      border: 2px solid #ffc107;
+                      border-radius: 4px;
+                      display: none;
+                    }
+                    .row.ck-in-edit .edit-content {
+                      display: block;
+                    }
+                    .edit-content label {
+                      display: grid;
+                      gap: 0.25rem;
+                      font-size: 0.9rem;
+                      font-weight: 500;
+                      margin-bottom: 0.5rem;
+                    }
+                    .edit-content input {
+                      padding: 0.5rem;
+                      border: 1px solid #ddd;
+                      border-radius: 4px;
+                      font-size: 0.95rem;
+                    }
+                  </style>
+                  <div class="display-content">
                     <strong data-bind="name"></strong>
                     <div style="margin-top: 0.25rem;">
                       <span data-bind="address.city"></span>
@@ -449,14 +484,39 @@ console.log(element.data[0].name); // Still 'Original' ✓
                     </div>
                   </div>
                 </template>
+                <template slot="edit">
+                  <div class="edit-content">
+                    <label>
+                      Name
+                      <input type="text" data-bind="name" placeholder="Enter name" />
+                    </label>
+                    <label>
+                      City
+                      <input type="text" data-bind="address.city" placeholder="Enter city" />
+                    </label>
+                    <p style="font-size: 0.85rem; color: #666; margin: 0;">
+                      ⚠️ Editing mode - row highlighted in yellow
+                    </p>
+                  </div>
+                </template>
               </ck-editable-array>
             </div>
             <div class="code-block">
 &lt;ck-editable-array&gt;
   &lt;template slot="display"&gt;
+    &lt;!-- Content shown in display mode --&gt;
     &lt;strong data-bind="name"&gt;&lt;/strong&gt;
   &lt;/template&gt;
+  &lt;template slot="edit"&gt;
+    &lt;!-- Content shown in edit mode --&gt;
+    &lt;input type="text" data-bind="name" /&gt;
+  &lt;/template&gt;
 &lt;/ck-editable-array&gt;
+
+/* CSS for visual distinction */
+.row.ck-in-edit { /* automatically applied when row is in edit mode */
+  border-color: #ffc107;
+}
             </div>
           </div>
 
@@ -509,11 +569,64 @@ console.log(element.data[0].name); // Still 'Original' ✓
                       background: #fff;
                       border: 1px solid #dde3ff;
                       border-radius: 10px;
+                      padding: 0.75rem;
+                      transition: all 0.3s ease;
+                    }
+
+                    .row.demo-row.ck-in-edit {
+                      background: #f0e6ff;
+                      border: 2px solid #667eea;
+                      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+                    }
+
+                    .display-item {
+                      display: block;
+                    }
+
+                    .row.demo-row.ck-in-edit .display-item {
+                      display: none;
+                    }
+
+                    .edit-item {
+                      display: none;
+                    }
+
+                    .row.demo-row.ck-in-edit .edit-item {
+                      display: block;
+                    }
+
+                    .edit-item label {
+                      display: grid;
+                      gap: 0.25rem;
+                      font-size: 0.9rem;
+                      font-weight: 500;
+                      margin-bottom: 0.5rem;
+                    }
+
+                    .edit-item input {
+                      padding: 0.5rem;
+                      border: 1px solid #ddd;
+                      border-radius: 4px;
                     }
                   </style>
-                  <div>
+                  <div class="display-item">
                     <strong data-bind="title"></strong>
                     <span style="margin-left: 0.5rem; opacity: 0.8" data-bind="status"></span>
+                  </div>
+                </template>
+                <template slot="edit">
+                  <div class="edit-item">
+                    <label>
+                      Title
+                      <input type="text" data-bind="title" placeholder="Enter title" />
+                    </label>
+                    <label>
+                      Status
+                      <input type="text" data-bind="status" placeholder="Enter status" />
+                    </label>
+                    <p style="font-size: 0.85rem; color: #667eea; margin: 0;">
+                      ✏️ Editing - wrapper class demo with blue highlight
+                    </p>
                   </div>
                 </template>
               </ck-editable-array>
@@ -522,9 +635,132 @@ console.log(element.data[0].name); // Still 'Original' ✓
         </div>
       </div>
 
+      <!-- Row Actions Demo -->
+      <div class="demo-section">
+        <h2>9. Row Actions (Edit, Save, Cancel, Delete)</h2>
+        <p class="section-description">
+          Each row provides action buttons for managing that row. The <strong>delete button</strong> implements soft delete by toggling an `isDeleted` property, and the button changes to "Restore" when a row is deleted.
+        </p>
+
+        <div class="demo-item">
+          <h3>Row Action Buttons</h3>
+          <p style="color: #666; margin-bottom: 1rem;">
+            Each row includes the following action buttons (all with accessible aria-labels):
+          </p>
+          <ul class="feature-list">
+            <li><strong>Edit</strong> - Toggles the row into edit mode (disabled when row is deleted)</li>
+            <li><strong>Save</strong> (edit mode only) - Commits changes and returns to display mode</li>
+            <li><strong>Cancel</strong> (edit mode only) - Discards changes and returns to display mode</li>
+            <li><strong>Delete</strong> - Sets `isDeleted` property to true; changes to "Restore" when deleted</li>
+            <li><strong>Restore</strong> - Clears `isDeleted` property; changes back to "Delete" when restored; re-enables Edit button</li>
+          </ul>
+          <p style="color: #666; margin-top: 1rem;">
+            All buttons have context-aware aria-labels like "Edit item 1", "Delete item 2", "Restore item 3", etc., for better accessibility. The Edit button is automatically disabled when a row is marked as deleted to prevent accidental edits.
+          </p>
+
+          <h4 style="margin-top: 1.5rem; color: #667eea;">Soft Delete Example</h4>
+          <p style="color: #666; margin: 0.5rem 0;">
+            Click the delete button on any row to set its `isDeleted` property to true. The button will change to "Restore", the row will be styled with the `ck-deleted` class, and the Edit button will become disabled. Click the Restore button to reverse these changes.
+          </p>
+          <div class="component-wrapper" style="margin-top: 1rem;">
+            <ck-editable-array id="softDeleteDemo" name="tasks">
+              <template slot="display">
+                <style>
+                  .task-row {
+                    padding: 0.75rem;
+                    background: #f9f9f9;
+                    border-radius: 4px;
+                    transition: all 0.3s ease;
+                  }
+                  .row.ck-deleted .task-row {
+                    opacity: 0.6;
+                    text-decoration: line-through;
+                    background: #f0f0f0;
+                    border-left: 4px solid #999;
+                  }
+                  .row.ck-deleted .task-row strong {
+                    color: #999;
+                  }
+                </style>
+                <div class="task-row">
+                  <strong data-bind="title"></strong>
+                  <span style="margin-left: 0.5rem; font-size: 0.9rem; color: #999;">
+                    Status: <span data-bind="isDeleted"></span>
+                  </span>
+                </div>
+              </template>
+
+              <template slot="edit">
+                <style>
+                  .task-edit {
+                    padding: 0.75rem;
+                    background: #f9f9f9;
+                    border-radius: 4px;
+                    display: grid;
+                    gap: 0.5rem;
+                  }
+                  .row.ck-deleted .task-edit {
+                    opacity: 0.6;
+                    background: #f0f0f0;
+                    border-left: 4px solid #999;
+                  }
+                  .task-edit label {
+                    display: grid;
+                    gap: 0.25rem;
+                    font-size: 0.9rem;
+                    font-weight: 500;
+                    color: #333;
+                  }
+                  .row.ck-deleted .task-edit label {
+                    color: #666;
+                  }
+                  .task-edit input {
+                    padding: 0.5rem;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    font-size: 0.95rem;
+                  }
+                  .row.ck-deleted .task-edit input {
+                    background-color: #e8e8e8;
+                    color: #999;
+                  }
+                </style>
+                <div class="task-edit">
+                  <label>
+                    Task Title
+                    <input type="text" data-bind="title" placeholder="Enter task title" />
+                  </label>
+                </div>
+              </template>
+            </ck-editable-array>
+          </div>
+          <div class="code-block">
+// CSS styles for deleted state
+.row.ck-deleted .task-row {
+  opacity: 0.6;
+  text-decoration: line-through;
+  background: #f0f0f0;
+  border-left: 4px solid #999;
+}
+
+.row.ck-deleted .task-edit {
+  opacity: 0.6;
+  background: #f0f0f0;
+  border-left: 4px solid #999;
+}
+
+// User experience:
+// Click delete -> row gets ck-deleted class
+// Display content: grayed out, strikethrough
+// Edit content: disabled appearance
+// Click restore -> class removed, everything returns to normal
+          </div>
+        </div>
+      </div>
+
       <!-- Edit Template Demo -->
       <div class="demo-section">
-        <h2>9. Edit Template with Auto-Populated Inputs</h2>
+        <h2>10. Edit Template with Auto-Populated Inputs</h2>
         <p class="section-description">
           Form inputs in edit templates automatically have their values populated from row data.
           Text inputs get their <code>value</code>, checkboxes get <code>checked</code>, and selects have the matching option selected.
@@ -541,25 +777,42 @@ console.log(element.data[0].name); // Still 'Original' ✓
                       padding: 0.5rem;
                       background: #f9f9f9;
                       border-radius: 8px;
+                      border-left: 4px solid transparent;
+                      transition: all 0.3s ease;
+                    }
+                    .row.ck-in-edit .display-row {
+                      display: none;
                     }
                     .edit-row {
                       padding: 0.75rem;
                       background: #fff;
                       border: 2px solid #667eea;
                       border-radius: 8px;
-                      display: grid;
+                      display: none;
+                      grid-template-columns: repeat(3, 1fr);
                       gap: 0.5rem;
+                    }
+                    .row.ck-in-edit .edit-row {
+                      display: grid;
                     }
                     .edit-row label {
                       display: grid;
                       gap: 0.25rem;
                       font-size: 0.9rem;
+                      font-weight: 500;
                     }
                     .edit-row input,
                     .edit-row select {
                       padding: 0.5rem;
                       border: 1px solid #ddd;
                       border-radius: 4px;
+                      font-size: 0.95rem;
+                    }
+                    .edit-row input:focus,
+                    .edit-row select:focus {
+                      outline: none;
+                      border-color: #667eea;
+                      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
                     }
                   </style>
                   <div class="display-row">
@@ -614,7 +867,7 @@ console.log(element.data[0].name); // Still 'Original' ✓
 
       <!-- Bidirectional Binding Demo -->
       <div class="demo-section">
-        <h2>10. Bidirectional Data Binding (Live Sync)</h2>
+        <h2>11. Bidirectional Data Binding (Live Sync)</h2>
         <p class="section-description">
           When users type in edit template inputs, changes automatically sync to both the component's data AND the corresponding display elements in real-time. No manual event handling required!
         </p>
@@ -632,6 +885,10 @@ console.log(element.data[0].name); // Still 'Original' ✓
                       color: white;
                       border-radius: 8px;
                       margin-bottom: 0.5rem;
+                      transition: all 0.3s ease;
+                    }
+                    .row.ck-in-edit .display-card {
+                      display: none;
                     }
                     .display-card .name {
                       font-size: 1.1rem;
@@ -656,8 +913,11 @@ console.log(element.data[0].name); // Still 'Original' ✓
                       border: 2px dashed #667eea;
                       border-radius: 8px;
                       margin-top: 0.5rem;
-                      display: grid;
+                      display: none;
                       gap: 0.5rem;
+                    }
+                    .row.ck-in-edit .edit-card {
+                      display: grid;
                     }
                     .edit-card label {
                       display: grid;
@@ -678,6 +938,14 @@ console.log(element.data[0].name); // Still 'Original' ✓
                       outline: none;
                       border-color: #667eea;
                       box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+                    }
+                    .edit-indicator {
+                      font-size: 0.85rem;
+                      color: #667eea;
+                      font-weight: 500;
+                      margin-top: 0.5rem;
+                      padding-top: 0.5rem;
+                      border-top: 1px solid #ddd;
                     }
                   </style>
                   <div class="display-card">
@@ -705,6 +973,9 @@ console.log(element.data[0].name); // Still 'Original' ✓
                         <option value="Offline">Offline</option>
                       </select>
                     </label>
+                    <div class="edit-indicator">
+                      ✏️ Editing mode - Display card hidden above
+                    </div>
                   </div>
                 </template>
               </ck-editable-array>
@@ -782,6 +1053,16 @@ Waiting for input changes...
           { name: 'Alice Johnson', role: 'Developer', status: 'Active' },
           { name: 'Bob Smith', role: 'Designer', status: 'Active' },
           { name: 'Carol White', role: 'Manager', status: 'Inactive' },
+        ];
+      }
+
+      // Soft delete demo initialization
+      const softDeleteDemo = document.getElementById('softDeleteDemo');
+      if (softDeleteDemo) {
+        softDeleteDemo.data = [
+          { title: 'Review pull requests', isDeleted: false },
+          { title: 'Write documentation', isDeleted: false },
+          { title: 'Deploy to production', isDeleted: false },
         ];
       }
 

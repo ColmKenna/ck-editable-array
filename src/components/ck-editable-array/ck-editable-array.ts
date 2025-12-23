@@ -476,7 +476,21 @@ export class CkEditableArray extends HTMLElement {
       cancelButton.setAttribute('data-action', 'cancel');
       cancelButton.textContent = 'Cancel';
       actionsWrapper.appendChild(cancelButton);
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.setAttribute('data-action', 'delete');
+      deleteButton.textContent = 'Delete';
+      actionsWrapper.appendChild(deleteButton);
       rowEl.appendChild(actionsWrapper);
+
+      // Add hidden checkbox for isDeleted property (soft delete)
+      const hiddenCheckbox = document.createElement('input');
+      hiddenCheckbox.type = 'checkbox';
+      hiddenCheckbox.setAttribute('data-bind', 'isDeleted');
+      hiddenCheckbox.setAttribute('hidden', '');
+      hiddenCheckbox.style.display = 'none';
+      rowEl.appendChild(hiddenCheckbox);
+
       // Cache bound elements on first creation
       boundEls = Array.from(
         rowEl.querySelectorAll('[data-bind]')
@@ -499,6 +513,12 @@ export class CkEditableArray extends HTMLElement {
     // Ensure row wrapper classes reflect current configuration (handles updates)
     rowEl.className = 'row';
     rowTokens.forEach(t => rowEl.classList.add(t));
+
+    // Add ck-deleted class if row is deleted
+    if (this._isRowDeleted(rowData, index)) {
+      rowEl.classList.add('ck-deleted');
+    }
+
     const isEditing = this._isRowEditing(rowData, index);
     if (isEditing) {
       this._currentEditIndex = index;
@@ -516,9 +536,15 @@ export class CkEditableArray extends HTMLElement {
     const editButton = rowEl.querySelector('[data-action="toggle"]');
     const saveButton = rowEl.querySelector('[data-action="save"]');
     const cancelButton = rowEl.querySelector('[data-action="cancel"]');
+    const deleteButton = rowEl.querySelector('[data-action="delete"]');
     const itemNumber = index + 1;
+
+    const isDeleted = this._isRowDeleted(rowData, index);
+
     if (editButton) {
       editButton.setAttribute('aria-label', `Edit item ${itemNumber}`);
+      // Disable edit button when row is deleted
+      (editButton as HTMLButtonElement).disabled = isDeleted;
     }
     if (saveButton) {
       saveButton.setAttribute('aria-label', `Save item ${itemNumber}`);
@@ -528,6 +554,15 @@ export class CkEditableArray extends HTMLElement {
         'aria-label',
         `Cancel edits for item ${itemNumber}`
       );
+    }
+    if (deleteButton) {
+      if (isDeleted) {
+        deleteButton.textContent = 'Restore';
+        deleteButton.setAttribute('aria-label', `Restore item ${itemNumber}`);
+      } else {
+        deleteButton.textContent = 'Delete';
+        deleteButton.setAttribute('aria-label', `Delete item ${itemNumber}`);
+      }
     }
 
     // Re-apply bindings and semantics with cached elements
@@ -910,6 +945,8 @@ export class CkEditableArray extends HTMLElement {
       this._saveRow(rowEl, rowIndex);
     } else if (action === 'cancel') {
       this._cancelRow(rowEl, rowIndex);
+    } else if (action === 'delete') {
+      this._toggleDeleteRow(rowEl, rowIndex);
     }
   }
 
@@ -1039,6 +1076,67 @@ export class CkEditableArray extends HTMLElement {
     this._updateFormValueFromControls();
   }
 
+  private _toggleDeleteRow(rowEl: HTMLElement, rowIndex: number) {
+    const rowData = this._data[rowIndex];
+    if (!rowData) return;
+
+    // Toggle isDeleted property
+    const isCurrentlyDeleted = this._isRowDeleted(rowData, rowIndex);
+    const newDeletedState = !isCurrentlyDeleted;
+
+    // Add isDeleted property to data if it doesn't exist
+    if (typeof rowData === 'object' && rowData !== null) {
+      (rowData as Record<string, unknown>).isDeleted = newDeletedState;
+    }
+
+    // Update button text and aria-label
+    const deleteButton = rowEl.querySelector(
+      '[data-action="delete"]'
+    ) as HTMLButtonElement | null;
+    if (deleteButton) {
+      if (newDeletedState) {
+        deleteButton.textContent = 'Restore';
+        deleteButton.setAttribute('aria-label', `Restore item ${rowIndex + 1}`);
+      } else {
+        deleteButton.textContent = 'Delete';
+        deleteButton.setAttribute('aria-label', `Delete item ${rowIndex + 1}`);
+      }
+    }
+
+    // Update edit button disabled state
+    const editButton = rowEl.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement | null;
+    if (editButton) {
+      editButton.disabled = newDeletedState;
+    }
+
+    // Update checkbox state
+    const checkbox = rowEl.querySelector(
+      'input[type="checkbox"][data-bind="isDeleted"]'
+    ) as HTMLInputElement | null;
+    if (checkbox) {
+      checkbox.checked = newDeletedState;
+    }
+
+    // Toggle ck-deleted class on row
+    rowEl.classList.toggle('ck-deleted', newDeletedState);
+
+    // Dispatch events
+    this._dispatchRowChanged(rowIndex);
+
+    // Dispatch datachanged based on mode (not triggered by a real event, so check mode directly)
+    const mode = this._getDataChangeMode();
+    if (mode === 'debounced') {
+      this._scheduleDataChanged();
+    } else if (mode === 'change' || mode === 'save') {
+      this._dispatchDataChanged();
+    }
+
+    // Update form value
+    this._updateFormValueFromControls();
+  }
+
   private _getEditState(rowData: unknown, rowIndex: number): EditState | null {
     if (typeof rowData === 'object' && rowData !== null) {
       return this._editStateMap.get(rowData) || null;
@@ -1069,6 +1167,13 @@ export class CkEditableArray extends HTMLElement {
     const editState = this._getEditState(rowData, rowIndex);
     if (editState?.editing) return true;
     return this._currentEditIndex === rowIndex;
+  }
+
+  private _isRowDeleted(rowData: unknown, rowIndex: number): boolean {
+    if (typeof rowData === 'object' && rowData !== null) {
+      return (rowData as Record<string, unknown>).isDeleted === true;
+    }
+    return false;
   }
 
   private _setRowMode(rowEl: HTMLElement, mode: 'display' | 'edit') {
