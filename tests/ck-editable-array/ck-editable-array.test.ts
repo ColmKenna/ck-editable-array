@@ -2507,6 +2507,177 @@ describe('CkEditableArray Component', () => {
     });
   });
 
+  // Cloning Error Handling Tests
+  describe('Data Cloning Error Handling', () => {
+    test('should handle non-JSON-serializable data by returning empty array', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      // Create a non-JSON-serializable object with circular reference
+      const circularObj: any = { name: 'Circular' };
+      circularObj.self = circularObj; // Create circular reference
+
+      // Setting data with circular reference should trigger JSON.stringify error
+      // The _jsonClone catch block should catch it and return []
+      element.data = [circularObj];
+
+      // After setting non-serializable data, element.data should return empty array
+      // because the cloning failed and returned []
+      const data = element.data as unknown[];
+      expect(data).toEqual([]);
+    });
+
+    test('should handle data with non-serializable nested values by stripping them', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      // Create object with function property (JSON serialization strips functions)
+      const dataWithFunction = {
+        name: 'Test',
+        callback: () => console.log('test'),
+      };
+
+      // Functions get stripped during JSON serialization (not an error)
+      element.data = [dataWithFunction];
+
+      // Should succeed with callback stripped
+      const data = element.data as { name: string; callback?: unknown }[];
+      expect(data[0].name).toBe('Test');
+      expect('callback' in data[0]).toBe(false);
+    });
+
+    test('should handle data with undefined values gracefully', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      // undefined gets stripped by JSON.stringify
+      const dataWithUndefined = {
+        name: 'Test',
+        value: undefined,
+      };
+
+      element.data = [dataWithUndefined];
+      const data = element.data as { name: string; value?: unknown }[];
+
+      // After JSON cloning, undefined will be removed from the object
+      expect(data[0].name).toBe('Test');
+      expect('value' in data[0]).toBe(false);
+    });
+
+    test('should handle Symbol values that cannot be serialized', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      // Create object with Symbol (not JSON serializable, but won't cause error with stringify)
+      const dataWithSymbol = {
+        name: 'Test',
+        [Symbol.for('test')]: 'value',
+      };
+
+      element.data = [dataWithSymbol];
+      const data = element.data as { name: string }[];
+
+      // Symbol will be stripped, but object should be serializable
+      expect(data[0].name).toBe('Test');
+    });
+
+    test('should handle deeply nested objects that clone successfully', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="a.b.c.d.e"></span>`;
+      element.appendChild(displayTemplate);
+
+      // Create deeply nested object (should clone successfully)
+      const deepObject = {
+        a: {
+          b: {
+            c: {
+              d: {
+                e: 'Deep Value',
+              },
+            },
+          },
+        },
+      };
+
+      element.data = [deepObject];
+      const data = element.data as { a: { b: { c: { d: { e: string } } } } }[];
+
+      // Deep cloning should work
+      expect(data[0].a.b.c.d.e).toBe('Deep Value');
+
+      // Verify it's a deep clone (not reference)
+      expect(data[0]).not.toBe(deepObject);
+      expect(data[0].a).not.toBe(deepObject.a);
+    });
+
+    test('should handle mixed serializable and non-serializable values in array', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      // Mix of serializable and non-serializable
+      const dataWithMixed: any[] = [
+        { name: 'Valid', value: 123 },
+        {
+          name: 'Invalid',
+          circular: null,
+        },
+      ];
+
+      // Create circular reference in second item
+      dataWithMixed[1].circular = dataWithMixed[1];
+
+      // When setting data with circular reference, should return []
+      element.data = dataWithMixed;
+      const data = element.data as unknown[];
+      expect(data).toEqual([]);
+    });
+
+    test('should cloneValue return empty array for non-array input', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      // Set data with non-array value (string)
+      element.data = 'NotAnArray';
+
+      // Should be converted to empty array
+      const data = element.data as unknown[];
+      expect(Array.isArray(data)).toBe(true);
+      expect(data.length).toBe(0);
+    });
+
+    test('should handle null and undefined data gracefully', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      // Set data to null
+      element.data = null;
+      let data = element.data as unknown[];
+      expect(Array.isArray(data)).toBe(true);
+      expect(data.length).toBe(0);
+
+      // Set data to undefined
+      element.data = undefined;
+      data = element.data as unknown[];
+      expect(Array.isArray(data)).toBe(true);
+      expect(data.length).toBe(0);
+    });
+  });
+
   // Phase 3.1: Existing Naming Scheme Verification
   describe('Form Control Naming (Phase 3.1)', () => {
     test('should apply name attributes with format componentName[index].field', () => {
