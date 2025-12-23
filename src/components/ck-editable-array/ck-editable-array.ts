@@ -18,7 +18,7 @@ export class CkEditableArray extends HTMLElement {
 
   private shadow: ShadowRoot;
   private _data: unknown[] = [];
-  private _rootEl: HTMLDivElement;
+  private _rootEl!: HTMLDivElement;
   private _containerEl: HTMLDivElement | null = null;
   private _messageEl: HTMLHeadingElement | null = null;
   private _rowsHostEl: HTMLDivElement | null = null;
@@ -40,10 +40,8 @@ export class CkEditableArray extends HTMLElement {
     super();
     this._internals = this.attachInternals();
     this.shadow = this.attachShadow({ mode: 'open' });
-    this._rootEl = document.createElement('div');
-    this.shadow.appendChild(this._rootEl);
-    this.shadow.addEventListener('click', this._onShadowClick);
 
+    // Pre-load stylesheet if available (good practice to do early)
     const adopted = (
       this.shadow as unknown as ShadowRoot & {
         adoptedStyleSheets?: CSSStyleSheet[];
@@ -59,6 +57,11 @@ export class CkEditableArray extends HTMLElement {
   }
 
   connectedCallback() {
+    if (!this._rootEl) {
+      this._rootEl = document.createElement('div');
+      this.shadow.appendChild(this._rootEl);
+      this.shadow.addEventListener('click', this._onShadowClick);
+    }
     this.render();
   }
 
