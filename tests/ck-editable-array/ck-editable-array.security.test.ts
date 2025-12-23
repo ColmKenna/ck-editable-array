@@ -72,7 +72,9 @@ describe('CkEditableArray Security', () => {
       <input type="text" data-bind="name" />
       <script>window.pwnedEdit = true;</script>
     `;
-    element.appendChild(createDisplayTemplate('<span data-bind="name"></span>'));
+    element.appendChild(
+      createDisplayTemplate('<span data-bind="name"></span>')
+    );
     element.appendChild(createEditTemplate(maliciousCode));
 
     element.data = [{ name: 'Test' }];
@@ -80,7 +82,9 @@ describe('CkEditableArray Security', () => {
 
     // Enter edit mode
     const row = element.shadowRoot?.querySelector('[data-row="0"]');
-    const toggleBtn = row?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+    const toggleBtn = row?.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
     toggleBtn.click();
 
     const shadowContent = element.shadowRoot?.innerHTML || '';
@@ -92,7 +96,9 @@ describe('CkEditableArray Security', () => {
     const maliciousCode = `
       <input type="text" data-bind="name" oninput="window.pwnedEdit = true" />
     `;
-    element.appendChild(createDisplayTemplate('<span data-bind="name"></span>'));
+    element.appendChild(
+      createDisplayTemplate('<span data-bind="name"></span>')
+    );
     element.appendChild(createEditTemplate(maliciousCode));
 
     element.data = [{ name: 'Test' }];
@@ -100,7 +106,9 @@ describe('CkEditableArray Security', () => {
 
     // Enter edit mode
     const row = element.shadowRoot?.querySelector('[data-row="0"]');
-    const toggleBtn = row?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+    const toggleBtn = row?.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement;
     toggleBtn.click();
 
     const input = row?.querySelector('input');
