@@ -183,6 +183,77 @@ console.log(element.name); // 'users'
 
 **Note**: The `data` property is not exposed as an attribute since arrays cannot be represented in HTML attributes.
 
+## Row Actions
+
+Each row in the component includes a set of action buttons:
+
+- **Edit Button**: Toggles between display and edit modes for the row
+- **Save Button** (visible in edit mode): Commits changes and returns to display mode
+- **Cancel Button** (visible in edit mode): Discards changes and returns to display mode
+- **Delete Button**: Performs a soft delete by setting `isDeleted` property to `true`; changes to "Restore" when deleted
+- **Restore Button**: Restores a deleted row by setting `isDeleted` property to `false`
+
+All action buttons include accessible `aria-label` attributes with row context (e.g., "Edit item 1", "Delete item 1", "Restore item 1").
+
+### Soft Delete Feature
+
+When you click the delete button on a row:
+1. The `isDeleted` property is set to `true` in the row data
+2. The delete button changes to "Restore"
+3. The **Edit button is disabled** to prevent editing deleted rows
+4. The row receives the `ck-deleted` CSS class for styling
+5. A hidden checkbox input (with `data-bind="isDeleted"`) is checked
+6. The `rowchanged` and `datachanged` events are dispatched
+
+Clicking the restore button reverses this process:
+1. The `isDeleted` property is set to `false`
+2. The button changes back to "Delete"
+3. The **Edit button is enabled** again
+4. The `ck-deleted` class is removed from the row
+5. The hidden checkbox is unchecked
+6. Events are dispatched again
+
+**Example**:
+```javascript
+const element = document.querySelector('ck-editable-array');
+element.data = [{ name: 'Alice', completed: false }];
+
+// User clicks delete button
+element.addEventListener('datachanged', (e) => {
+  console.log(e.detail.data[0]);
+  // { name: 'Alice', completed: false, isDeleted: true }
+});
+
+// User clicks restore button
+element.addEventListener('datachanged', (e) => {
+  console.log(e.detail.data[0]);
+  // { name: 'Alice', completed: false, isDeleted: false }
+});
+```
+
+### Styling Deleted Rows
+
+Deleted rows automatically receive the `ck-deleted` CSS class. You can use this class to customize the appearance of deleted rows:
+
+```html
+<ck-editable-array name="items">
+  <template slot="display">
+    <style>
+      .row.ck-deleted {
+        opacity: 0.6;
+        text-decoration: line-through;
+        background-color: #f5f5f5;
+      }
+    </style>
+    <div>
+      <span data-bind="name"></span>
+    </div>
+  </template>
+</ck-editable-array>
+```
+
+The `ck-deleted` class is automatically added when a row is deleted and removed when restored, making it easy to provide visual feedback to users about the deletion status.
+
 ## Templates (Light DOM)
 
 ### Display Template
