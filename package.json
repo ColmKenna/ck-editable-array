@@ -1,5 +1,5 @@
 {
-  "name": "@colmkenna/ck-editable-array",
+  "name": "@ColmKenna/ck-editable-array",
   "version": "1.0.0",
   "type": "module",
   "description": "A web component library built with Rollup",
