@@ -5110,4 +5110,1325 @@ describe('CkEditableArray Component', () => {
       });
     });
   });
+
+  describe('Phase 8: Drag and Drop Reordering', () => {
+    // Helper to create drag events
+    const createDragEvent = (type: string, dataTransfer?: DataTransfer) => {
+      const event = new Event(type, { bubbles: true, cancelable: true }) as any;
+      event.dataTransfer = dataTransfer || {
+        data: {} as Record<string, string>,
+        setData(format: string, data: string) {
+          this.data[format] = data;
+        },
+        getData(format: string) {
+          return this.data[format] || '';
+        },
+        effectAllowed: 'none',
+        dropEffect: 'none',
+      };
+      return event;
+    };
+
+    describe('8.1: Draggable Row Setup', () => {
+      test('should set draggable attribute on rows', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Item 1' }, { name: 'Item 2' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const rows = rowsHost?.querySelectorAll('[data-row]');
+
+        expect(rows?.[0]?.getAttribute('draggable')).toBe('true');
+        expect(rows?.[1]?.getAttribute('draggable')).toBe('true');
+
+        document.body.removeChild(element);
+      });
+
+      test('should not set draggable when readonly attribute is set', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('readonly', '');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Item 1' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row]');
+
+        expect(row?.getAttribute('draggable')).toBe('false');
+
+        document.body.removeChild(element);
+      });
+    });
+
+    describe('8.2: Drag Start Behavior', () => {
+      test('should set drag data with row index on dragstart', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Item 1' }, { name: 'Item 2' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+
+        const dragEvent = createDragEvent('dragstart');
+        row?.dispatchEvent(dragEvent);
+
+        expect(dragEvent.dataTransfer.getData('text/plain')).toBe('1');
+
+        document.body.removeChild(element);
+      });
+
+      test('should add dragging class to row on dragstart', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'Item 1' }, { name: 'Item 2' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+
+        const dragEvent = createDragEvent('dragstart');
+        row?.dispatchEvent(dragEvent);
+
+        expect(row?.classList.contains('ck-dragging')).toBe(true);
+
+        document.body.removeChild(element);
+      });
+
+      test('should block dragstart when any row is in edit mode', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        const editTemplate = createEditTemplate('name');
+        element.appendChild(displayTemplate);
+        element.appendChild(editTemplate);
+
+        element.data = [{ name: 'Item 1' }, { name: 'Item 2' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+
+        // Enter edit mode on row 0
+        const editButton = row0?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+        editButton?.click();
+
+        // Try to drag row 1
+        const dragEvent = createDragEvent('dragstart');
+        row1?.dispatchEvent(dragEvent);
+
+        // Should not set drag data when editing
+        expect(dragEvent.dataTransfer.getData('text/plain')).toBe('');
+
+        document.body.removeChild(element);
+      });
+    });
+
+    describe('8.3: Drop Behavior and Reordering', () => {
+      test('should reorder data when dropping row at new position', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row2 = rowsHost?.querySelector('[data-row="2"]') as HTMLElement;
+
+        // Simulate dragging row 0 to position 2
+        const dragStartEvent = createDragEvent('dragstart');
+        row0?.dispatchEvent(dragStartEvent);
+
+        const dropEvent = createDragEvent('drop', dragStartEvent.dataTransfer);
+        row2?.dispatchEvent(dropEvent);
+
+        // After drop, data should be reordered: B, C, A
+        expect(element.data).toEqual([
+          { name: 'B' },
+          { name: 'C' },
+          { name: 'A' },
+        ]);
+
+        document.body.removeChild(element);
+      });
+
+      test('should dispatch reorder event on successful drop', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        const reorderHandler = jest.fn();
+        element.addEventListener('reorder', reorderHandler);
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row2 = rowsHost?.querySelector('[data-row="2"]') as HTMLElement;
+
+        // Simulate dragging row 0 to position 2
+        const dragStartEvent = createDragEvent('dragstart');
+        row0?.dispatchEvent(dragStartEvent);
+
+        const dropEvent = createDragEvent('drop', dragStartEvent.dataTransfer);
+        row2?.dispatchEvent(dropEvent);
+
+        expect(reorderHandler).toHaveBeenCalledTimes(1);
+        expect(reorderHandler.mock.calls[0][0].detail).toEqual({
+          fromIndex: 0,
+          toIndex: 2,
+          data: [{ name: 'B' }, { name: 'C' }, { name: 'A' }],
+        });
+
+        document.body.removeChild(element);
+      });
+
+      test('should dispatch datachanged event after reorder', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const datachangedHandler = jest.fn();
+        element.addEventListener('datachanged', datachangedHandler);
+
+        // Clear initial datachanged from setting data
+        datachangedHandler.mockClear();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+
+        // Simulate dragging row 1 to position 0
+        const dragStartEvent = createDragEvent('dragstart');
+        row1?.dispatchEvent(dragStartEvent);
+
+        const dropEvent = createDragEvent('drop', dragStartEvent.dataTransfer);
+        row0?.dispatchEvent(dropEvent);
+
+        expect(datachangedHandler).toHaveBeenCalledTimes(1);
+        expect(datachangedHandler.mock.calls[0][0].detail.data).toEqual([
+          { name: 'B' },
+          { name: 'A' },
+        ]);
+
+        document.body.removeChild(element);
+      });
+
+      test('should update row indices after reorder', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row2 = rowsHost?.querySelector('[data-row="2"]') as HTMLElement;
+
+        // Simulate dragging row 0 to position 2
+        const dragStartEvent = createDragEvent('dragstart');
+        row0?.dispatchEvent(dragStartEvent);
+
+        const dropEvent = createDragEvent('drop', dragStartEvent.dataTransfer);
+        row2?.dispatchEvent(dropEvent);
+
+        // Re-query rows after reorder
+        const updatedRows = rowsHost?.querySelectorAll('[data-row]');
+
+        // Verify indices are correct: B at 0, C at 1, A at 2
+        expect(updatedRows?.[0]?.getAttribute('data-row')).toBe('0');
+        expect(updatedRows?.[1]?.getAttribute('data-row')).toBe('1');
+        expect(updatedRows?.[2]?.getAttribute('data-row')).toBe('2');
+
+        // Verify display content matches reordered data
+        const displayContent0 =
+          updatedRows?.[0]?.querySelector('[data-bind="name"]');
+        const displayContent1 =
+          updatedRows?.[1]?.querySelector('[data-bind="name"]');
+        const displayContent2 =
+          updatedRows?.[2]?.querySelector('[data-bind="name"]');
+
+        expect(displayContent0?.textContent).toBe('B');
+        expect(displayContent1?.textContent).toBe('C');
+        expect(displayContent2?.textContent).toBe('A');
+
+        document.body.removeChild(element);
+      });
+    });
+
+    describe('8.4: Drag Guards', () => {
+      test('should block drop when readonly attribute is set', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('readonly', '');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const reorderHandler = jest.fn();
+        element.addEventListener('reorder', reorderHandler);
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+
+        // Try to drag even though readonly
+        const dragStartEvent = createDragEvent('dragstart');
+        row0?.dispatchEvent(dragStartEvent);
+
+        const dropEvent = createDragEvent('drop', dragStartEvent.dataTransfer);
+        row1?.dispatchEvent(dropEvent);
+
+        // Data should not change
+        expect(element.data).toEqual([{ name: 'A' }, { name: 'B' }]);
+        expect(reorderHandler).not.toHaveBeenCalled();
+
+        document.body.removeChild(element);
+      });
+
+      test('should not allow dropping on same row', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const reorderHandler = jest.fn();
+        element.addEventListener('reorder', reorderHandler);
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+
+        // Drag and drop on same row
+        const dragStartEvent = createDragEvent('dragstart');
+        row0?.dispatchEvent(dragStartEvent);
+
+        const dropEvent = createDragEvent('drop', dragStartEvent.dataTransfer);
+        row0?.dispatchEvent(dropEvent);
+
+        // No reorder should happen
+        expect(reorderHandler).not.toHaveBeenCalled();
+        expect(element.data).toEqual([{ name: 'A' }, { name: 'B' }]);
+
+        document.body.removeChild(element);
+      });
+    });
+
+    describe('8.5: Drag Visual Feedback', () => {
+      test('should add drag-over class during dragover', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+
+        // Start dragging row 0
+        const dragStartEvent = createDragEvent('dragstart');
+        row0?.dispatchEvent(dragStartEvent);
+
+        // Drag over row 1
+        const dragOverEvent = createDragEvent('dragover');
+        row1?.dispatchEvent(dragOverEvent);
+
+        expect(row1?.classList.contains('ck-drag-over')).toBe(true);
+
+        document.body.removeChild(element);
+      });
+
+      test('should remove drag-over class on dragleave', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+
+        // Start dragging row 0
+        const dragStartEvent = createDragEvent('dragstart');
+        row0?.dispatchEvent(dragStartEvent);
+
+        // Drag over then leave row 1
+        const dragOverEvent = createDragEvent('dragover');
+        row1?.dispatchEvent(dragOverEvent);
+
+        const dragLeaveEvent = createDragEvent('dragleave');
+        row1?.dispatchEvent(dragLeaveEvent);
+
+        expect(row1?.classList.contains('ck-drag-over')).toBe(false);
+
+        document.body.removeChild(element);
+      });
+
+      test('should remove dragging class on dragend', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+
+        // Start and end drag
+        const dragStartEvent = createDragEvent('dragstart');
+        row0?.dispatchEvent(dragStartEvent);
+
+        expect(row0?.classList.contains('ck-dragging')).toBe(true);
+
+        const dragEndEvent = createDragEvent('dragend');
+        row0?.dispatchEvent(dragEndEvent);
+
+        expect(row0?.classList.contains('ck-dragging')).toBe(false);
+
+        document.body.removeChild(element);
+      });
+
+      test('should clear all drag classes on drop', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+
+        // Start drag, add drag-over, then drop
+        const dragStartEvent = createDragEvent('dragstart');
+        row0?.dispatchEvent(dragStartEvent);
+
+        const dragOverEvent = createDragEvent('dragover');
+        row1?.dispatchEvent(dragOverEvent);
+
+        const dropEvent = createDragEvent('drop', dragStartEvent.dataTransfer);
+        row1?.dispatchEvent(dropEvent);
+
+        // After re-render, rows should not have drag classes
+        const updatedRows = rowsHost?.querySelectorAll('[data-row]');
+        updatedRows?.forEach((row: Element) => {
+          expect(row.classList.contains('ck-dragging')).toBe(false);
+          expect(row.classList.contains('ck-drag-over')).toBe(false);
+        });
+
+        document.body.removeChild(element);
+      });
+    });
+
+    describe('8.6: Accessibility for Drag and Drop', () => {
+      test('should announce reorder in status region', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const row1 = rowsHost?.querySelector('[data-row="1"]') as HTMLElement;
+
+        // Perform reorder
+        const dragStartEvent = createDragEvent('dragstart');
+        row0?.dispatchEvent(dragStartEvent);
+
+        const dropEvent = createDragEvent('drop', dragStartEvent.dataTransfer);
+        row1?.dispatchEvent(dropEvent);
+
+        const statusRegion =
+          element.shadowRoot?.querySelector('[role="status"]');
+        expect(statusRegion?.textContent).toContain('Moved item');
+
+        document.body.removeChild(element);
+      });
+    });
+  });
+
+  describe('Phase 9: Move Up/Down Methods and Buttons', () => {
+    describe('9.1: moveUp Method', () => {
+      test('should move row up one position', async () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        const result = element.moveUp(1);
+
+        expect(result).toBe(true);
+
+        // Wait for animation to complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        expect(element.data).toEqual([
+          { name: 'B' },
+          { name: 'A' },
+          { name: 'C' },
+        ]);
+
+        document.body.removeChild(element);
+      });
+
+      test('should return false when moving first row up', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const result = element.moveUp(0);
+
+        expect(result).toBe(false);
+        expect(element.data).toEqual([{ name: 'A' }, { name: 'B' }]);
+
+        document.body.removeChild(element);
+      });
+
+      test('should return false for invalid index', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        expect(element.moveUp(-1)).toBe(false);
+        expect(element.moveUp(5)).toBe(false);
+
+        document.body.removeChild(element);
+      });
+
+      test('should dispatch reorder event on moveUp', async () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const reorderHandler = jest.fn();
+        element.addEventListener('reorder', reorderHandler);
+
+        element.moveUp(1);
+
+        // Wait for animation to complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        expect(reorderHandler).toHaveBeenCalledTimes(1);
+        expect(reorderHandler.mock.calls[0][0].detail).toEqual({
+          fromIndex: 1,
+          toIndex: 0,
+          data: [{ name: 'B' }, { name: 'A' }],
+        });
+
+        document.body.removeChild(element);
+      });
+
+      test('should block moveUp when readonly', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('readonly', '');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const result = element.moveUp(1);
+
+        expect(result).toBe(false);
+        expect(element.data).toEqual([{ name: 'A' }, { name: 'B' }]);
+
+        document.body.removeChild(element);
+      });
+
+      test('should block moveUp when any row is editing', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        const editTemplate = createEditTemplate('name');
+        element.appendChild(displayTemplate);
+        element.appendChild(editTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        // Enter edit mode
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const editButton = row0?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+        editButton?.click();
+
+        const result = element.moveUp(1);
+
+        expect(result).toBe(false);
+
+        document.body.removeChild(element);
+      });
+    });
+
+    describe('9.2: moveDown Method', () => {
+      test('should move row down one position', async () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        const result = element.moveDown(0);
+
+        expect(result).toBe(true);
+
+        // Wait for animation to complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        expect(element.data).toEqual([
+          { name: 'B' },
+          { name: 'A' },
+          { name: 'C' },
+        ]);
+
+        document.body.removeChild(element);
+      });
+
+      test('should return false when moving last row down', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const result = element.moveDown(1);
+
+        expect(result).toBe(false);
+        expect(element.data).toEqual([{ name: 'A' }, { name: 'B' }]);
+
+        document.body.removeChild(element);
+      });
+
+      test('should return false for invalid index', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        expect(element.moveDown(-1)).toBe(false);
+        expect(element.moveDown(5)).toBe(false);
+
+        document.body.removeChild(element);
+      });
+
+      test('should dispatch reorder event on moveDown', async () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const reorderHandler = jest.fn();
+        element.addEventListener('reorder', reorderHandler);
+
+        element.moveDown(0);
+
+        // Wait for animation to complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        expect(reorderHandler).toHaveBeenCalledTimes(1);
+        expect(reorderHandler.mock.calls[0][0].detail).toEqual({
+          fromIndex: 0,
+          toIndex: 1,
+          data: [{ name: 'B' }, { name: 'A' }],
+        });
+
+        document.body.removeChild(element);
+      });
+
+      test('should block moveDown when readonly', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('readonly', '');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const result = element.moveDown(0);
+
+        expect(result).toBe(false);
+        expect(element.data).toEqual([{ name: 'A' }, { name: 'B' }]);
+
+        document.body.removeChild(element);
+      });
+    });
+
+    describe('9.3: Move Up/Down Buttons', () => {
+      test('should render move-up button for each row', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const rows = rowsHost?.querySelectorAll('[data-row]');
+
+        rows?.forEach((row: Element) => {
+          const moveUpBtn = row.querySelector('[data-action="move-up"]');
+          expect(moveUpBtn).not.toBeNull();
+        });
+
+        document.body.removeChild(element);
+      });
+
+      test('should render move-down button for each row', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const rows = rowsHost?.querySelectorAll('[data-row]');
+
+        rows?.forEach((row: Element) => {
+          const moveDownBtn = row.querySelector('[data-action="move-down"]');
+          expect(moveDownBtn).not.toBeNull();
+        });
+
+        document.body.removeChild(element);
+      });
+
+      test('should disable move-up button for first row', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const firstRow = rowsHost?.querySelector('[data-row="0"]');
+        const moveUpBtn = firstRow?.querySelector(
+          '[data-action="move-up"]'
+        ) as HTMLButtonElement;
+
+        expect(moveUpBtn?.disabled).toBe(true);
+
+        document.body.removeChild(element);
+      });
+
+      test('should disable move-down button for last row', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const lastRow = rowsHost?.querySelector('[data-row="1"]');
+        const moveDownBtn = lastRow?.querySelector(
+          '[data-action="move-down"]'
+        ) as HTMLButtonElement;
+
+        expect(moveDownBtn?.disabled).toBe(true);
+
+        document.body.removeChild(element);
+      });
+
+      test('should move row up when clicking move-up button', async () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row1 = rowsHost?.querySelector('[data-row="1"]');
+        const moveUpBtn = row1?.querySelector(
+          '[data-action="move-up"]'
+        ) as HTMLButtonElement;
+
+        moveUpBtn?.click();
+
+        // Wait for animation to complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        expect(element.data).toEqual([
+          { name: 'B' },
+          { name: 'A' },
+          { name: 'C' },
+        ]);
+
+        document.body.removeChild(element);
+      });
+
+      test('should move row down when clicking move-down button', async () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]');
+        const moveDownBtn = row0?.querySelector(
+          '[data-action="move-down"]'
+        ) as HTMLButtonElement;
+
+        moveDownBtn?.click();
+
+        // Wait for animation to complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        expect(element.data).toEqual([
+          { name: 'B' },
+          { name: 'A' },
+          { name: 'C' },
+        ]);
+
+        document.body.removeChild(element);
+      });
+
+      test('should have accessible aria-labels on move buttons', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row1 = rowsHost?.querySelector('[data-row="1"]');
+        const moveUpBtn = row1?.querySelector('[data-action="move-up"]');
+        const moveDownBtn = row1?.querySelector('[data-action="move-down"]');
+
+        expect(moveUpBtn?.getAttribute('aria-label')).toBe('Move item 2 up');
+        expect(moveDownBtn?.getAttribute('aria-label')).toBe(
+          'Move item 2 down'
+        );
+
+        document.body.removeChild(element);
+      });
+
+      test('should expose part attributes on move buttons', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]');
+        const moveUpBtn = row?.querySelector('[data-action="move-up"]');
+        const moveDownBtn = row?.querySelector('[data-action="move-down"]');
+
+        expect(moveUpBtn?.getAttribute('part')).toBe('button button-move-up');
+        expect(moveDownBtn?.getAttribute('part')).toBe(
+          'button button-move-down'
+        );
+
+        document.body.removeChild(element);
+      });
+
+      test('should hide move buttons when readonly', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('readonly', '');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row = rowsHost?.querySelector('[data-row="0"]');
+        const moveUpBtn = row?.querySelector(
+          '[data-action="move-up"]'
+        ) as HTMLButtonElement;
+        const moveDownBtn = row?.querySelector(
+          '[data-action="move-down"]'
+        ) as HTMLButtonElement;
+
+        expect(moveUpBtn?.disabled).toBe(true);
+        expect(moveDownBtn?.disabled).toBe(true);
+
+        document.body.removeChild(element);
+      });
+
+      test('should hide move buttons when a row is in edit mode', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        const editTemplate = createEditTemplate('name');
+        element.appendChild(displayTemplate);
+        element.appendChild(editTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+
+        // Before editing: move buttons should be visible
+        const row0 = rowsHost?.querySelector('[data-row="0"]');
+        const row1 = rowsHost?.querySelector('[data-row="1"]');
+        const moveUpBtn0 = row0?.querySelector(
+          '[data-action="move-up"]'
+        ) as HTMLButtonElement;
+        const moveDownBtn1 = row1?.querySelector(
+          '[data-action="move-down"]'
+        ) as HTMLButtonElement;
+
+        expect(moveUpBtn0?.classList.contains('ck-hidden')).toBe(false);
+        expect(moveDownBtn1?.classList.contains('ck-hidden')).toBe(false);
+
+        // Enter edit mode on row 1
+        const editButton = row1?.querySelector(
+          '[data-action="toggle"]'
+        ) as HTMLButtonElement;
+        editButton?.click();
+
+        // After editing: move buttons should be hidden on the editing row
+        const moveUpBtn1 = row1?.querySelector(
+          '[data-action="move-up"]'
+        ) as HTMLButtonElement;
+        const moveDownBtn1After = row1?.querySelector(
+          '[data-action="move-down"]'
+        ) as HTMLButtonElement;
+
+        expect(moveUpBtn1?.classList.contains('ck-hidden')).toBe(true);
+        expect(moveDownBtn1After?.classList.contains('ck-hidden')).toBe(true);
+
+        document.body.removeChild(element);
+      });
+    });
+
+    describe('9.4: Animated Row Movement', () => {
+      test('should apply ck-animating class during moveUp animation', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+
+        // Trigger moveUp
+        element.moveUp(1);
+
+        // Check that animating class is applied during animation
+        const rows = rowsHost?.querySelectorAll('[data-row]');
+        const hasAnimatingClass = Array.from(rows || []).some(row =>
+          (row as Element).classList.contains('ck-animating')
+        );
+        expect(hasAnimatingClass).toBe(true);
+
+        document.body.removeChild(element);
+      });
+
+      test('should apply transform styles during moveUp animation', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        // Trigger moveUp on row 1
+        element.moveUp(1);
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const rows = rowsHost?.querySelectorAll('[data-row]');
+
+        // At least one row should have a transform applied during animation
+        const hasTransform = Array.from(rows || []).some(row => {
+          const style = (row as HTMLElement).style.transform;
+          return style && style !== 'none' && style !== '';
+        });
+        expect(hasTransform).toBe(true);
+
+        document.body.removeChild(element);
+      });
+
+      test('should apply transition styles during animation', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        // Trigger moveUp on row 1
+        element.moveUp(1);
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const rows = rowsHost?.querySelectorAll('[data-row]');
+
+        // At least one row should have a transition applied
+        const hasTransition = Array.from(rows || []).some(row => {
+          const style = (row as HTMLElement).style.transition;
+          return style && style.includes('transform');
+        });
+        expect(hasTransition).toBe(true);
+
+        document.body.removeChild(element);
+      });
+
+      test('should animate adjacent rows during moveDown', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        // Trigger moveDown on row 0
+        element.moveDown(0);
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const rows = rowsHost?.querySelectorAll('[data-row]');
+
+        // Both row 0 and row 1 should have transforms (they swap)
+        const transformedRows = Array.from(rows || []).filter(row => {
+          const style = (row as HTMLElement).style.transform;
+          return style && style !== 'none' && style !== '';
+        });
+        expect(transformedRows.length).toBeGreaterThanOrEqual(2);
+
+        document.body.removeChild(element);
+      });
+
+      test('should block rapid consecutive clicks during animation', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        // First move should succeed
+        const result1 = element.moveUp(2);
+        expect(result1).toBe(true);
+
+        // Second rapid move should be blocked (animation in progress)
+        const result2 = element.moveUp(1);
+        expect(result2).toBe(false);
+
+        document.body.removeChild(element);
+      });
+
+      test('should complete data reorder after animation', async () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        // Trigger moveUp on row 1
+        element.moveUp(1);
+
+        // Wait for animation to complete (250ms + buffer)
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Data should be reordered
+        expect(element.data[0].name).toBe('B');
+        expect(element.data[1].name).toBe('A');
+        expect(element.data[2].name).toBe('C');
+
+        document.body.removeChild(element);
+      });
+
+      test('should remove animation classes after completion', async () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        // Trigger moveUp
+        element.moveUp(1);
+
+        // Wait for animation to complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const rows = rowsHost?.querySelectorAll('[data-row]');
+
+        // No rows should have animating class after completion
+        const hasAnimatingClass = Array.from(rows || []).some(row =>
+          (row as Element).classList.contains('ck-animating')
+        );
+        expect(hasAnimatingClass).toBe(false);
+
+        document.body.removeChild(element);
+      });
+
+      test('should remove transform styles after animation completion', async () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        // Trigger moveUp
+        element.moveUp(1);
+
+        // Wait for animation to complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const rows = rowsHost?.querySelectorAll('[data-row]');
+
+        // No rows should have transforms after completion
+        const hasTransform = Array.from(rows || []).some(row => {
+          const style = (row as HTMLElement).style.transform;
+          return style && style !== 'none' && style !== '';
+        });
+        expect(hasTransform).toBe(false);
+
+        document.body.removeChild(element);
+      });
+
+      test('should dispatch reorder event after animation completes', async () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        const reorderHandler = jest.fn();
+        element.addEventListener('reorder', reorderHandler);
+
+        // Trigger moveUp
+        element.moveUp(1);
+
+        // Event should not fire immediately
+        expect(reorderHandler).not.toHaveBeenCalled();
+
+        // Wait for animation to complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Event should fire after animation
+        expect(reorderHandler).toHaveBeenCalledTimes(1);
+        expect(reorderHandler.mock.calls[0][0].detail.fromIndex).toBe(1);
+        expect(reorderHandler.mock.calls[0][0].detail.toIndex).toBe(0);
+
+        document.body.removeChild(element);
+      });
+
+      test('should allow next move after animation completes', async () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        // First move
+        const result1 = element.moveUp(2);
+        expect(result1).toBe(true);
+
+        // Wait for animation to complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Second move should now work
+        const result2 = element.moveUp(2);
+        expect(result2).toBe(true);
+
+        document.body.removeChild(element);
+      });
+
+      test('should use 250ms duration for animation', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        // Trigger moveUp
+        element.moveUp(1);
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const rows = rowsHost?.querySelectorAll('[data-row]');
+
+        // Check transition includes 250ms or 0.25s
+        const hasCorrectDuration = Array.from(rows || []).some(row => {
+          const style = (row as HTMLElement).style.transition;
+          return style && (style.includes('250ms') || style.includes('0.25s'));
+        });
+        expect(hasCorrectDuration).toBe(true);
+
+        document.body.removeChild(element);
+      });
+
+      test('should use ease-in-out timing function', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        // Trigger moveUp
+        element.moveUp(1);
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const rows = rowsHost?.querySelectorAll('[data-row]');
+
+        // Check transition includes ease-in-out
+        const hasEaseInOut = Array.from(rows || []).some(row => {
+          const style = (row as HTMLElement).style.transition;
+          return style && style.includes('ease-in-out');
+        });
+        expect(hasEaseInOut).toBe(true);
+
+        document.body.removeChild(element);
+      });
+    });
+  });
 });

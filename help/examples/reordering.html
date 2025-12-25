@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reordering - &lt;ck-editable-array&gt;</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+    nav a { color: inherit; text-decoration: none; }
+    .example { margin: 28px 0; padding: 18px; border: 1px solid #ddd; border-radius: 10px; }
+    .demo { padding: 14px; background: #f5f5f5; border-radius: 8px; margin: 12px 0; }
+    .code { background: #111; color: #eaeaea; padding: 12px; border-radius: 10px; overflow-x: auto; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .panel { border: 1px solid #ddd; border-radius: 10px; padding: 12px; background: #fff; }
+    button { padding: 6px 10px; margin: 2px; }
+    .small { font-size: 0.92rem; color: #444; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { border: 1px solid #ddd; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: #fafafa; width: 180px; }
+    .note { padding: 10px 12px; background: rgba(0,0,0,0.03); border-left: 4px solid #999; border-radius: 8px; margin: 10px 0; }
+    .item-row { display: flex; align-items: center; gap: 8px; padding: 8px; background: #fff; border-radius: 6px; margin: 4px 0; }
+    .item-row span { flex: 1; }
+
+    /* Custom drag feedback styles */
+    ck-editable-array .ck-dragging {
+      opacity: 0.4;
+      background: #e0e0e0;
+    }
+    ck-editable-array .ck-drag-over {
+      border: 2px dashed #3b82f6 !important;
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    /* Style move buttons */
+    ck-editable-array::part(button-move-up),
+    ck-editable-array::part(button-move-down) {
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
+    }
+    ck-editable-array::part(button-move-up):hover,
+    ck-editable-array::part(button-move-down):hover {
+      background: #7c3aed;
+    }
+    ck-editable-array::part(button-move-up):disabled,
+    ck-editable-array::part(button-move-down):disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <nav><a href="../index.html">&larr; Back to Documentation</a></nav>
+
+  <h1>Reordering</h1>
+  <p class="small">This page demonstrates row reordering via drag and drop, move up/down buttons, and programmatic API.</p>
+
+  <div class="example" id="drag-drop">
+    <h2>1) Drag and Drop</h2>
+    <p>Drag rows to reorder them. The dragged row becomes semi-transparent, and the drop target is highlighted.</p>
+    <div class="demo">
+      <ck-editable-array id="dragEl" name="tasks">
+        <template slot="display">
+          <div class="item-row">
+            <span data-bind="title"></span>
+          </div>
+        </template>
+        <template slot="edit">
+          <input data-bind="title" style="width: 100%;" />
+        </template>
+      </ck-editable-array>
+    </div>
+
+    <div class="row">
+      <div class="panel">
+        <h3 style="margin-top: 0;">Instructions</h3>
+        <ul class="small">
+          <li>Click and drag any row to a new position</li>
+          <li>Watch the visual feedback as you drag</li>
+          <li>Drop on another row to swap positions</li>
+          <li>Use the Move Up/Down buttons for keyboard access</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top: 0;">Event Log</h3>
+        <pre class="code" style="margin:0; max-height: 180px; overflow-y: auto;"><code id="dragEventLog"></code></pre>
+      </div>
+    </div>
+
+    <h3>HTML</h3>
+    <pre class="code"><code>&lt;ck-editable-array id="dragEl" name="tasks"&gt;
+  &lt;template slot="display"&gt;
+    &lt;div class="item-row"&gt;
+      &lt;span data-bind="title"&gt;&lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/template&gt;
+&lt;/ck-editable-array&gt;</code></pre>
+
+    <h3>CSS (custom drag feedback)</h3>
+    <pre class="code"><code>ck-editable-array .ck-dragging {
+  opacity: 0.4;
+  background: #e0e0e0;
+}
+
+ck-editable-array .ck-drag-over {
+  border: 2px dashed #3b82f6 !important;
+  background: rgba(59, 130, 246, 0.1);
+}</code></pre>
+  </div>
+
+  <div class="example" id="programmatic">
+    <h2>2) Programmatic API</h2>
+    <p>Use the <code>moveUp()</code> and <code>moveDown()</code> methods to reorder rows programmatically.</p>
+    <div class="demo">
+      <ck-editable-array id="apiEl" name="items">
+        <template slot="display">
+          <div class="item-row">
+            <strong data-bind="id"></strong>
+            <span data-bind="name"></span>
+          </div>
+        </template>
+      </ck-editable-array>
+    </div>
+
+    <div class="row">
+      <div class="panel">
+        <h3 style="margin-top: 0;">Controls</h3>
+        <p class="small">Select a row index and use the buttons to move it:</p>
+        <label>
+          Row index:
+          <select id="rowSelect">
+            <option value="0">0 (First)</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3 (Last)</option>
+          </select>
+        </label>
+        <br /><br />
+        <button id="moveUpBtn">Move Up</button>
+        <button id="moveDownBtn">Move Down</button>
+        <button id="resetDataBtn">Reset Data</button>
+        <p class="small" id="resultMsg"></p>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top: 0;">Current Order</h3>
+        <pre class="code" style="margin:0;"><code id="orderOut"></code></pre>
+      </div>
+    </div>
+
+    <h3>JavaScript</h3>
+    <pre class="code"><code>const el = document.querySelector('ck-editable-array');
+
+// Move row at index 2 up
+const success = el.moveUp(2);
+console.log('Move succeeded:', success);
+
+// Move row at index 0 down
+el.moveDown(0);
+
+// Listen for reorder events
+el.addEventListener('reorder', (e) => {
+  console.log(`Moved from ${e.detail.fromIndex} to ${e.detail.toIndex}`);
+});</code></pre>
+  </div>
+
+  <div class="example" id="readonly">
+    <h2>3) Readonly Mode</h2>
+    <p>When the <code>readonly</code> attribute is set, reordering is disabled. Rows cannot be dragged, and move buttons are hidden.</p>
+    <div class="demo">
+      <ck-editable-array id="readonlyEl" name="readonly-items" readonly>
+        <template slot="display">
+          <div class="item-row">
+            <span data-bind="title"></span>
+          </div>
+        </template>
+      </ck-editable-array>
+    </div>
+
+    <div class="panel" style="display: inline-block;">
+      <label>
+        <input type="checkbox" id="readonlyToggle" checked />
+        Readonly mode
+      </label>
+    </div>
+
+    <h3>HTML</h3>
+    <pre class="code"><code>&lt;ck-editable-array readonly&gt;
+  ...
+&lt;/ck-editable-array&gt;</code></pre>
+  </div>
+
+  <div class="example" id="events">
+    <h2>4) Reorder Event Details</h2>
+    <p>The <code>reorder</code> event provides details about the move operation.</p>
+    <div class="demo">
+      <ck-editable-array id="eventEl" name="event-demo">
+        <template slot="display">
+          <div class="item-row">
+            <span data-bind="label"></span>
+          </div>
+        </template>
+      </ck-editable-array>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin-top: 0;">Last Reorder Event</h3>
+      <pre class="code" style="margin:0;"><code id="eventDetails">Reorder a row to see event details...</code></pre>
+    </div>
+
+    <h3>Event Payload Structure</h3>
+    <pre class="code"><code>{
+  detail: {
+    fromIndex: number,  // Original position
+    toIndex: number,    // New position
+    data: unknown[]     // Updated data array (deep clone)
+  },
+  bubbles: true,
+  composed: true,
+  cancelable: false
+}</code></pre>
+  </div>
+
+  <script type="module">
+    import '../../dist/ck-editable-array/ck-editable-array.esm.js';
+
+    // Example 1: Drag and Drop
+    const dragEl = document.querySelector('#dragEl');
+    const dragEventLog = document.querySelector('#dragEventLog');
+    const dragEvents = [];
+
+    dragEl.data = [
+      { title: 'Task 1: Design mockups' },
+      { title: 'Task 2: Write tests' },
+      { title: 'Task 3: Implement feature' },
+      { title: 'Task 4: Code review' },
+      { title: 'Task 5: Deploy to production' }
+    ];
+
+    dragEl.addEventListener('reorder', (e) => {
+      dragEvents.unshift(`[${new Date().toLocaleTimeString()}] Reorder: ${e.detail.fromIndex} -> ${e.detail.toIndex}`);
+      dragEventLog.textContent = dragEvents.slice(0, 10).join('\n');
+    });
+
+    // Example 2: Programmatic API
+    const apiEl = document.querySelector('#apiEl');
+    const rowSelect = document.querySelector('#rowSelect');
+    const moveUpBtn = document.querySelector('#moveUpBtn');
+    const moveDownBtn = document.querySelector('#moveDownBtn');
+    const resetDataBtn = document.querySelector('#resetDataBtn');
+    const resultMsg = document.querySelector('#resultMsg');
+    const orderOut = document.querySelector('#orderOut');
+
+    const initialData = [
+      { id: 'A', name: 'Alpha' },
+      { id: 'B', name: 'Beta' },
+      { id: 'C', name: 'Gamma' },
+      { id: 'D', name: 'Delta' }
+    ];
+
+    function updateOrderDisplay() {
+      orderOut.textContent = apiEl.data.map((item, i) => `${i}: ${item.id} - ${item.name}`).join('\n');
+    }
+
+    apiEl.data = [...initialData];
+    updateOrderDisplay();
+
+    apiEl.addEventListener('reorder', () => {
+      updateOrderDisplay();
+    });
+
+    moveUpBtn.addEventListener('click', () => {
+      const index = parseInt(rowSelect.value);
+      const success = apiEl.moveUp(index);
+      resultMsg.textContent = success
+        ? `Row ${index} moved up successfully`
+        : `Cannot move row ${index} up (boundary or blocked)`;
+      resultMsg.style.color = success ? 'green' : 'red';
+    });
+
+    moveDownBtn.addEventListener('click', () => {
+      const index = parseInt(rowSelect.value);
+      const success = apiEl.moveDown(index);
+      resultMsg.textContent = success
+        ? `Row ${index} moved down successfully`
+        : `Cannot move row ${index} down (boundary or blocked)`;
+      resultMsg.style.color = success ? 'green' : 'red';
+    });
+
+    resetDataBtn.addEventListener('click', () => {
+      apiEl.data = [...initialData];
+      updateOrderDisplay();
+      resultMsg.textContent = 'Data reset to initial order';
+      resultMsg.style.color = '#666';
+    });
+
+    // Example 3: Readonly Mode
+    const readonlyEl = document.querySelector('#readonlyEl');
+    const readonlyToggle = document.querySelector('#readonlyToggle');
+
+    readonlyEl.data = [
+      { title: 'Item 1 (try dragging - disabled)' },
+      { title: 'Item 2 (no move buttons visible)' },
+      { title: 'Item 3 (readonly mode active)' }
+    ];
+
+    readonlyToggle.addEventListener('change', () => {
+      if (readonlyToggle.checked) {
+        readonlyEl.setAttribute('readonly', '');
+      } else {
+        readonlyEl.removeAttribute('readonly');
+      }
+    });
+
+    // Example 4: Event Details
+    const eventEl = document.querySelector('#eventEl');
+    const eventDetails = document.querySelector('#eventDetails');
+
+    eventEl.data = [
+      { label: 'First item' },
+      { label: 'Second item' },
+      { label: 'Third item' }
+    ];
+
+    eventEl.addEventListener('reorder', (e) => {
+      eventDetails.textContent = JSON.stringify({
+        fromIndex: e.detail.fromIndex,
+        toIndex: e.detail.toIndex,
+        data: e.detail.data,
+        bubbles: e.bubbles,
+        composed: e.composed,
+        cancelable: e.cancelable
+      }, null, 2);
+    });
+  </script>
+</body>
+</html>

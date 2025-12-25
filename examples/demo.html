@@ -1017,6 +1017,154 @@ Waiting for input changes...
           </div>
         </div>
       </div>
+
+      <!-- Drag and Drop Reordering Demo -->
+      <div class="demo-section">
+        <h2>12. Drag and Drop Reordering</h2>
+        <p class="section-description">
+          Rows can be reordered by dragging and dropping them to new positions.
+          The component provides visual feedback during drag operations and dispatches events on successful reorder.
+        </p>
+
+        <div class="demo-grid">
+          <div class="demo-item">
+            <h3>Drag to Reorder</h3>
+            <p style="color: #666; margin-bottom: 1rem;">
+              Click and drag any row to reorder the list. Visual feedback shows the drag source and drop target.
+            </p>
+            <div class="component-wrapper">
+              <ck-editable-array id="dragDropDemo" name="priorities">
+                <template slot="display">
+                  <style>
+                    .priority-row {
+                      padding: 0.75rem;
+                      background: #f9f9f9;
+                      border-radius: 4px;
+                      border-left: 4px solid #667eea;
+                      transition: all 0.2s ease;
+                      cursor: grab;
+                      display: flex;
+                      align-items: center;
+                      gap: 0.5rem;
+                    }
+                    .priority-row:active {
+                      cursor: grabbing;
+                    }
+                    .row.ck-dragging .priority-row {
+                      opacity: 0.5;
+                      background: #e0e0e0;
+                      border-left-color: #999;
+                    }
+                    .row.ck-drag-over .priority-row {
+                      border: 2px dashed #667eea;
+                      background: #eff6ff;
+                      transform: scale(1.02);
+                    }
+                    .priority-icon {
+                      font-size: 1.2rem;
+                    }
+                    .priority-name {
+                      font-weight: 500;
+                    }
+                    .priority-index {
+                      margin-left: auto;
+                      font-size: 0.85rem;
+                      color: #999;
+                      background: #e8e8e8;
+                      padding: 0.25rem 0.5rem;
+                      border-radius: 4px;
+                    }
+                  </style>
+                  <div class="priority-row">
+                    <span class="priority-icon">☰</span>
+                    <span class="priority-name" data-bind="name"></span>
+                    <span class="priority-index">Priority: <span data-bind="priority"></span></span>
+                  </div>
+                </template>
+                <template slot="edit">
+                  <style>
+                    .priority-edit {
+                      padding: 0.75rem;
+                      background: #fff3cd;
+                      border: 2px solid #ffc107;
+                      border-radius: 4px;
+                    }
+                    .priority-edit label {
+                      display: grid;
+                      gap: 0.25rem;
+                      font-size: 0.9rem;
+                      font-weight: 500;
+                    }
+                    .priority-edit input {
+                      padding: 0.5rem;
+                      border: 1px solid #ddd;
+                      border-radius: 4px;
+                    }
+                  </style>
+                  <div class="priority-edit">
+                    <label>
+                      Task Name
+                      <input type="text" data-bind="name" />
+                    </label>
+                  </div>
+                </template>
+              </ck-editable-array>
+            </div>
+            <div class="output" id="reorderEventLog" style="max-height: 120px;">
+              Drag rows to reorder. Events will appear here...
+            </div>
+          </div>
+
+          <div class="demo-item">
+            <h3>Features</h3>
+            <ul class="feature-list">
+              <li><strong>Drag and Drop</strong> - Drag rows to reorder them visually</li>
+              <li><strong>Move Buttons</strong> - ↑/↓ buttons for keyboard-accessible reordering</li>
+              <li><strong>Programmatic API</strong> - <code>moveUp(index)</code> and <code>moveDown(index)</code> methods</li>
+              <li><strong>Visual Feedback</strong> - <code>.ck-dragging</code> and <code>.ck-drag-over</code> classes</li>
+              <li><strong>Events</strong> - <code>reorder</code> event with fromIndex, toIndex, and data</li>
+              <li><strong>Guards</strong> - Blocked when readonly or any row is editing</li>
+              <li><strong>Accessibility</strong> - Announces moves in status region</li>
+            </ul>
+
+            <h4 style="margin-top: 1.5rem; color: #667eea;">Styling Example</h4>
+            <div class="code-block">
+/* Row being dragged */
+.row.ck-dragging .priority-row {
+  opacity: 0.5;
+  background: #e0e0e0;
+}
+
+/* Drop target */
+.row.ck-drag-over .priority-row {
+  border: 2px dashed #667eea;
+  background: #eff6ff;
+}
+            </div>
+
+            <h4 style="margin-top: 1.5rem; color: #667eea;">Event Handling</h4>
+            <div class="code-block">
+element.addEventListener('reorder', (e) => {
+  console.log('From:', e.detail.fromIndex);
+  console.log('To:', e.detail.toIndex);
+  console.log('Data:', e.detail.data);
+});
+            </div>
+
+            <h4 style="margin-top: 1.5rem; color: #667eea;">Programmatic API</h4>
+            <div class="code-block">
+// Move row at index 2 up one position
+element.moveUp(2);
+
+// Move row at index 0 down one position
+element.moveDown(0);
+
+// Returns false if blocked
+const success = element.moveUp(0); // false (already at top)
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Component Import -->
@@ -1130,6 +1278,45 @@ Waiting for input changes...
           ).join('\n');
 
           pushBindingLog(`[${timestamp}] datachanged:\n${summary}`);
+        });
+      }
+
+      // Drag and drop demo initialization
+      const dragDropDemo = document.getElementById('dragDropDemo');
+      if (dragDropDemo) {
+        dragDropDemo.data = [
+          { name: 'Critical bug fix', priority: 1 },
+          { name: 'Feature development', priority: 2 },
+          { name: 'Documentation update', priority: 3 },
+          { name: 'Code review', priority: 4 },
+          { name: 'Testing', priority: 5 },
+        ];
+
+        const reorderLog = [];
+        const pushReorderLog = (message) => {
+          reorderLog.unshift(message);
+          reorderLog.splice(5);
+          const logEl = document.getElementById('reorderEventLog');
+          if (logEl) {
+            logEl.textContent = reorderLog.join('\n\n');
+          }
+        };
+
+        dragDropDemo.addEventListener('reorder', (e) => {
+          const { fromIndex, toIndex, data } = e.detail;
+          const timestamp = new Date().toLocaleTimeString();
+
+          // Update priorities based on new positions
+          data.forEach((item, idx) => {
+            item.priority = idx + 1;
+          });
+          dragDropDemo.data = data;
+
+          const movedItem = data[toIndex];
+          pushReorderLog(
+            `[${timestamp}] Reordered: "${movedItem.name}"\n` +
+            `  From position ${fromIndex + 1} → ${toIndex + 1}`
+          );
         });
       }
 

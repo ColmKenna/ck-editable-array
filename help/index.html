@@ -177,6 +177,7 @@
       <a href="#themes">Themes</a>
       <a href="#api">API (Properties/Methods)</a>
       <a href="#events">Events</a>
+      <a href="#reordering">Reordering</a>
       <a href="#examples">Examples</a>
       <a href="#faq">FAQ</a>
     </nav>
@@ -197,6 +198,7 @@
               <li>Edit mode is per-row; only one row can be edited at a time.</li>
               <li>Soft delete toggles <code>isDeleted</code> on object items and adds <code>ck-deleted</code> class.</li>
               <li>Two-way binding: form controls inside templates update the underlying data.</li>
+              <li>Rows can be reordered via drag and drop or move up/down buttons.</li>
             </ul>
           </div>
           <div class="note warn">
@@ -356,6 +358,16 @@
         </table>
         <p><strong>Description:</strong> Customizes the text displayed on the Restore button when a row is soft-deleted (the Delete button changes to Restore when <code>isDeleted</code> is true). Supports icons, emojis, or translations.</p>
         <p><strong>Examples:</strong> <code>button-restore-text="↩️"</code>, <code>button-restore-text="Restaurer"</code>, <code>button-restore-text="🔄"</code></p>
+
+        <h3><code>readonly</code></h3>
+        <table>
+          <tr><th>Property</th><td><code>readonly</code></td></tr>
+          <tr><th>Type</th><td>boolean attribute</td></tr>
+          <tr><th>Default</th><td>absent (false)</td></tr>
+          <tr><th>Valid Values</th><td>present/absent</td></tr>
+        </table>
+        <p><strong>Description:</strong> When present, disables editing, deleting, and reordering functionality. Rows cannot be dragged, move up/down buttons are not rendered, and edit/delete buttons are hidden. Use this to display the array in a read-only view.</p>
+        <p><strong>Examples:</strong> <code>&lt;ck-editable-array readonly&gt;</code></p>
       </section>
 
       <section id="css-properties">
@@ -507,6 +519,32 @@ ck-editable-array::part(button-edit):hover {
   color: white;
 }</code></pre>
 
+        <h3><code>::part(button-move-up)</code></h3>
+        <p><strong>Targets:</strong> The Move Up button for each row.</p>
+        <p><strong>Description:</strong> Specific part selector for the Move Up button. This button is disabled on the first row. Not rendered when <code>readonly</code> is set or when a row is being edited.</p>
+        <pre><code>ck-editable-array::part(button-move-up) {
+  background: #8b5cf6;
+  color: white;
+}
+
+ck-editable-array::part(button-move-up):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}</code></pre>
+
+        <h3><code>::part(button-move-down)</code></h3>
+        <p><strong>Targets:</strong> The Move Down button for each row.</p>
+        <p><strong>Description:</strong> Specific part selector for the Move Down button. This button is disabled on the last row. Not rendered when <code>readonly</code> is set or when a row is being edited.</p>
+        <pre><code>ck-editable-array::part(button-move-down) {
+  background: #8b5cf6;
+  color: white;
+}
+
+ck-editable-array::part(button-move-down):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}</code></pre>
+
         <h3>Icon-Only Buttons with CSS Parts</h3>
         <p>Combine empty button text attributes with <code>::part()</code> selectors to create icon-only buttons:</p>
         <pre><code>&lt;ck-editable-array
@@ -574,10 +612,20 @@ ck-editable-array[theme="dark"] {
         </table>
 
         <h3>Public methods</h3>
-        <p>
-          This component currently does not expose additional public methods (beyond standard element lifecycle callbacks and the properties above).
-          Interaction is driven by user actions in the shadow DOM (Edit/Save/Cancel/Delete) and by setting the <code>data</code> property.
-        </p>
+        <table>
+          <tr><th><code>moveUp(index)</code></th><td>Moves the row at <code>index</code> up by one position (swaps with the row above). Returns <code>true</code> if successful, <code>false</code> if the move was blocked (index out of bounds, first row, readonly, or row being edited). Dispatches a <code>reorder</code> event on success.</td></tr>
+          <tr><th><code>moveDown(index)</code></th><td>Moves the row at <code>index</code> down by one position (swaps with the row below). Returns <code>true</code> if successful, <code>false</code> if the move was blocked (index out of bounds, last row, readonly, or row being edited). Dispatches a <code>reorder</code> event on success.</td></tr>
+        </table>
+
+        <h4>Example: Programmatic Reordering</h4>
+        <pre><code>const el = document.querySelector('ck-editable-array');
+
+// Move second row to first position
+const success = el.moveUp(1);
+console.log('Move succeeded:', success);
+
+// Move first row to second position
+el.moveDown(0);</code></pre>
       </section>
 
       <section id="events">
@@ -657,6 +705,173 @@ ck-editable-array[theme="dark"] {
           <li>After canceling (back to display mode)</li>
         </ul>
         <p><strong>Interactive Example:</strong> <a href="examples/internal-state.html#events">Event visualization</a></p>
+
+        <h3><code>reorder</code></h3>
+        <h4>Payload Structure</h4>
+        <pre><code>{
+  detail: {
+    fromIndex: number,  // Original position
+    toIndex: number,    // New position
+    data: unknown[]     // Updated data array (deep clone)
+  },
+  bubbles: true,
+  composed: true,
+  cancelable: false
+}</code></pre>
+        <h4>When Fired</h4>
+        <ul>
+          <li>After a row is moved via drag and drop</li>
+          <li>After a row is moved via <code>moveUp()</code> or <code>moveDown()</code> methods</li>
+          <li>After a row is moved via the Move Up/Move Down buttons</li>
+        </ul>
+        <p><strong>Example:</strong></p>
+        <pre><code>el.addEventListener('reorder', (e) => {
+  console.log(`Row moved from ${e.detail.fromIndex} to ${e.detail.toIndex}`);
+  console.log('New data order:', e.detail.data);
+});</code></pre>
+        <p><strong>Interactive Example:</strong> <a href="examples/reordering.html">Reordering Demo</a></p>
+      </section>
+
+      <section id="reordering">
+        <h2>Reordering</h2>
+        <p>
+          The component supports reordering rows via drag and drop or move up/down buttons.
+          Both methods update the underlying data array and dispatch a <code>reorder</code> event.
+        </p>
+
+        <h3>Drag and Drop</h3>
+        <p>
+          Rows can be reordered by dragging and dropping them to a new position.
+          The component uses the native HTML5 Drag and Drop API.
+        </p>
+        <div class="note">
+          <strong>Visual Feedback</strong>
+          <ul style="margin: 8px 0 0 18px;">
+            <li>The dragged row gets a <code>.ck-dragging</code> class with reduced opacity</li>
+            <li>The drop target row gets a <code>.ck-drag-over</code> class with a highlighted border</li>
+            <li>Screen readers receive announcements when rows are moved</li>
+          </ul>
+        </div>
+
+        <h4>Styling Drag States</h4>
+        <p>You can customize the visual feedback during drag operations:</p>
+        <pre><code>/* Style the row being dragged */
+ck-editable-array .ck-dragging {
+  opacity: 0.4;
+  background: #f0f0f0;
+}
+
+/* Style the drop target */
+ck-editable-array .ck-drag-over {
+  border: 2px dashed #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}</code></pre>
+
+        <h4>Performance</h4>
+        <p>
+          Drag and drop reordering is optimized for performance. When a row is dropped, the component directly moves the DOM element to its new position and updates only the affected attributes (indices, aria-labels, button states) rather than recreating all rows. This approach:
+        </p>
+        <ul style="margin: 8px 0 0 18px;">
+          <li>Preserves form control values and focus state</li>
+          <li>Maintains all event listeners</li>
+          <li>Avoids template re-parsing and re-cloning</li>
+          <li>Provides instant visual feedback with no re-render flicker</li>
+        </ul>
+
+        <h3>Move Up/Down Buttons</h3>
+        <p>
+          Each row displays Move Up (↑) and Move Down (↓) buttons for keyboard-accessible reordering.
+          The first row's Move Up button is disabled, and the last row's Move Down button is disabled.
+        </p>
+        <div class="note">
+          <strong>Button Behavior</strong>
+          <ul style="margin: 8px 0 0 18px;">
+            <li>Buttons are hidden when <code>readonly</code> attribute is present</li>
+            <li>Buttons are hidden when a row is being edited</li>
+            <li>Appropriate buttons are disabled at array boundaries</li>
+            <li>Buttons include <code>aria-label</code> attributes for accessibility</li>
+            <li><strong>Smooth Animation:</strong> Rows slide to their new positions with a 250ms ease-in-out transition</li>
+            <li><strong>Animation Blocking:</strong> Rapid consecutive clicks are blocked until the current animation completes</li>
+          </ul>
+        </div>
+
+        <h4>Animation Details</h4>
+        <p>
+          When using move up/down buttons or programmatic methods, rows animate smoothly to their new positions using the FLIP technique (First, Last, Invert, Play):
+        </p>
+        <ul style="margin: 8px 0 0 18px;">
+          <li><strong>Duration:</strong> 250ms with ease-in-out timing</li>
+          <li><strong>Visual Feedback:</strong> Both the moving row and adjacent row animate simultaneously</li>
+          <li><strong>CSS Class:</strong> <code>.ck-animating</code> class is applied during animation</li>
+          <li><strong>Events:</strong> <code>reorder</code> and <code>datachanged</code> events fire after animation completes</li>
+        </ul>
+        <p><strong>Styling Animation:</strong></p>
+        <pre><code>/* Optional: Customize animation appearance */
+ck-editable-array .ck-animating {
+  /* Styles applied during move animation */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}</code></pre>
+
+        <h3>Programmatic API</h3>
+        <p>
+          You can also reorder rows programmatically using the <code>moveUp()</code> and <code>moveDown()</code> methods:
+        </p>
+        <pre><code>const el = document.querySelector('ck-editable-array');
+
+// Move the third row up to become the second row
+if (el.moveUp(2)) {
+  console.log('Row moved successfully');
+}
+
+// Move the first row down to become the second row
+if (el.moveDown(0)) {
+  console.log('Row moved successfully');
+}</code></pre>
+
+        <h3>Guards and Restrictions</h3>
+        <p>Reordering is blocked in the following situations:</p>
+        <ul>
+          <li>The <code>readonly</code> attribute is present</li>
+          <li>A row is currently being edited (edit mode is active)</li>
+          <li>Attempting to move the first row up or the last row down</li>
+          <li>Invalid index (negative, non-integer, or out of bounds)</li>
+          <li>An animation is currently in progress (applies to <code>moveUp()</code>/<code>moveDown()</code> only)</li>
+        </ul>
+        <p><strong>Note:</strong> Drag and drop reordering happens instantly, while programmatic <code>moveUp()</code>/<code>moveDown()</code> methods include a 250ms animation. Both methods return <code>true</code> on success, <code>false</code> if blocked.</p>
+
+        <h3>Complete Example</h3>
+        <pre><code>&lt;ck-editable-array id="myArray"&gt;
+  &lt;template slot="display"&gt;
+    &lt;div class="row-content"&gt;
+      &lt;span data-bind="name"&gt;&lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/template&gt;
+&lt;/ck-editable-array&gt;
+
+&lt;script type="module"&gt;
+  import '../dist/ck-editable-array/ck-editable-array.esm.js';
+
+  const el = document.getElementById('myArray');
+
+  // Set initial data
+  el.data = [
+    { name: 'First Item' },
+    { name: 'Second Item' },
+    { name: 'Third Item' }
+  ];
+
+  // Listen for reorder events
+  el.addEventListener('reorder', (e) => {
+    console.log(`Moved from index ${e.detail.fromIndex} to ${e.detail.toIndex}`);
+    console.log('New order:', e.detail.data.map(item => item.name));
+  });
+
+  // Programmatic reordering
+  document.getElementById('moveFirstDown').addEventListener('click', () => {
+    el.moveDown(0);
+  });
+&lt;/script&gt;</code></pre>
+        <p><strong>Interactive Example:</strong> <a href="examples/reordering.html">Reordering Demo</a></p>
       </section>
 
       <section id="examples">
@@ -692,6 +907,11 @@ ck-editable-array[theme="dark"] {
         <h3>Internal State & Debugging</h3>
         <ul>
           <li><a href="examples/internal-state.html">Internal State</a> - Inspect shadow state, row modes, and event logs</li>
+        </ul>
+
+        <h3>Reordering</h3>
+        <ul>
+          <li><a href="examples/reordering.html">Reordering Demo</a> - Drag and drop, move up/down buttons, and programmatic API</li>
         </ul>
       </section>
 
@@ -732,9 +952,43 @@ el.data = [{ title: 'Hello' }];</code></pre>
         <h4>Why did my form field names not update when I changed <code>name</code>?</h4>
         <p><strong>Answer:</strong> Bound form control <code>name</code>/<code>id</code> attributes are assigned when each row is first created. Changing <code>name</code> later updates only the greeting, not existing control names. Set <code>name</code> before first render or re-create rows by resetting <code>data</code>.</p>
 
-        <h4>Why won’t my example open from disk?</h4>
+        <h4>Why won't my example open from disk?</h4>
         <p><strong>Problem:</strong> ES modules are blocked by browsers from <code>file://</code> due to CORS.</p>
         <p><strong>Solution:</strong> Use a local server (see <a href="#installation">Installation</a>).</p>
+
+        <h4>Why can't I drag rows to reorder them?</h4>
+        <p><strong>Possible causes:</strong></p>
+        <ul>
+          <li>The <code>readonly</code> attribute is present on the component</li>
+          <li>A row is currently being edited (edit mode is active)</li>
+        </ul>
+        <p><strong>Solution:</strong> Remove the <code>readonly</code> attribute and ensure no row is being edited. Drag and drop is automatically enabled when these conditions are met.</p>
+
+        <h4>Why are the Move Up/Down buttons not showing?</h4>
+        <p><strong>Possible causes:</strong></p>
+        <ul>
+          <li>The <code>readonly</code> attribute is present</li>
+          <li>The row is currently in edit mode</li>
+        </ul>
+        <p><strong>Solution:</strong> Move buttons are only visible when the component is not readonly and the row is in display mode. They appear alongside the Edit and Delete buttons.</p>
+
+        <h4>How do I style the drag feedback and animations?</h4>
+        <p><strong>Answer:</strong> The component adds CSS classes during reordering operations:</p>
+        <ul>
+          <li><code>.ck-dragging</code> - Applied to the row being dragged (drag and drop)</li>
+          <li><code>.ck-drag-over</code> - Applied to the potential drop target (drag and drop)</li>
+          <li><code>.ck-animating</code> - Applied to rows during move up/down animation</li>
+        </ul>
+        <p>Style these classes in your CSS to customize the visual feedback.</p>
+        <pre><code>/* Drag and drop feedback */
+ck-editable-array .ck-dragging {
+  opacity: 0.5;
+}
+
+/* Move animation feedback */
+ck-editable-array .ck-animating {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}</code></pre>
       </section>
     </div>
   </main>

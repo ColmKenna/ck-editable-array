@@ -36,6 +36,13 @@ export class CkEditableArray extends HTMLElement {
   private _primitiveEditState: (EditState | null)[] = [];
   private _initialData: unknown[] = [];
 
+  // Drag and drop state
+  private _dragSourceIndex: number | null = null;
+
+  // Animation state
+  private _isAnimating = false;
+  private static readonly ANIMATION_DURATION = 250; // ms
+
   constructor() {
     super();
     this._internals = this.attachInternals();
@@ -158,6 +165,18 @@ export class CkEditableArray extends HTMLElement {
 
   set datachangeDebounce(value: number) {
     this.setAttribute('datachange-debounce', String(value));
+  }
+
+  get readonly(): boolean {
+    return this.hasAttribute('readonly');
+  }
+
+  set readonly(value: boolean) {
+    if (value) {
+      this.setAttribute('readonly', '');
+    } else {
+      this.removeAttribute('readonly');
+    }
   }
 
   get data(): unknown[] {
@@ -525,6 +544,24 @@ export class CkEditableArray extends HTMLElement {
       rowEl.addEventListener('keydown', event =>
         this._handleRowKeydown(event as KeyboardEvent)
       );
+
+      // Add drag and drop event listeners
+      rowEl.addEventListener('dragstart', event =>
+        this._handleDragStart(event as DragEvent)
+      );
+      rowEl.addEventListener('dragover', event =>
+        this._handleDragOver(event as DragEvent)
+      );
+      rowEl.addEventListener('dragleave', event =>
+        this._handleDragLeave(event as DragEvent)
+      );
+      rowEl.addEventListener('drop', event =>
+        this._handleDrop(event as DragEvent)
+      );
+      rowEl.addEventListener('dragend', event =>
+        this._handleDragEnd(event as DragEvent)
+      );
+
       rowsHost.appendChild(rowEl);
 
       // Clone template content into new row
@@ -574,6 +611,18 @@ export class CkEditableArray extends HTMLElement {
       deleteButton.setAttribute('part', 'button button-delete');
       deleteButton.textContent = this._getButtonDeleteText();
       actionsWrapper.appendChild(deleteButton);
+      const moveUpButton = document.createElement('button');
+      moveUpButton.type = 'button';
+      moveUpButton.setAttribute('data-action', 'move-up');
+      moveUpButton.setAttribute('part', 'button button-move-up');
+      moveUpButton.textContent = '↑';
+      actionsWrapper.appendChild(moveUpButton);
+      const moveDownButton = document.createElement('button');
+      moveDownButton.type = 'button';
+      moveDownButton.setAttribute('data-action', 'move-down');
+      moveDownButton.setAttribute('part', 'button button-move-down');
+      moveDownButton.textContent = '↓';
+      actionsWrapper.appendChild(moveDownButton);
       rowEl.appendChild(actionsWrapper);
 
       // Add hidden checkbox for isDeleted property (soft delete)
@@ -624,6 +673,9 @@ export class CkEditableArray extends HTMLElement {
     // Always update attributes and bindings for current index/data
     rowEl.setAttribute('data-row', String(index));
 
+    // Set draggable attribute based on readonly state
+    rowEl.setAttribute('draggable', this.readonly ? 'false' : 'true');
+
     // Update contextual aria-labels for buttons (Feature 4.1)
     const editButton = rowEl.querySelector('[data-action="toggle"]');
     const saveButton = rowEl.querySelector('[data-action="save"]');
@@ -655,6 +707,26 @@ export class CkEditableArray extends HTMLElement {
         deleteButton.textContent = this._getButtonDeleteText();
         deleteButton.setAttribute('aria-label', `Delete item ${itemNumber}`);
       }
+    }
+
+    // Update move up/down buttons
+    const moveUpButton = rowEl.querySelector(
+      '[data-action="move-up"]'
+    ) as HTMLButtonElement | null;
+    const moveDownButton = rowEl.querySelector(
+      '[data-action="move-down"]'
+    ) as HTMLButtonElement | null;
+
+    if (moveUpButton) {
+      moveUpButton.setAttribute('aria-label', `Move item ${itemNumber} up`);
+      // Disable if first row or readonly
+      moveUpButton.disabled = index === 0 || this.readonly;
+    }
+    if (moveDownButton) {
+      moveDownButton.setAttribute('aria-label', `Move item ${itemNumber} down`);
+      // Disable if last row or readonly
+      moveDownButton.disabled =
+        index === this._data.length - 1 || this.readonly;
     }
 
     // Re-apply bindings and semantics with cached elements
@@ -1016,6 +1088,10 @@ export class CkEditableArray extends HTMLElement {
       this._cancelRow(rowEl, rowIndex);
     } else if (action === 'delete') {
       this._toggleDeleteRow(rowEl, rowIndex);
+    } else if (action === 'move-up') {
+      this.moveUp(rowIndex);
+    } else if (action === 'move-down') {
+      this.moveDown(rowIndex);
     }
   }
 
@@ -1299,6 +1375,19 @@ export class CkEditableArray extends HTMLElement {
     if (cancelButton) {
       cancelButton.classList.toggle('ck-hidden', mode !== 'edit');
     }
+    // Hide move buttons when in edit mode (same behavior as drag and drop)
+    const moveUpButton = rowEl.querySelector(
+      '[data-action="move-up"]'
+    ) as HTMLElement | null;
+    const moveDownButton = rowEl.querySelector(
+      '[data-action="move-down"]'
+    ) as HTMLElement | null;
+    if (moveUpButton) {
+      moveUpButton.classList.toggle('ck-hidden', mode === 'edit');
+    }
+    if (moveDownButton) {
+      moveDownButton.classList.toggle('ck-hidden', mode === 'edit');
+    }
   }
 
   private _focusFirstInput(rowEl: HTMLElement) {
@@ -1393,6 +1482,351 @@ export class CkEditableArray extends HTMLElement {
 
     // Update form value after reset
     this._updateFormValueFromControls();
+  }
+
+  // Drag and drop handlers
+  private _handleDragStart(event: DragEvent): void {
+    const rowEl = event.target as HTMLElement;
+    if (!rowEl?.hasAttribute('data-row')) return;
+
+    // Block drag if readonly or editing
+    if (this.readonly || this._currentEditIndex !== null) {
+      event.preventDefault();
+      return;
+    }
+
+    const rowIndex = Number(rowEl.getAttribute('data-row'));
+    if (!Number.isFinite(rowIndex)) return;
+
+    this._dragSourceIndex = rowIndex;
+    rowEl.classList.add('ck-dragging');
+
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', String(rowIndex));
+    }
+  }
+
+  private _handleDragOver(event: DragEvent): void {
+    event.preventDefault();
+
+    const rowEl = (event.target as HTMLElement)?.closest(
+      '[data-row]'
+    ) as HTMLElement | null;
+    if (!rowEl) return;
+
+    // Block if readonly
+    if (this.readonly) return;
+
+    rowEl.classList.add('ck-drag-over');
+
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+  }
+
+  private _handleDragLeave(event: DragEvent): void {
+    const rowEl = (event.target as HTMLElement)?.closest(
+      '[data-row]'
+    ) as HTMLElement | null;
+    if (!rowEl) return;
+
+    rowEl.classList.remove('ck-drag-over');
+  }
+
+  private _handleDrop(event: DragEvent): void {
+    event.preventDefault();
+
+    const targetRowEl = (event.target as HTMLElement)?.closest(
+      '[data-row]'
+    ) as HTMLElement | null;
+    if (!targetRowEl) return;
+
+    // Block if readonly
+    if (this.readonly) {
+      this._clearDragClasses();
+      return;
+    }
+
+    const fromIndex = this._dragSourceIndex;
+    const toIndex = Number(targetRowEl.getAttribute('data-row'));
+
+    // Validate indices
+    if (
+      fromIndex === null ||
+      !Number.isFinite(toIndex) ||
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      fromIndex >= this._data.length ||
+      toIndex < 0 ||
+      toIndex >= this._data.length
+    ) {
+      this._clearDragClasses();
+      return;
+    }
+
+    // Perform the reorder
+    this._reorderData(fromIndex, toIndex);
+
+    // Clear drag state
+    this._dragSourceIndex = null;
+    this._clearDragClasses();
+  }
+
+  private _handleDragEnd(event: DragEvent): void {
+    const rowEl = event.target as HTMLElement;
+    if (rowEl) {
+      rowEl.classList.remove('ck-dragging');
+    }
+    this._dragSourceIndex = null;
+    this._clearDragClasses();
+  }
+
+  private _clearDragClasses(): void {
+    const rows = this._rowsHostEl?.querySelectorAll('[data-row]');
+    rows?.forEach(row => {
+      row.classList.remove('ck-dragging', 'ck-drag-over');
+    });
+  }
+
+  private _reorderData(fromIndex: number, toIndex: number): void {
+    // Remove the item from its original position
+    const [movedItem] = this._data.splice(fromIndex, 1);
+
+    // Insert it at the new position
+    this._data.splice(toIndex, 0, movedItem);
+
+    // Update DOM without full re-render
+    this._updateRowIndicesAfterReorder(fromIndex, toIndex);
+
+    // Dispatch reorder event
+    this.dispatchEvent(
+      new CustomEvent('reorder', {
+        detail: {
+          fromIndex,
+          toIndex,
+          data: this._deepClone(this._data),
+        },
+        bubbles: true,
+        composed: true,
+      })
+    );
+
+    // Dispatch datachanged event
+    this._dispatchDataChanged();
+
+    // Announce the reorder for accessibility
+    const message = `Moved item from position ${fromIndex + 1} to ${toIndex + 1}`;
+    this._announceAction(message);
+  }
+
+  private _updateRowIndicesAfterReorder(
+    fromIndex: number,
+    toIndex: number
+  ): void {
+    const rowsHost = this._rowsHostEl;
+    if (!rowsHost) return;
+
+    const rows = Array.from(rowsHost.querySelectorAll('[data-row]'));
+    if (rows.length === 0) return;
+
+    const fromRow = rows[fromIndex] as HTMLElement;
+    const toRow = rows[toIndex] as HTMLElement;
+
+    if (!fromRow || !toRow) return;
+
+    // Move the DOM element to its new position
+    if (fromIndex < toIndex) {
+      // Moving down: insert after toRow
+      toRow.parentNode?.insertBefore(fromRow, toRow.nextSibling);
+    } else {
+      // Moving up: insert before toRow
+      toRow.parentNode?.insertBefore(fromRow, toRow);
+    }
+
+    // After moving DOM elements, re-query in new DOM order and update all indices
+    const updatedRows = Array.from(rowsHost.querySelectorAll('[data-row]'));
+    updatedRows.forEach((row, index) => {
+      this._updateRowIndexAndButtons(row as HTMLElement, index);
+    });
+  }
+
+  private _updateRowIndexAndButtons(rowEl: HTMLElement, index: number): void {
+    rowEl.setAttribute('data-row', String(index));
+
+    const itemNumber = index + 1;
+
+    // Update move buttons
+    const moveUpButton = rowEl.querySelector(
+      '[data-action="move-up"]'
+    ) as HTMLButtonElement | null;
+    const moveDownButton = rowEl.querySelector(
+      '[data-action="move-down"]'
+    ) as HTMLButtonElement | null;
+
+    if (moveUpButton) {
+      moveUpButton.setAttribute('aria-label', `Move item ${itemNumber} up`);
+      moveUpButton.disabled = index === 0 || this.readonly;
+    }
+    if (moveDownButton) {
+      moveDownButton.setAttribute('aria-label', `Move item ${itemNumber} down`);
+      moveDownButton.disabled =
+        index === this._data.length - 1 || this.readonly;
+    }
+
+    // Update edit/save/cancel/delete button aria-labels
+    const editButton = rowEl.querySelector('[data-action="toggle"]');
+    const saveButton = rowEl.querySelector('[data-action="save"]');
+    const cancelButton = rowEl.querySelector('[data-action="cancel"]');
+    const deleteButton = rowEl.querySelector('[data-action="delete"]');
+
+    if (editButton) {
+      editButton.setAttribute('aria-label', `Edit item ${itemNumber}`);
+    }
+    if (saveButton) {
+      saveButton.setAttribute('aria-label', `Save item ${itemNumber}`);
+    }
+    if (cancelButton) {
+      cancelButton.setAttribute(
+        'aria-label',
+        `Cancel editing item ${itemNumber}`
+      );
+    }
+    if (deleteButton) {
+      const rowData = this._data[index];
+      const isDeleted = this._isRowDeleted(rowData);
+      if (isDeleted) {
+        deleteButton.setAttribute('aria-label', `Restore item ${itemNumber}`);
+      } else {
+        deleteButton.setAttribute('aria-label', `Delete item ${itemNumber}`);
+      }
+    }
+  }
+
+  // Public move methods
+  moveUp(index: number): boolean {
+    // Guard: readonly, editing, or animating
+    if (this.readonly || this._currentEditIndex !== null || this._isAnimating) {
+      return false;
+    }
+
+    // Guard: invalid index or already at top
+    if (!Number.isFinite(index) || index < 1 || index >= this._data.length) {
+      return false;
+    }
+
+    this._animatedReorderData(index, index - 1);
+    return true;
+  }
+
+  moveDown(index: number): boolean {
+    // Guard: readonly, editing, or animating
+    if (this.readonly || this._currentEditIndex !== null || this._isAnimating) {
+      return false;
+    }
+
+    // Guard: invalid index or already at bottom
+    if (
+      !Number.isFinite(index) ||
+      index < 0 ||
+      index >= this._data.length - 1
+    ) {
+      return false;
+    }
+
+    this._animatedReorderData(index, index + 1);
+    return true;
+  }
+
+  // Animated reorder using FLIP technique
+  private _animatedReorderData(fromIndex: number, toIndex: number): void {
+    const rowsHost = this._rowsHostEl;
+    if (!rowsHost) {
+      // Fallback to non-animated if no rows host
+      this._reorderData(fromIndex, toIndex);
+      return;
+    }
+
+    // Get the two rows that will swap
+    const rows = rowsHost.querySelectorAll('[data-row]');
+    const fromRow = rows[fromIndex] as HTMLElement | undefined;
+    const toRow = rows[toIndex] as HTMLElement | undefined;
+
+    if (!fromRow || !toRow) {
+      // Fallback to non-animated
+      this._reorderData(fromIndex, toIndex);
+      return;
+    }
+
+    // Set animation flag
+    this._isAnimating = true;
+
+    // FIRST: Record initial positions
+    const fromRect = fromRow.getBoundingClientRect();
+    const toRect = toRow.getBoundingClientRect();
+
+    // Calculate the vertical distance to move
+    const deltaY = toRect.top - fromRect.top;
+
+    // Add animating class and apply initial transforms (INVERT)
+    fromRow.classList.add('ck-animating');
+    toRow.classList.add('ck-animating');
+
+    // Apply inverse transforms so they appear in their original positions
+    fromRow.style.transform = `translateY(0px)`;
+    toRow.style.transform = `translateY(0px)`;
+
+    // Force reflow to ensure transforms are applied
+    void fromRow.offsetHeight;
+
+    // PLAY: Apply transitions and animate to final positions
+    const transition = `transform ${CkEditableArray.ANIMATION_DURATION}ms ease-in-out`;
+    fromRow.style.transition = transition;
+    toRow.style.transition = transition;
+
+    // Animate to swapped positions
+    fromRow.style.transform = `translateY(${deltaY}px)`;
+    toRow.style.transform = `translateY(${-deltaY}px)`;
+
+    // After animation completes, update DOM and clean up
+    window.setTimeout(() => {
+      // Remove animation styles
+      fromRow.style.transition = '';
+      fromRow.style.transform = '';
+      toRow.style.transition = '';
+      toRow.style.transform = '';
+      fromRow.classList.remove('ck-animating');
+      toRow.classList.remove('ck-animating');
+
+      // Perform the actual data reorder
+      const [movedItem] = this._data.splice(fromIndex, 1);
+      this._data.splice(toIndex, 0, movedItem);
+
+      // Re-render to update DOM order and indices
+      this.render();
+
+      // Clear animation flag
+      this._isAnimating = false;
+
+      // Dispatch events after animation
+      this.dispatchEvent(
+        new CustomEvent('reorder', {
+          detail: {
+            fromIndex,
+            toIndex,
+            data: this._deepClone(this._data),
+          },
+          bubbles: true,
+          composed: true,
+        })
+      );
+
+      this._dispatchDataChanged();
+
+      // Announce for accessibility
+      const message = `Moved item from position ${fromIndex + 1} to ${toIndex + 1}`;
+      this._announceAction(message);
+    }, CkEditableArray.ANIMATION_DURATION);
   }
 }
 
