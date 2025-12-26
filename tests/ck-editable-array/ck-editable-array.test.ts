@@ -5517,6 +5517,77 @@ describe('CkEditableArray Component', () => {
 
         document.body.removeChild(element);
       });
+
+      test('should update form control names and FormData after drag reorder', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        attachTemplates(element, 'name');
+        element.name = 'users';
+
+        element.data = [{ name: 'Alpha' }, { name: 'Beta' }];
+        element.connectedCallback();
+
+        const internals = (element as unknown as { _internals: ElementInternals })
+          ._internals;
+        if (!(internals as unknown as { setFormValue?: () => void }).setFormValue) {
+          (internals as unknown as { setFormValue: () => void }).setFormValue =
+            () => undefined;
+        }
+        const setFormValueSpy = jest.spyOn(
+          internals as unknown as { setFormValue: (value: unknown) => void },
+          'setFormValue'
+        );
+        setFormValueSpy.mockClear();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const rowsBefore = rowsHost?.querySelectorAll(
+          '[data-row]'
+        ) as NodeListOf<HTMLElement>;
+
+        const input0Before = rowsBefore?.[0]?.querySelector(
+          'input[data-bind="name"]'
+        ) as HTMLInputElement;
+        const input1Before = rowsBefore?.[1]?.querySelector(
+          'input[data-bind="name"]'
+        ) as HTMLInputElement;
+
+        expect(input0Before?.getAttribute('name')).toBe('users[0].name');
+        expect(input1Before?.getAttribute('name')).toBe('users[1].name');
+
+        // Simulate drag reorder: move index 1 to index 0
+        (
+          element as unknown as { _reorderData: (from: number, to: number) => void }
+        )._reorderData(1, 0);
+
+        const rowsAfter = rowsHost?.querySelectorAll(
+          '[data-row]'
+        ) as NodeListOf<HTMLElement>;
+        const input0After = rowsAfter?.[0]?.querySelector(
+          'input[data-bind="name"]'
+        ) as HTMLInputElement;
+        const input1After = rowsAfter?.[1]?.querySelector(
+          'input[data-bind="name"]'
+        ) as HTMLInputElement;
+
+        expect(input0After.getAttribute('name')).toBe('users[0].name');
+        expect(input0After.getAttribute('id')).toBe('users__0__name');
+        expect(input1After.getAttribute('name')).toBe('users[1].name');
+        expect(input1After.getAttribute('id')).toBe('users__1__name');
+
+        // Form value should reflect new order
+        expect(setFormValueSpy).toHaveBeenCalled();
+        const lastCall =
+          setFormValueSpy.mock.calls[setFormValueSpy.mock.calls.length - 1];
+        const formData = lastCall[0] as FormData;
+        const entries = Array.from(formData.entries());
+        expect(entries).toEqual([
+          ['users[0].name', 'Beta'],
+          ['users[1].name', 'Alpha'],
+        ]);
+
+        document.body.removeChild(element);
+      });
     });
 
     describe('8.4: Drag Guards', () => {

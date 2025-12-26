@@ -1715,14 +1715,24 @@ export class CkEditableArray extends HTMLElement {
     updatedRows.forEach((row, index) => {
       this._updateRowIndexAndButtons(row as HTMLElement, index);
     });
+
+    // Keep form value in sync with new ordering
+    this._updateFormValueFromControls();
   }
 
   private _updateRowIndexAndButtons(rowEl: HTMLElement, index: number): void {
     rowEl.setAttribute('data-row', String(index));
+    rowEl.setAttribute('data-form-row-index', String(index));
 
     const itemNumber = index + 1;
     const rowData = this._data[index];
     const isDeleted = this._isRowDeleted(rowData);
+    const boundEls =
+      (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls || [];
+
+    // Refresh form control name/id to reflect new index
+    this._setFormControlAttributes(boundEls, index);
+    this._applyFormSemanticsOptimized(rowEl, boundEls, rowData, index);
 
     // Update move buttons
     const moveUpButton = rowEl.querySelector(
