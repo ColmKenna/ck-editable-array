@@ -6430,5 +6430,233 @@ describe('CkEditableArray Component', () => {
         document.body.removeChild(element);
       });
     });
+
+    describe('Phase 10: Allow Reorder Attribute', () => {
+      // Helper to create drag events
+      const createDragEvent = (type: string, dataTransfer?: DataTransfer) => {
+        const event = new Event(type, {
+          bubbles: true,
+          cancelable: true,
+        }) as any;
+        event.dataTransfer = dataTransfer || {
+          data: {} as Record<string, string>,
+          setData(format: string, data: string) {
+            this.data[format] = data;
+          },
+          getData(format: string) {
+            return this.data[format] || '';
+          },
+          effectAllowed: 'none',
+          dropEffect: 'none',
+        };
+        return event;
+      };
+
+      test('allow-reorder should default to true (enabled)', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        expect(element.allowReorder).toBe(true);
+
+        document.body.removeChild(element);
+      });
+
+      test('allow-reorder="false" should hide move buttons', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('allow-reorder', 'false');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]');
+        const row1 = rowsHost?.querySelector('[data-row="1"]');
+
+        const moveUpBtn0 = row0?.querySelector('[data-action="move-up"]');
+        const moveDownBtn0 = row0?.querySelector('[data-action="move-down"]');
+        const moveUpBtn1 = row1?.querySelector('[data-action="move-up"]');
+        const moveDownBtn1 = row1?.querySelector('[data-action="move-down"]');
+
+        // Move buttons should not exist when allowReorder is false
+        expect(moveUpBtn0).toBeNull();
+        expect(moveDownBtn0).toBeNull();
+        expect(moveUpBtn1).toBeNull();
+        expect(moveDownBtn1).toBeNull();
+
+        document.body.removeChild(element);
+      });
+
+      test('moveUp() should return false when allow-reorder="false"', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('allow-reorder', 'false');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const result = element.moveUp(1);
+
+        expect(result).toBe(false);
+        expect(element.data).toEqual([{ name: 'A' }, { name: 'B' }]);
+
+        document.body.removeChild(element);
+      });
+
+      test('moveDown() should return false when allow-reorder="false"', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('allow-reorder', 'false');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const result = element.moveDown(0);
+
+        expect(result).toBe(false);
+        expect(element.data).toEqual([{ name: 'A' }, { name: 'B' }]);
+
+        document.body.removeChild(element);
+      });
+
+      test('draggable attribute should be false when allow-reorder="false"', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('allow-reorder', 'false');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const rows = rowsHost?.querySelectorAll('[data-row]');
+
+        rows?.forEach((row: Element) => {
+          expect((row as HTMLElement).getAttribute('draggable')).toBe('false');
+        });
+
+        document.body.removeChild(element);
+      });
+
+      test('toggling allow-reorder should show/hide move buttons', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        let rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        let row0 = rowsHost?.querySelector('[data-row="0"]');
+        let moveDownBtn = row0?.querySelector('[data-action="move-down"]');
+
+        // Initially buttons should exist
+        expect(moveDownBtn).not.toBeNull();
+
+        // Disable reordering
+        element.allowReorder = false;
+
+        // Re-query after re-render
+        rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        row0 = rowsHost?.querySelector('[data-row="0"]');
+        moveDownBtn = row0?.querySelector('[data-action="move-down"]');
+
+        // Buttons should not exist
+        expect(moveDownBtn).toBeNull();
+
+        // Re-enable reordering
+        element.allowReorder = true;
+
+        // Re-query after re-render
+        rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        row0 = rowsHost?.querySelector('[data-row="0"]');
+        moveDownBtn = row0?.querySelector('[data-action="move-down"]');
+
+        // Buttons should exist again
+        expect(moveDownBtn).not.toBeNull();
+
+        document.body.removeChild(element);
+      });
+
+      test('toggling allow-reorder should update draggable attribute', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        let rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        let row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+
+        // Initially draggable
+        expect(row0.getAttribute('draggable')).toBe('true');
+
+        // Disable reordering
+        element.allowReorder = false;
+
+        // Re-query after re-render
+        rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+
+        expect(row0.getAttribute('draggable')).toBe('false');
+
+        // Re-enable reordering
+        element.allowReorder = true;
+
+        // Re-query after re-render
+        rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+
+        expect(row0.getAttribute('draggable')).toBe('true');
+
+        document.body.removeChild(element);
+      });
+
+      test('drag and drop should be blocked when allow-reorder="false"', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('allow-reorder', 'false');
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+
+        // Simulate drag start
+        const dragStartEvent = createDragEvent('dragstart');
+        row0.dispatchEvent(dragStartEvent);
+
+        // Should be prevented
+        expect(dragStartEvent.defaultPrevented).toBe(true);
+
+        document.body.removeChild(element);
+      });
+    });
   });
 });

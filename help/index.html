@@ -787,6 +787,7 @@ ck-editable-array .ck-drag-over {
           <strong>Button Behavior</strong>
           <ul style="margin: 8px 0 0 18px;">
             <li>Buttons are hidden when <code>readonly</code> attribute is present</li>
+            <li>Buttons are hidden when <code>allow-reorder="false"</code> attribute is set</li>
             <li>Buttons are hidden when a row is being edited</li>
             <li>Appropriate buttons are disabled at array boundaries</li>
             <li>Buttons include <code>aria-label</code> attributes for accessibility</li>
@@ -812,6 +813,33 @@ ck-editable-array .ck-animating {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }</code></pre>
 
+        <h4>Disabling Reordering</h4>
+        <p>
+          Use the <code>allow-reorder</code> attribute to disable all reordering functionality (both drag-and-drop and move buttons):
+        </p>
+        <pre><code>&lt;ck-editable-array allow-reorder="false"&gt;
+  &lt;!-- Reordering is disabled --&gt;
+&lt;/ck-editable-array&gt;</code></pre>
+        <p>
+          When <code>allow-reorder="false"</code>:
+        </p>
+        <ul style="margin: 8px 0 0 18px;">
+          <li>Move Up/Down buttons are hidden (not rendered)</li>
+          <li>Rows are not draggable</li>
+          <li><code>moveUp()</code> and <code>moveDown()</code> methods return <code>false</code></li>
+          <li>Drag and drop events are prevented</li>
+        </ul>
+        <p>
+          You can also toggle reordering programmatically:
+        </p>
+        <pre><code>const el = document.querySelector('ck-editable-array');
+
+// Disable reordering
+el.allowReorder = false;
+
+// Enable reordering
+el.allowReorder = true;</code></pre>
+
         <h3>Programmatic API</h3>
         <p>
           You can also reorder rows programmatically using the <code>moveUp()</code> and <code>moveDown()</code> methods:
@@ -831,13 +859,23 @@ if (el.moveDown(0)) {
         <h3>Guards and Restrictions</h3>
         <p>Reordering is blocked in the following situations:</p>
         <ul>
-          <li>The <code>readonly</code> attribute is present</li>
+          <li>The <code>readonly</code> attribute is present (blocks all mutations including reordering)</li>
+          <li>The <code>allow-reorder</code> attribute is set to <code>"false"</code> (blocks only reordering, other operations still work)</li>
           <li>A row is currently being edited (edit mode is active)</li>
           <li>Attempting to move the first row up or the last row down</li>
           <li>Invalid index (negative, non-integer, or out of bounds)</li>
           <li>An animation is currently in progress (applies to <code>moveUp()</code>/<code>moveDown()</code> only)</li>
         </ul>
         <p><strong>Note:</strong> Drag and drop reordering happens instantly, while programmatic <code>moveUp()</code>/<code>moveDown()</code> methods include a 250ms animation. Both methods return <code>true</code> on success, <code>false</code> if blocked.</p>
+
+        <div class="note">
+          <strong>Readonly vs. Allow-Reorder</strong>
+          <ul style="margin: 8px 0 0 18px;">
+            <li><code>readonly</code> - Blocks <strong>all</strong> mutations (add, edit, delete, and reorder)</li>
+            <li><code>allow-reorder="false"</code> - Blocks <strong>only</strong> reordering (edit, delete, and add still work)</li>
+            <li>Both attributes independently block reordering when set</li>
+          </ul>
+        </div>
 
         <h3>Complete Example</h3>
         <pre><code>&lt;ck-editable-array id="myArray"&gt;

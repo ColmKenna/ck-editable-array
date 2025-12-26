@@ -192,8 +192,89 @@ el.addEventListener('reorder', (e) => {
 &lt;/ck-editable-array&gt;</code></pre>
   </div>
 
+  <div class="example" id="allow-reorder">
+    <h2>4) Disabling Reordering</h2>
+    <p>Use the <code>allow-reorder="false"</code> attribute to disable reordering while still allowing other operations (edit, delete, add). This is different from <code>readonly</code> which blocks all mutations.</p>
+    <div class="demo">
+      <ck-editable-array id="noReorderEl" name="no-reorder-items" allow-reorder="false">
+        <template slot="display">
+          <div class="item-row">
+            <span data-bind="title"></span>
+          </div>
+        </template>
+        <template slot="edit">
+          <input data-bind="title" style="width: 100%;" />
+        </template>
+      </ck-editable-array>
+    </div>
+
+    <div class="row">
+      <div class="panel">
+        <h3 style="margin-top: 0;">Controls</h3>
+        <label>
+          <input type="checkbox" id="allowReorderToggle" />
+          Allow reordering
+        </label>
+        <br /><br />
+        <div class="note">
+          <strong>Note:</strong> With <code>allow-reorder="false"</code>:
+          <ul style="margin: 8px 0 0 18px;">
+            <li>Move buttons are hidden (not rendered)</li>
+            <li>Rows cannot be dragged</li>
+            <li>Edit and delete still work</li>
+            <li><code>moveUp()/moveDown()</code> return <code>false</code></li>
+          </ul>
+        </div>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top: 0;">Comparison</h3>
+        <table style="font-size: 0.88rem;">
+          <tr>
+            <th>Feature</th>
+            <th>allow-reorder="false"</th>
+            <th>readonly</th>
+          </tr>
+          <tr>
+            <td>Edit rows</td>
+            <td>✅ Allowed</td>
+            <td>❌ Blocked</td>
+          </tr>
+          <tr>
+            <td>Delete rows</td>
+            <td>✅ Allowed</td>
+            <td>❌ Blocked</td>
+          </tr>
+          <tr>
+            <td>Add rows</td>
+            <td>✅ Allowed</td>
+            <td>❌ Blocked</td>
+          </tr>
+          <tr>
+            <td>Reorder rows</td>
+            <td>❌ Blocked</td>
+            <td>❌ Blocked</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <h3>HTML</h3>
+    <pre class="code"><code>&lt;ck-editable-array allow-reorder="false"&gt;
+  ...
+&lt;/ck-editable-array&gt;</code></pre>
+
+    <h3>JavaScript</h3>
+    <pre class="code"><code>const el = document.querySelector('ck-editable-array');
+
+// Disable reordering
+el.allowReorder = false;
+
+// Enable reordering
+el.allowReorder = true;</code></pre>
+  </div>
+
   <div class="example" id="events">
-    <h2>4) Reorder Event Details</h2>
+    <h2>5) Reorder Event Details</h2>
     <p>The <code>reorder</code> event provides details about the move operation.</p>
     <div class="demo">
       <ck-editable-array id="eventEl" name="event-demo">
@@ -314,7 +395,21 @@ el.addEventListener('reorder', (e) => {
       }
     });
 
-    // Example 4: Event Details
+    // Example 4: Disabling Reordering
+    const noReorderEl = document.querySelector('#noReorderEl');
+    const allowReorderToggle = document.querySelector('#allowReorderToggle');
+
+    noReorderEl.data = [
+      { title: 'Item 1 (try dragging - disabled)' },
+      { title: 'Item 2 (move buttons disabled)' },
+      { title: 'Item 3 (but you can still edit!)' }
+    ];
+
+    allowReorderToggle.addEventListener('change', () => {
+      noReorderEl.allowReorder = allowReorderToggle.checked;
+    });
+
+    // Example 5: Event Details
     const eventEl = document.querySelector('#eventEl');
     const eventDetails = document.querySelector('#eventDetails');
 
