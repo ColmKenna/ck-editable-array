@@ -90,11 +90,14 @@ export class CkEditableArray extends HTMLElement {
       'button-cancel-text',
       'button-delete-text',
       'button-restore-text',
+      'readonly',
+      'allow-reorder',
     ];
   }
 
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
     if (oldValue !== newValue) {
+      if (!this._rootEl) return;
       if (name === 'name') {
         this._updateNameOnly();
       } else if (
@@ -113,6 +116,9 @@ export class CkEditableArray extends HTMLElement {
         name === 'button-restore-text'
       ) {
         this._updateButtonText();
+      } else if (name === 'allow-reorder') {
+        this._updateMoveButtons();
+        this._updateDraggableState();
       } else {
         this.render();
       }
@@ -125,6 +131,19 @@ export class CkEditableArray extends HTMLElement {
 
   set name(value: string) {
     this.setAttribute('name', value);
+  }
+
+  get allowReorder(): boolean {
+    // Defaults to true if attribute is not set
+    return this.getAttribute('allow-reorder') !== 'false';
+  }
+
+  set allowReorder(value: boolean) {
+    if (value) {
+      this.removeAttribute('allow-reorder');
+    } else {
+      this.setAttribute('allow-reorder', 'false');
+    }
   }
 
   get rootClass() {
@@ -460,6 +479,32 @@ export class CkEditableArray extends HTMLElement {
     });
   }
 
+  private _updateMoveButtons() {
+    // Re-render when allowReorder changes (buttons need to be added/removed)
+    // Clear existing rows and recreate them to ensure buttons are added/removed
+    if (this._containerEl && this._rowsHostEl) {
+      // Clear all existing rows to force recreation
+      this._rowsHostEl.replaceChildren();
+      this.render();
+    }
+  }
+
+  private _updateDraggableState() {
+    // Fast path: update draggable attribute based on allowReorder
+    if (!this._rowsHostEl) return;
+
+    const rows = Array.from(
+      this._rowsHostEl.querySelectorAll('[data-row]')
+    ) as HTMLElement[];
+
+    rows.forEach(rowEl => {
+      rowEl.setAttribute(
+        'draggable',
+        this.readonly || !this.allowReorder ? 'false' : 'true'
+      );
+    });
+  }
+
   private _getEditTemplate() {
     if (this._editTemplate) return this._editTemplate;
     const template = this.querySelector('template[slot="edit"]');
@@ -611,18 +656,23 @@ export class CkEditableArray extends HTMLElement {
       deleteButton.setAttribute('part', 'button button-delete');
       deleteButton.textContent = this._getButtonDeleteText();
       actionsWrapper.appendChild(deleteButton);
-      const moveUpButton = document.createElement('button');
-      moveUpButton.type = 'button';
-      moveUpButton.setAttribute('data-action', 'move-up');
-      moveUpButton.setAttribute('part', 'button button-move-up');
-      moveUpButton.textContent = '↑';
-      actionsWrapper.appendChild(moveUpButton);
-      const moveDownButton = document.createElement('button');
-      moveDownButton.type = 'button';
-      moveDownButton.setAttribute('data-action', 'move-down');
-      moveDownButton.setAttribute('part', 'button button-move-down');
-      moveDownButton.textContent = '↓';
-      actionsWrapper.appendChild(moveDownButton);
+
+      // Only create move buttons if reordering is allowed
+      if (this.allowReorder) {
+        const moveUpButton = document.createElement('button');
+        moveUpButton.type = 'button';
+        moveUpButton.setAttribute('data-action', 'move-up');
+        moveUpButton.setAttribute('part', 'button button-move-up');
+        moveUpButton.textContent = '↑';
+        actionsWrapper.appendChild(moveUpButton);
+        const moveDownButton = document.createElement('button');
+        moveDownButton.type = 'button';
+        moveDownButton.setAttribute('data-action', 'move-down');
+        moveDownButton.setAttribute('part', 'button button-move-down');
+        moveDownButton.textContent = '↓';
+        actionsWrapper.appendChild(moveDownButton);
+      }
+
       rowEl.appendChild(actionsWrapper);
 
       // Add hidden checkbox for isDeleted property (soft delete)
@@ -673,8 +723,11 @@ export class CkEditableArray extends HTMLElement {
     // Always update attributes and bindings for current index/data
     rowEl.setAttribute('data-row', String(index));
 
-    // Set draggable attribute based on readonly state
-    rowEl.setAttribute('draggable', this.readonly ? 'false' : 'true');
+    // Set draggable attribute based on readonly state and allowReorder
+    rowEl.setAttribute(
+      'draggable',
+      this.readonly || !this.allowReorder ? 'false' : 'true'
+    );
 
     // Update contextual aria-labels for buttons (Feature 4.1)
     const editButton = rowEl.querySelector('[data-action="toggle"]');
@@ -687,11 +740,12 @@ export class CkEditableArray extends HTMLElement {
 
     if (editButton) {
       editButton.setAttribute('aria-label', `Edit item ${itemNumber}`);
-      // Disable edit button when row is deleted
-      (editButton as HTMLButtonElement).disabled = isDeleted;
+      // Disable edit button when row is deleted or readonly
+      (editButton as HTMLButtonElement).disabled = isDeleted || this.readonly;
     }
     if (saveButton) {
       saveButton.setAttribute('aria-label', `Save item ${itemNumber}`);
+      (saveButton as HTMLButtonElement).disabled = this.readonly;
     }
     if (cancelButton) {
       cancelButton.setAttribute(
@@ -700,6 +754,7 @@ export class CkEditableArray extends HTMLElement {
       );
     }
     if (deleteButton) {
+      (deleteButton as HTMLButtonElement).disabled = this.readonly;
       if (isDeleted) {
         deleteButton.textContent = this._getButtonRestoreText();
         deleteButton.setAttribute('aria-label', `Restore item ${itemNumber}`);
@@ -719,14 +774,15 @@ export class CkEditableArray extends HTMLElement {
 
     if (moveUpButton) {
       moveUpButton.setAttribute('aria-label', `Move item ${itemNumber} up`);
-      // Disable if first row or readonly
-      moveUpButton.disabled = index === 0 || this.readonly;
+      // Disable if first row, readonly, or reordering disabled
+      moveUpButton.disabled =
+        index === 0 || this.readonly || !this.allowReorder;
     }
     if (moveDownButton) {
       moveDownButton.setAttribute('aria-label', `Move item ${itemNumber} down`);
-      // Disable if last row or readonly
+      // Disable if last row, readonly, or reordering disabled
       moveDownButton.disabled =
-        index === this._data.length - 1 || this.readonly;
+        index === this._data.length - 1 || this.readonly || !this.allowReorder;
     }
 
     // Re-apply bindings and semantics with cached elements
@@ -986,6 +1042,7 @@ export class CkEditableArray extends HTMLElement {
       | HTMLInputElement
       | HTMLSelectElement
       | HTMLTextAreaElement;
+    if (this.readonly) return;
 
     // Compute row index from DOM at runtime, not from captured closure
     const rowEl = target.closest('[data-row]') as HTMLElement | null;
@@ -1080,6 +1137,8 @@ export class CkEditableArray extends HTMLElement {
     const rowIndex = Number(rowEl.getAttribute('data-row'));
     if (!Number.isFinite(rowIndex)) return;
 
+    if (this.readonly && action !== 'cancel') return;
+
     if (action === 'toggle') {
       this._enterEditMode(rowEl, rowIndex);
     } else if (action === 'save') {
@@ -1096,6 +1155,7 @@ export class CkEditableArray extends HTMLElement {
   }
 
   private _enterEditMode(rowEl: HTMLElement, rowIndex: number) {
+    if (this.readonly) return;
     if (
       this._currentEditIndex !== null &&
       this._currentEditIndex !== rowIndex
@@ -1137,6 +1197,7 @@ export class CkEditableArray extends HTMLElement {
   }
 
   private _saveRow(rowEl: HTMLElement, rowIndex: number) {
+    if (this.readonly) return;
     if (this._currentEditIndex !== rowIndex) return;
 
     const rowData = this._data[rowIndex];
@@ -1222,6 +1283,7 @@ export class CkEditableArray extends HTMLElement {
   }
 
   private _toggleDeleteRow(rowEl: HTMLElement, rowIndex: number) {
+    if (this.readonly) return;
     const rowData = this._data[rowIndex];
     if (!rowData) return;
 
@@ -1489,8 +1551,12 @@ export class CkEditableArray extends HTMLElement {
     const rowEl = event.target as HTMLElement;
     if (!rowEl?.hasAttribute('data-row')) return;
 
-    // Block drag if readonly or editing
-    if (this.readonly || this._currentEditIndex !== null) {
+    // Block drag if readonly, editing, or reordering disabled
+    if (
+      this.readonly ||
+      this._currentEditIndex !== null ||
+      !this.allowReorder
+    ) {
       event.preventDefault();
       return;
     }
@@ -1655,6 +1721,8 @@ export class CkEditableArray extends HTMLElement {
     rowEl.setAttribute('data-row', String(index));
 
     const itemNumber = index + 1;
+    const rowData = this._data[index];
+    const isDeleted = this._isRowDeleted(rowData);
 
     // Update move buttons
     const moveUpButton = rowEl.querySelector(
@@ -1666,12 +1734,13 @@ export class CkEditableArray extends HTMLElement {
 
     if (moveUpButton) {
       moveUpButton.setAttribute('aria-label', `Move item ${itemNumber} up`);
-      moveUpButton.disabled = index === 0 || this.readonly;
+      moveUpButton.disabled =
+        index === 0 || this.readonly || !this.allowReorder;
     }
     if (moveDownButton) {
       moveDownButton.setAttribute('aria-label', `Move item ${itemNumber} down`);
       moveDownButton.disabled =
-        index === this._data.length - 1 || this.readonly;
+        index === this._data.length - 1 || this.readonly || !this.allowReorder;
     }
 
     // Update edit/save/cancel/delete button aria-labels
@@ -1682,9 +1751,11 @@ export class CkEditableArray extends HTMLElement {
 
     if (editButton) {
       editButton.setAttribute('aria-label', `Edit item ${itemNumber}`);
+      (editButton as HTMLButtonElement).disabled = isDeleted || this.readonly;
     }
     if (saveButton) {
       saveButton.setAttribute('aria-label', `Save item ${itemNumber}`);
+      (saveButton as HTMLButtonElement).disabled = this.readonly;
     }
     if (cancelButton) {
       cancelButton.setAttribute(
@@ -1693,8 +1764,7 @@ export class CkEditableArray extends HTMLElement {
       );
     }
     if (deleteButton) {
-      const rowData = this._data[index];
-      const isDeleted = this._isRowDeleted(rowData);
+      (deleteButton as HTMLButtonElement).disabled = this.readonly;
       if (isDeleted) {
         deleteButton.setAttribute('aria-label', `Restore item ${itemNumber}`);
       } else {
@@ -1705,8 +1775,13 @@ export class CkEditableArray extends HTMLElement {
 
   // Public move methods
   moveUp(index: number): boolean {
-    // Guard: readonly, editing, or animating
-    if (this.readonly || this._currentEditIndex !== null || this._isAnimating) {
+    // Guard: readonly, editing, animating, or reordering disabled
+    if (
+      this.readonly ||
+      this._currentEditIndex !== null ||
+      this._isAnimating ||
+      !this.allowReorder
+    ) {
       return false;
     }
 
@@ -1720,8 +1795,13 @@ export class CkEditableArray extends HTMLElement {
   }
 
   moveDown(index: number): boolean {
-    // Guard: readonly, editing, or animating
-    if (this.readonly || this._currentEditIndex !== null || this._isAnimating) {
+    // Guard: readonly, editing, animating, or reordering disabled
+    if (
+      this.readonly ||
+      this._currentEditIndex !== null ||
+      this._isAnimating ||
+      !this.allowReorder
+    ) {
       return false;
     }
 

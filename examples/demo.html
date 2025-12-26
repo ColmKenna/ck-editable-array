@@ -756,6 +756,45 @@ console.log(element.data[0].name); // Still 'Original' ✓
 // Click restore -> class removed, everything returns to normal
           </div>
         </div>
+
+        <div class="demo-item">
+          <h3>Readonly Mode</h3>
+          <p style="color: #666; margin-bottom: 1rem;">
+            Toggle readonly to lock edit/delete/move actions. Cancel remains available to exit edit mode.
+          </p>
+          <label style="display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+            <input type="checkbox" id="readonlyToggle" />
+            Readonly enabled
+          </label>
+          <div class="component-wrapper">
+            <ck-editable-array id="readonlyDemo" name="readonly-demo">
+              <template slot="display">
+                <div>
+                  <strong data-bind="name"></strong>
+                  <span style="margin-left: 0.5rem; color: #666;" data-bind="status"></span>
+                </div>
+              </template>
+
+              <template slot="edit">
+                <div>
+                  <label style="display: grid; gap: 0.25rem; font-size: 0.9rem;">
+                    Name
+                    <input type="text" data-bind="name" />
+                  </label>
+                  <label style="display: grid; gap: 0.25rem; font-size: 0.9rem; margin-top: 0.5rem;">
+                    Status
+                    <input type="text" data-bind="status" />
+                  </label>
+                </div>
+              </template>
+            </ck-editable-array>
+          </div>
+          <div class="code-block">
+const demo = document.querySelector('#readonlyDemo');
+demo.setAttribute('readonly', ''); // disables edits
+demo.removeAttribute('readonly');  // enables edits
+          </div>
+        </div>
       </div>
 
       <!-- Edit Template Demo -->
@@ -1212,6 +1251,28 @@ const success = element.moveUp(0); // false (already at top)
           { title: 'Write documentation', isDeleted: false },
           { title: 'Deploy to production', isDeleted: false },
         ];
+      }
+
+      const readonlyDemo = document.getElementById('readonlyDemo');
+      if (readonlyDemo) {
+        readonlyDemo.data = [
+          { name: 'Draft spec', status: 'In review' },
+          { name: 'Release notes', status: 'Pending' },
+          { name: 'Launch checklist', status: 'Blocked' },
+        ];
+
+        const readonlyToggle = document.getElementById('readonlyToggle');
+        if (readonlyToggle && 'checked' in readonlyToggle) {
+          const applyReadonly = () => {
+            if (readonlyToggle.checked) {
+              readonlyDemo.setAttribute('readonly', '');
+            } else {
+              readonlyDemo.removeAttribute('readonly');
+            }
+          };
+          readonlyToggle.addEventListener('change', applyReadonly);
+          applyReadonly();
+        }
       }
 
       // Live bidirectional binding demo initialization

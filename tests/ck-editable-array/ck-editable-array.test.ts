@@ -122,6 +122,11 @@ describe('CkEditableArray Component', () => {
     expect(observedAttributes).toContain('name');
   });
 
+  test('should observe readonly attribute', () => {
+    const observedAttributes = CkEditableArray.observedAttributes;
+    expect(observedAttributes).toContain('readonly');
+  });
+
   // Data property tests (TDD: RED phase)
   test('should have default empty array data', () => {
     expect(element.data).toEqual([]);
@@ -411,6 +416,63 @@ describe('CkEditableArray Component', () => {
       expect(editButton.classList.contains('ck-hidden')).toBe(true);
       expect(saveButton.classList.contains('ck-hidden')).toBe(false);
       expect(cancelButton.classList.contains('ck-hidden')).toBe(false);
+    });
+
+    test('should not enter edit mode when readonly is set', () => {
+      attachTemplates(element, 'name');
+      element.setAttribute('readonly', '');
+
+      element.data = [{ name: 'First' }];
+      element.connectedCallback();
+
+      const row = element.shadowRoot?.querySelector(
+        '[data-row="0"]'
+      ) as HTMLElement;
+      const editButton = row.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+
+      expect(editButton.disabled).toBe(true);
+
+      editButton?.click();
+
+      expect(row.getAttribute('data-mode')).toBe('display');
+    });
+
+    test('should update action buttons and draggable when readonly toggles on', () => {
+      attachTemplates(element, 'name');
+
+      element.data = [{ name: 'First' }];
+      element.connectedCallback();
+
+      let row = element.shadowRoot?.querySelector(
+        '[data-row="0"]'
+      ) as HTMLElement;
+      let editButton = row.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      let deleteButton = row.querySelector(
+        '[data-action="delete"]'
+      ) as HTMLButtonElement;
+
+      expect(editButton.disabled).toBe(false);
+      expect(deleteButton.disabled).toBe(false);
+      expect(row.getAttribute('draggable')).toBe('true');
+
+      element.setAttribute('readonly', '');
+      element.attributeChangedCallback('readonly', 'false', '');
+
+      row = element.shadowRoot?.querySelector('[data-row="0"]') as HTMLElement;
+      editButton = row.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      deleteButton = row.querySelector(
+        '[data-action="delete"]'
+      ) as HTMLButtonElement;
+
+      expect(editButton.disabled).toBe(true);
+      expect(deleteButton.disabled).toBe(true);
+      expect(row.getAttribute('draggable')).toBe('false');
     });
 
     test('should dispatch cancelable beforetogglemode and respect preventDefault', () => {
@@ -1415,6 +1477,36 @@ describe('CkEditableArray Component', () => {
       // Component data should update
       const updatedData = element.data as { name: string }[];
       expect(updatedData[0].name).toBe('Bob Updated');
+    });
+
+    test('should ignore input changes when readonly is set', () => {
+      element.setAttribute('readonly', '');
+      attachTemplates(element, 'name');
+
+      element.data = [{ name: 'Bob' }];
+      element.connectedCallback();
+
+      const eventHandler = jest.fn();
+      element.addEventListener('rowchanged', eventHandler);
+
+      const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+      const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+      const input = row?.querySelector(
+        'input[data-bind="name"]'
+      ) as HTMLInputElement;
+      const displaySpan = row?.querySelector(
+        'span[data-bind="name"]'
+      ) as HTMLElement;
+
+      input.value = 'Bob Updated';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      const updatedData = element.data as { name: string }[];
+      expect(updatedData[0].name).toBe('Bob');
+      expect(displaySpan.textContent).toBe('Bob');
+      expect(eventHandler).not.toHaveBeenCalled();
+
+      element.removeEventListener('rowchanged', eventHandler);
     });
 
     test('should dispatch rowchanged event on input change', () => {
@@ -4510,6 +4602,41 @@ describe('CkEditableArray Component', () => {
         const updatedData = element.data;
         expect(updatedData[0]).toHaveProperty('isDeleted');
         expect(updatedData[0].isDeleted).toBe(true);
+      });
+
+      test('should not allow delete when readonly is set', () => {
+        const element = document.createElement('ck-editable-array') as any;
+        element.setAttribute('readonly', '');
+        document.body.appendChild(element);
+
+        const displayTemplate = document.createElement('template');
+        displayTemplate.setAttribute('slot', 'display');
+        displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+        element.appendChild(displayTemplate);
+
+        const datachangedHandler = jest.fn();
+        element.addEventListener('datachanged', datachangedHandler);
+
+        element.data = [{ name: 'Item 1' }];
+        element.connectedCallback();
+        datachangedHandler.mockClear();
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const row0 = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+        const deleteButton = row0?.querySelector(
+          '[data-action="delete"]'
+        ) as HTMLButtonElement;
+
+        expect(deleteButton.disabled).toBe(true);
+
+        deleteButton?.click();
+
+        const updatedData = element.data as { name: string; isDeleted?: boolean }[];
+        expect(updatedData[0].isDeleted).toBeUndefined();
+        expect(datachangedHandler).not.toHaveBeenCalled();
+
+        element.removeEventListener('datachanged', datachangedHandler);
+        document.body.removeChild(element);
       });
 
       test('should change delete button to restore when isDeleted is true', () => {
