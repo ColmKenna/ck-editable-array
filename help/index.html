@@ -366,7 +366,7 @@
           <tr><th>Default</th><td>absent (false)</td></tr>
           <tr><th>Valid Values</th><td>present/absent</td></tr>
         </table>
-        <p><strong>Description:</strong> When present, disables editing, deleting, and reordering functionality. Rows cannot be dragged, move up/down buttons are not rendered, and edit/delete buttons are hidden. Use this to display the array in a read-only view.</p>
+        <p><strong>Description:</strong> When present, disables editing, deleting, and reordering. Rows are not draggable, edit/save/delete/restore and move buttons are disabled, input changes are ignored, and cancel remains available to exit edit mode. Use this to display the array in a read-only view.</p>
         <p><strong>Examples:</strong> <code>&lt;ck-editable-array readonly&gt;</code></p>
       </section>
 
@@ -521,7 +521,7 @@ ck-editable-array::part(button-edit):hover {
 
         <h3><code>::part(button-move-up)</code></h3>
         <p><strong>Targets:</strong> The Move Up button for each row.</p>
-        <p><strong>Description:</strong> Specific part selector for the Move Up button. This button is disabled on the first row. Not rendered when <code>readonly</code> is set or when a row is being edited.</p>
+        <p><strong>Description:</strong> Specific part selector for the Move Up button. This button is disabled on the first row. Not rendered when <code>allow-reorder="false"</code>; disabled when <code>readonly</code> is set; hidden while a row is in edit mode.</p>
         <pre><code>ck-editable-array::part(button-move-up) {
   background: #8b5cf6;
   color: white;
@@ -534,7 +534,7 @@ ck-editable-array::part(button-move-up):disabled {
 
         <h3><code>::part(button-move-down)</code></h3>
         <p><strong>Targets:</strong> The Move Down button for each row.</p>
-        <p><strong>Description:</strong> Specific part selector for the Move Down button. This button is disabled on the last row. Not rendered when <code>readonly</code> is set or when a row is being edited.</p>
+        <p><strong>Description:</strong> Specific part selector for the Move Down button. This button is disabled on the last row. Not rendered when <code>allow-reorder="false"</code>; disabled when <code>readonly</code> is set; hidden while a row is in edit mode.</p>
         <pre><code>ck-editable-array::part(button-move-down) {
   background: #8b5cf6;
   color: white;
@@ -786,7 +786,7 @@ ck-editable-array .ck-drag-over {
         <div class="note">
           <strong>Button Behavior</strong>
           <ul style="margin: 8px 0 0 18px;">
-            <li>Buttons are hidden when <code>readonly</code> attribute is present</li>
+            <li>Buttons are disabled when <code>readonly</code> attribute is present</li>
             <li>Buttons are hidden when <code>allow-reorder="false"</code> attribute is set</li>
             <li>Buttons are hidden when a row is being edited</li>
             <li>Appropriate buttons are disabled at array boundaries</li>
@@ -1005,10 +1005,10 @@ el.data = [{ title: 'Hello' }];</code></pre>
         <h4>Why are the Move Up/Down buttons not showing?</h4>
         <p><strong>Possible causes:</strong></p>
         <ul>
-          <li>The <code>readonly</code> attribute is present</li>
+          <li>The <code>allow-reorder</code> attribute is set to <code>"false"</code></li>
           <li>The row is currently in edit mode</li>
         </ul>
-        <p><strong>Solution:</strong> Move buttons are only visible when the component is not readonly and the row is in display mode. They appear alongside the Edit and Delete buttons.</p>
+        <p><strong>Solution:</strong> Move buttons are only visible when <code>allow-reorder</code> is enabled and the row is in display mode. If <code>readonly</code> is set, the buttons remain visible but are disabled.</p>
 
         <h4>How do I style the drag feedback and animations?</h4>
         <p><strong>Answer:</strong> The component adds CSS classes during reordering operations:</p>

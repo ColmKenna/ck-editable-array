@@ -168,7 +168,7 @@ el.addEventListener('reorder', (e) => {
 
   <div class="example" id="readonly">
     <h2>3) Readonly Mode</h2>
-    <p>When the <code>readonly</code> attribute is set, reordering is disabled. Rows cannot be dragged, and move buttons are hidden.</p>
+    <p>When the <code>readonly</code> attribute is set, reordering and edits are disabled. Rows cannot be dragged, and move buttons are disabled.</p>
     <div class="demo">
       <ck-editable-array id="readonlyEl" name="readonly-items" readonly>
         <template slot="display">
@@ -383,7 +383,7 @@ el.allowReorder = true;</code></pre>
 
     readonlyEl.data = [
       { title: 'Item 1 (try dragging - disabled)' },
-      { title: 'Item 2 (no move buttons visible)' },
+      { title: 'Item 2 (move buttons disabled)' },
       { title: 'Item 3 (readonly mode active)' }
     ];
 
@@ -401,7 +401,7 @@ el.allowReorder = true;</code></pre>
 
     noReorderEl.data = [
       { title: 'Item 1 (try dragging - disabled)' },
-      { title: 'Item 2 (move buttons disabled)' },
+      { title: 'Item 2 (move buttons hidden)' },
       { title: 'Item 3 (but you can still edit!)' }
     ];
 
