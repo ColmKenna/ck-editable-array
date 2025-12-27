@@ -111,8 +111,68 @@ ck-editable-array .ck-drag-over {
 }</code></pre>
   </div>
 
+  <div class="example" id="keyboard">
+    <h2>2) Keyboard Shortcuts</h2>
+    <p>When a row is focused, use <kbd>Alt+↑</kbd> and <kbd>Alt+↓</kbd> to reorder rows without using a mouse.</p>
+    <div class="demo">
+      <ck-editable-array id="keyboardEl" name="kb-tasks" allow-reorder>
+        <template slot="display">
+          <div class="item-row">
+            <span data-bind="title"></span>
+          </div>
+        </template>
+        <template slot="edit">
+          <input data-bind="title" style="width: 100%;" />
+        </template>
+      </ck-editable-array>
+    </div>
+
+    <div class="row">
+      <div class="panel">
+        <h3 style="margin-top: 0;">Instructions</h3>
+        <ul class="small">
+          <li>Click a row to focus it (or Tab into the list)</li>
+          <li>Press <kbd>Alt+↓</kbd> to move the focused row down</li>
+          <li>Press <kbd>Alt+↑</kbd> to move the focused row up</li>
+          <li>Use <kbd>↑</kbd>/<kbd>↓</kbd> without Alt to navigate focus</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top: 0;">Keyboard Reference</h3>
+        <table style="font-size: 0.88rem;">
+          <tr>
+            <th>Shortcut</th>
+            <th>Action</th>
+          </tr>
+          <tr>
+            <td><kbd>↑</kbd> / <kbd>↓</kbd></td>
+            <td>Navigate focus between rows</td>
+          </tr>
+          <tr>
+            <td><kbd>Alt+↑</kbd></td>
+            <td>Move focused row up</td>
+          </tr>
+          <tr>
+            <td><kbd>Alt+↓</kbd></td>
+            <td>Move focused row down</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="note">
+      <strong>Guard Conditions:</strong> Keyboard reordering is blocked when:
+      <ul style="margin: 8px 0 0 18px;">
+        <li><code>allow-reorder</code> is not set or is <code>"false"</code></li>
+        <li>The component is in <code>readonly</code> mode</li>
+        <li>A row is currently being edited</li>
+        <li>An animation is in progress</li>
+      </ul>
+    </div>
+  </div>
+
   <div class="example" id="programmatic">
-    <h2>2) Programmatic API</h2>
+    <h2>3) Programmatic API</h2>
     <p>Use the <code>moveUp()</code> and <code>moveDown()</code> methods to reorder rows programmatically.</p>
     <div class="demo">
       <ck-editable-array id="apiEl" name="items">
@@ -167,7 +227,7 @@ el.addEventListener('reorder', (e) => {
   </div>
 
   <div class="example" id="readonly">
-    <h2>3) Readonly Mode</h2>
+    <h2>4) Readonly Mode</h2>
     <p>When the <code>readonly</code> attribute is set, reordering and edits are disabled. Rows cannot be dragged, and move buttons are disabled.</p>
     <div class="demo">
       <ck-editable-array id="readonlyEl" name="readonly-items" readonly>
@@ -193,7 +253,7 @@ el.addEventListener('reorder', (e) => {
   </div>
 
   <div class="example" id="allow-reorder">
-    <h2>4) Disabling Reordering</h2>
+    <h2>5) Disabling Reordering</h2>
     <p>Use the <code>allow-reorder="false"</code> attribute to disable reordering while still allowing other operations (edit, delete, add). This is different from <code>readonly</code> which blocks all mutations.</p>
     <div class="demo">
       <ck-editable-array id="noReorderEl" name="no-reorder-items" allow-reorder="false">
@@ -274,7 +334,7 @@ el.allowReorder = true;</code></pre>
   </div>
 
   <div class="example" id="events">
-    <h2>5) Reorder Event Details</h2>
+    <h2>6) Reorder Event Details</h2>
     <p>The <code>reorder</code> event provides details about the move operation.</p>
     <div class="demo">
       <ck-editable-array id="eventEl" name="event-demo">
@@ -325,7 +385,16 @@ el.allowReorder = true;</code></pre>
       dragEventLog.textContent = dragEvents.slice(0, 10).join('\n');
     });
 
-    // Example 2: Programmatic API
+    // Example 2: Keyboard Shortcuts
+    const keyboardEl = document.querySelector('#keyboardEl');
+    keyboardEl.data = [
+      { title: 'Focus me and press Alt+↓' },
+      { title: 'Or use Alt+↑ to move up' },
+      { title: 'Arrow keys navigate focus' },
+      { title: 'Try reordering this list!' }
+    ];
+
+    // Example 3: Programmatic API
     const apiEl = document.querySelector('#apiEl');
     const rowSelect = document.querySelector('#rowSelect');
     const moveUpBtn = document.querySelector('#moveUpBtn');
@@ -377,7 +446,7 @@ el.allowReorder = true;</code></pre>
       resultMsg.style.color = '#666';
     });
 
-    // Example 3: Readonly Mode
+    // Example 4: Readonly Mode
     const readonlyEl = document.querySelector('#readonlyEl');
     const readonlyToggle = document.querySelector('#readonlyToggle');
 
@@ -395,7 +464,7 @@ el.allowReorder = true;</code></pre>
       }
     });
 
-    // Example 4: Disabling Reordering
+    // Example 5: Disabling Reordering
     const noReorderEl = document.querySelector('#noReorderEl');
     const allowReorderToggle = document.querySelector('#allowReorderToggle');
 
@@ -409,7 +478,7 @@ el.allowReorder = true;</code></pre>
       noReorderEl.allowReorder = allowReorderToggle.checked;
     });
 
-    // Example 5: Event Details
+    // Example 6: Event Details
     const eventEl = document.querySelector('#eventEl');
     const eventDetails = document.querySelector('#eventDetails');
 

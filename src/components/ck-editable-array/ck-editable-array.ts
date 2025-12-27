@@ -967,7 +967,14 @@ export class CkEditableArray extends HTMLElement {
     const rowIndex = Number(rowEl.getAttribute('data-row'));
     if (!Number.isFinite(rowIndex)) return;
 
-    if (event.key === 'ArrowDown') {
+    // Alt+Arrow = reorder, Arrow = navigate
+    if (event.altKey && event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.moveDown(rowIndex);
+    } else if (event.altKey && event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.moveUp(rowIndex);
+    } else if (event.key === 'ArrowDown') {
       event.preventDefault();
       const rows = this.shadowRoot?.querySelectorAll('[data-row]') as
         | NodeListOf<HTMLElement>

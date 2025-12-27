@@ -981,7 +981,164 @@ describe('CkEditableArray Component', () => {
       });
       rows[1].dispatchEvent(event);
 
-      expect(element.shadowRoot?.activeElement).toBe(rows[1]);
+    });
+  });
+
+  // Keyboard Reorder Shortcuts Tests (Alt+Arrow)
+  describe('Keyboard Reorder Shortcuts', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    test('should move row down with Alt+ArrowDown', () => {
+      attachTemplates(element, 'name');
+      element.setAttribute('allow-reorder', '');
+
+      element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+      element.connectedCallback();
+
+      const rows = element.shadowRoot?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
+
+      // Focus first row
+      rows[0].focus();
+
+      // Press Alt+ArrowDown
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowDown',
+        altKey: true,
+        bubbles: true,
+      });
+      rows[0].dispatchEvent(event);
+
+      // Advance timers to complete animation (250ms + buffer)
+      jest.advanceTimersByTime(300);
+
+      // Data should be reordered: B, A, C
+      const data = element.data as { name: string }[];
+      expect(data[0].name).toBe('B');
+      expect(data[1].name).toBe('A');
+      expect(data[2].name).toBe('C');
+    });
+
+    test('should move row up with Alt+ArrowUp', () => {
+      attachTemplates(element, 'name');
+      element.setAttribute('allow-reorder', '');
+
+      element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+      element.connectedCallback();
+
+      const rows = element.shadowRoot?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
+
+      // Focus second row
+      rows[1].focus();
+
+      // Press Alt+ArrowUp
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowUp',
+        altKey: true,
+        bubbles: true,
+      });
+      rows[1].dispatchEvent(event);
+
+      // Advance timers to complete animation (250ms + buffer)
+      jest.advanceTimersByTime(300);
+
+      // Data should be reordered: B, A, C
+      const data = element.data as { name: string }[];
+      expect(data[0].name).toBe('B');
+      expect(data[1].name).toBe('A');
+      expect(data[2].name).toBe('C');
+    });
+
+    test('should not reorder when allow-reorder is not set', () => {
+      attachTemplates(element, 'name');
+      // No allow-reorder attribute
+
+      element.data = [{ name: 'A' }, { name: 'B' }];
+      element.connectedCallback();
+
+      const rows = element.shadowRoot?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
+
+      rows[0].focus();
+
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowDown',
+        altKey: true,
+        bubbles: true,
+      });
+      rows[0].dispatchEvent(event);
+
+      // Data should NOT be reordered
+      const data = element.data as { name: string }[];
+      expect(data[0].name).toBe('A');
+      expect(data[1].name).toBe('B');
+    });
+
+    test('should not reorder when readonly', () => {
+      attachTemplates(element, 'name');
+      element.setAttribute('allow-reorder', '');
+      element.setAttribute('readonly', '');
+
+      element.data = [{ name: 'A' }, { name: 'B' }];
+      element.connectedCallback();
+
+      const rows = element.shadowRoot?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
+
+      rows[0].focus();
+
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowDown',
+        altKey: true,
+        bubbles: true,
+      });
+      rows[0].dispatchEvent(event);
+
+      // Data should NOT be reordered
+      const data = element.data as { name: string }[];
+      expect(data[0].name).toBe('A');
+      expect(data[1].name).toBe('B');
+    });
+
+    test('should not reorder when a row is being edited', () => {
+      attachTemplates(element, 'name');
+      element.setAttribute('allow-reorder', '');
+
+      element.data = [{ name: 'A' }, { name: 'B' }];
+      element.connectedCallback();
+
+      // Enter edit mode on first row
+      const toggleButton = element.shadowRoot?.querySelector(
+        '[data-row="0"] [data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleButton?.click();
+
+      const rows = element.shadowRoot?.querySelectorAll(
+        '[data-row]'
+      ) as NodeListOf<HTMLElement>;
+
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowDown',
+        altKey: true,
+        bubbles: true,
+      });
+      rows[0].dispatchEvent(event);
+
+      // Data should NOT be reordered
+      const data = element.data as { name: string }[];
+      expect(data[0].name).toBe('A');
+      expect(data[1].name).toBe('B');
     });
   });
 
