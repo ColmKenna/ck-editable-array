@@ -118,4 +118,111 @@ describe('CkEditableArray Security', () => {
     input?.dispatchEvent(new Event('input', { bubbles: true }));
     expect((window as any).pwnedEdit).toBeUndefined();
   });
+
+  describe('Dangerous URL-based Attributes', () => {
+    test('should remove javascript: URLs from href attribute in display template', () => {
+      const maliciousCode = `
+        <a href="javascript:alert('xss')" data-bind="name"></a>
+      `;
+      element.appendChild(createDisplayTemplate(maliciousCode));
+      element.data = [{ name: 'Test' }];
+      element.connectedCallback();
+
+      const link = element.shadowRoot?.querySelector('a');
+      expect(link?.hasAttribute('href')).toBe(false);
+    });
+
+    test('should remove javascript: URLs from src attribute in display template', () => {
+      const maliciousCode = `
+        <img src="javascript:alert('xss')" data-bind="name" />
+      `;
+      element.appendChild(createDisplayTemplate(maliciousCode));
+      element.data = [{ name: 'Test' }];
+      element.connectedCallback();
+
+      const img = element.shadowRoot?.querySelector('img');
+      expect(img?.hasAttribute('src')).toBe(false);
+    });
+
+    test('should remove javascript: URLs from href attribute in edit template', () => {
+      const maliciousCode = `
+        <a href="javascript:alert('xss')" data-bind="link"></a>
+        <input type="text" data-bind="name" />
+      `;
+      element.appendChild(
+        createDisplayTemplate('<span data-bind="name"></span>')
+      );
+      element.appendChild(createEditTemplate(maliciousCode));
+      element.data = [{ name: 'Test', link: '#' }];
+      element.connectedCallback();
+
+      // Enter edit mode
+      const row = element.shadowRoot?.querySelector('[data-row="0"]');
+      const toggleBtn = row?.querySelector(
+        '[data-action="toggle"]'
+      ) as HTMLButtonElement;
+      toggleBtn.click();
+
+      const link = row?.querySelector('a');
+      expect(link?.hasAttribute('href')).toBe(false);
+    });
+
+    test('should remove srcdoc attribute from iframes in display template', () => {
+      const maliciousCode = `
+        <iframe srcdoc="<script>alert('xss')</script>" data-bind="name"></iframe>
+      `;
+      element.appendChild(createDisplayTemplate(maliciousCode));
+      element.data = [{ name: 'Test' }];
+      element.connectedCallback();
+
+      const iframe = element.shadowRoot?.querySelector('iframe');
+      expect(iframe?.hasAttribute('srcdoc')).toBe(false);
+    });
+
+    test('should remove formaction with javascript: URL in display template', () => {
+      const maliciousCode = `
+        <button formaction="javascript:alert('xss')" data-bind="name"></button>
+      `;
+      element.appendChild(createDisplayTemplate(maliciousCode));
+      element.data = [{ name: 'Test' }];
+      element.connectedCallback();
+
+      const button = element.shadowRoot?.querySelector(
+        'button[data-bind="name"]'
+      );
+      expect(button?.hasAttribute('formaction')).toBe(false);
+    });
+
+    test('should handle case variations and whitespace in dangerous URLs', () => {
+      const maliciousCode = `
+        <a href="  JaVaScRiPt:alert('xss')" data-bind="name"></a>
+      `;
+      element.appendChild(createDisplayTemplate(maliciousCode));
+      element.data = [{ name: 'Test' }];
+      element.connectedCallback();
+
+      const link = element.shadowRoot?.querySelector('a');
+      expect(link?.hasAttribute('href')).toBe(false);
+    });
+
+    test('should preserve safe URLs (http, https, relative)', () => {
+      const safeCode = `
+        <a href="https://example.com" data-bind="name"></a>
+        <img src="/images/test.png" />
+        <a href="#section" class="anchor"></a>
+      `;
+      element.appendChild(createDisplayTemplate(safeCode));
+      element.data = [{ name: 'Test' }];
+      element.connectedCallback();
+
+      const httpsLink = element.shadowRoot?.querySelector('a[data-bind]');
+      expect(httpsLink?.getAttribute('href')).toBe('https://example.com');
+
+      const img = element.shadowRoot?.querySelector('img');
+      expect(img?.getAttribute('src')).toBe('/images/test.png');
+
+      const anchorLink = element.shadowRoot?.querySelector('a.anchor');
+      expect(anchorLink?.getAttribute('href')).toBe('#section');
+    });
+  });
 });

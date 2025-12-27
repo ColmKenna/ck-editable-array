@@ -1358,15 +1358,41 @@ export class CkEditableArray extends HTMLElement {
   }
 
   private _sanitizeClone(fragment: DocumentFragment): DocumentFragment {
+    // Remove <script> tags
     const scripts = fragment.querySelectorAll('script');
     scripts.forEach(script => script.remove());
+
+    // Dangerous URL protocols (case-insensitive, may have leading whitespace)
+    const DANGEROUS_URL_PATTERN = /^\s*(javascript|vbscript|data)\s*:/i;
+
+    // Attributes that can contain executable URLs
+    const URL_ATTRS = ['href', 'src', 'xlink:href', 'formaction'];
+
+    // Attributes to remove entirely (can contain executable HTML)
+    const DANGEROUS_ATTRS = ['srcdoc'];
 
     const allElements = fragment.querySelectorAll('*');
     allElements.forEach(el => {
       const attributes = el.getAttributeNames();
       attributes.forEach(attr => {
+        // Remove on* event handlers
         if (attr.startsWith('on')) {
           el.removeAttribute(attr);
+          return;
+        }
+
+        // Remove dangerous attributes entirely
+        if (DANGEROUS_ATTRS.includes(attr.toLowerCase())) {
+          el.removeAttribute(attr);
+          return;
+        }
+
+        // Sanitize URL-based attributes
+        if (URL_ATTRS.includes(attr.toLowerCase())) {
+          const value = el.getAttribute(attr) || '';
+          if (DANGEROUS_URL_PATTERN.test(value)) {
+            el.removeAttribute(attr);
+          }
         }
       });
     });
