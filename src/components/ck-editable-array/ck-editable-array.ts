@@ -3,6 +3,39 @@ import {
   ckEditableArrayCSS,
 } from './ck-editable-array.styles';
 
+// Trusted Types declarations for CSP enhancement
+declare global {
+  interface Window {
+    trustedTypes?: {
+      createPolicy: (
+        name: string,
+        policy: { createHTML?: (input: string) => string }
+      ) => TrustedTypePolicy;
+    };
+  }
+}
+
+interface TrustedTypePolicy {
+  createHTML(input: string): TrustedHTML;
+}
+
+interface TrustedHTML {
+  toString(): string;
+}
+
+// Create Trusted Types policy once if API is available
+let trustedTypesPolicy: TrustedTypePolicy | null = null;
+if (typeof window !== 'undefined' && window.trustedTypes?.createPolicy) {
+  try {
+    trustedTypesPolicy = window.trustedTypes.createPolicy('ck-editable-array', {
+      createHTML: (input: string) => input,
+    });
+  } catch {
+    // Policy may already exist or creation may be blocked by CSP
+    trustedTypesPolicy = null;
+  }
+}
+
 interface EditState {
   editing: boolean;
   originalSnapshot: unknown;
@@ -362,7 +395,14 @@ export class CkEditableArray extends HTMLElement {
           style.nonce = nonce;
         }
 
-        style.textContent = ckEditableArrayCSS;
+        // Use Trusted Types if available for CSP compliance, otherwise textContent
+        if (trustedTypesPolicy) {
+          style.innerHTML = trustedTypesPolicy.createHTML(
+            ckEditableArrayCSS
+          ) as unknown as string;
+        } else {
+          style.textContent = ckEditableArrayCSS;
+        }
         this.shadow.insertBefore(style, this._rootEl);
       }
     }
