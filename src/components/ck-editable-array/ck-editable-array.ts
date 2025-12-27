@@ -41,7 +41,11 @@ export class CkEditableArray extends HTMLElement {
 
   // Animation state
   private _isAnimating = false;
+  private _animationTimerId: number | null = null;
   private static readonly ANIMATION_DURATION = 250; // ms
+
+  // Lifecycle state
+  private _clickListenerAttached = false;
 
   constructor() {
     super();
@@ -67,14 +71,20 @@ export class CkEditableArray extends HTMLElement {
     if (!this._rootEl) {
       this._rootEl = document.createElement('div');
       this.shadow.appendChild(this._rootEl);
+    }
+    // Reattach click listener if not already attached (handles reconnection)
+    if (!this._clickListenerAttached) {
       this.shadow.addEventListener('click', this._onShadowClick);
+      this._clickListenerAttached = true;
     }
     this.render();
   }
 
   disconnectedCallback() {
     this.shadow.removeEventListener('click', this._onShadowClick);
+    this._clickListenerAttached = false;
     this._clearDataChangeTimer();
+    this._clearAnimationTimer();
   }
 
   static get observedAttributes() {
@@ -294,6 +304,12 @@ export class CkEditableArray extends HTMLElement {
     if (this._dataChangeTimer === null) return;
     window.clearTimeout(this._dataChangeTimer);
     this._dataChangeTimer = null;
+  }
+
+  private _clearAnimationTimer(): void {
+    if (this._animationTimerId === null) return;
+    window.clearTimeout(this._animationTimerId);
+    this._animationTimerId = null;
   }
 
   private _scheduleDataChanged(): void {
@@ -1878,7 +1894,16 @@ export class CkEditableArray extends HTMLElement {
     toRow.style.transform = `translateY(${-deltaY}px)`;
 
     // After animation completes, update DOM and clean up
-    window.setTimeout(() => {
+    this._animationTimerId = window.setTimeout(() => {
+      // Clear timer ID first
+      this._animationTimerId = null;
+
+      // Guard: don't execute if disconnected
+      if (!this.isConnected) {
+        this._isAnimating = false;
+        return;
+      }
+
       // Remove animation styles
       fromRow.style.transition = '';
       fromRow.style.transform = '';

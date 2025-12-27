@@ -6932,4 +6932,117 @@ describe('CkEditableArray Component', () => {
       });
     });
   });
+
+  describe('Lifecycle', () => {
+    describe('Reconnection', () => {
+      test('should have functional click handlers after disconnect and reconnect', () => {
+        const element = document.createElement('ck-editable-array') as CkEditableArray;
+        document.body.appendChild(element);
+
+        attachTemplates(element, 'name');
+        element.data = [{ name: 'First' }];
+        element.connectedCallback();
+
+        // Disconnect
+        document.body.removeChild(element);
+        element.disconnectedCallback();
+
+        // Reconnect
+        document.body.appendChild(element);
+        element.connectedCallback();
+
+        // Click the edit button - it should work after reconnect
+        const row = element.shadowRoot?.querySelector('[data-row="0"]') as HTMLElement;
+        const toggleButton = row?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+        toggleButton?.click();
+
+        // Verify edit mode was entered (click handler is functional)
+        expect(row.getAttribute('data-mode')).toBe('edit');
+
+        document.body.removeChild(element);
+      });
+
+      test('should not add duplicate listeners on multiple connects', () => {
+        const element = document.createElement('ck-editable-array') as CkEditableArray;
+        document.body.appendChild(element);
+
+        attachTemplates(element, 'name');
+        element.data = [{ name: 'First' }];
+        element.connectedCallback();
+
+        // Simulate multiple connectedCallback calls (edge case)
+        element.connectedCallback();
+        element.connectedCallback();
+
+        // Click the edit button
+        const editHandler = jest.fn();
+        element.addEventListener('aftertogglemode', editHandler);
+
+        const row = element.shadowRoot?.querySelector('[data-row="0"]') as HTMLElement;
+        const toggleButton = row?.querySelector('[data-action="toggle"]') as HTMLButtonElement;
+        toggleButton?.click();
+
+        // Should only fire once, not multiple times
+        expect(editHandler).toHaveBeenCalledTimes(1);
+
+        document.body.removeChild(element);
+      });
+    });
+
+    describe('Animation Cleanup', () => {
+      beforeEach(() => {
+        jest.useFakeTimers();
+      });
+
+      afterEach(() => {
+        jest.useRealTimers();
+      });
+
+      test('should clear animation timer on disconnect', () => {
+        const element = document.createElement('ck-editable-array') as CkEditableArray;
+        document.body.appendChild(element);
+
+        attachTemplates(element, 'name');
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        // Start move operation which triggers animation
+        element.moveUp(1);
+
+        // Disconnect mid-animation
+        document.body.removeChild(element);
+        element.disconnectedCallback();
+
+        // Advance timers - should not throw or cause issues
+        expect(() => {
+          jest.advanceTimersByTime(500);
+        }).not.toThrow();
+      });
+
+      test('should not execute animation callback after disconnect', () => {
+        const element = document.createElement('ck-editable-array') as CkEditableArray;
+        document.body.appendChild(element);
+
+        attachTemplates(element, 'name');
+        element.data = [{ name: 'A' }, { name: 'B' }];
+        element.connectedCallback();
+
+        const reorderHandler = jest.fn();
+        element.addEventListener('reorder', reorderHandler);
+
+        // Start move operation which triggers animation
+        element.moveUp(1);
+
+        // Disconnect mid-animation
+        document.body.removeChild(element);
+        element.disconnectedCallback();
+
+        // Advance past animation duration
+        jest.advanceTimersByTime(500);
+
+        // Reorder event should NOT have fired because we disconnected
+        expect(reorderHandler).not.toHaveBeenCalled();
+      });
+    });
+  });
 });
