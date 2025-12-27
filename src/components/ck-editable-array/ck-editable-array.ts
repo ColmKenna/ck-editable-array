@@ -786,61 +786,8 @@ export class CkEditableArray extends HTMLElement {
       this.readonly || !this.allowReorder ? 'false' : 'true'
     );
 
-    // Update contextual aria-labels for buttons (Feature 4.1)
-    const editButton = rowEl.querySelector('[data-action="toggle"]');
-    const saveButton = rowEl.querySelector('[data-action="save"]');
-    const cancelButton = rowEl.querySelector('[data-action="cancel"]');
-    const deleteButton = rowEl.querySelector('[data-action="delete"]');
-    const itemNumber = index + 1;
-
-    const isDeleted = this._isRowDeleted(rowData);
-
-    if (editButton) {
-      editButton.setAttribute('aria-label', `Edit item ${itemNumber}`);
-      // Disable edit button when row is deleted or readonly
-      (editButton as HTMLButtonElement).disabled = isDeleted || this.readonly;
-    }
-    if (saveButton) {
-      saveButton.setAttribute('aria-label', `Save item ${itemNumber}`);
-      (saveButton as HTMLButtonElement).disabled = this.readonly;
-    }
-    if (cancelButton) {
-      cancelButton.setAttribute(
-        'aria-label',
-        `Cancel edits for item ${itemNumber}`
-      );
-    }
-    if (deleteButton) {
-      (deleteButton as HTMLButtonElement).disabled = this.readonly;
-      if (isDeleted) {
-        deleteButton.textContent = this._getButtonRestoreText();
-        deleteButton.setAttribute('aria-label', `Restore item ${itemNumber}`);
-      } else {
-        deleteButton.textContent = this._getButtonDeleteText();
-        deleteButton.setAttribute('aria-label', `Delete item ${itemNumber}`);
-      }
-    }
-
-    // Update move up/down buttons
-    const moveUpButton = rowEl.querySelector(
-      '[data-action="move-up"]'
-    ) as HTMLButtonElement | null;
-    const moveDownButton = rowEl.querySelector(
-      '[data-action="move-down"]'
-    ) as HTMLButtonElement | null;
-
-    if (moveUpButton) {
-      moveUpButton.setAttribute('aria-label', `Move item ${itemNumber} up`);
-      // Disable if first row, readonly, or reordering disabled
-      moveUpButton.disabled =
-        index === 0 || this.readonly || !this.allowReorder;
-    }
-    if (moveDownButton) {
-      moveDownButton.setAttribute('aria-label', `Move item ${itemNumber} down`);
-      // Disable if last row, readonly, or reordering disabled
-      moveDownButton.disabled =
-        index === this._data.length - 1 || this.readonly || !this.allowReorder;
-    }
+    // Update contextual aria-labels and disabled states for all buttons
+    this._applyButtonSemantics(rowEl, index, rowData);
 
     // Re-apply bindings and semantics with cached elements
     this._applyBindingsOptimized(boundEls, rowData);
@@ -1446,6 +1393,77 @@ export class CkEditableArray extends HTMLElement {
     }
   }
 
+  /**
+   * Apply button semantics (aria-labels, disabled states) for a row.
+   * Shared helper to avoid divergence between _renderRow and _updateRowIndexAndButtons.
+   */
+  private _applyButtonSemantics(
+    rowEl: HTMLElement,
+    index: number,
+    rowData: unknown
+  ): void {
+    const itemNumber = index + 1;
+    const isDeleted = this._isRowDeleted(rowData);
+
+    // Edit/Save/Cancel/Delete buttons
+    const editButton = rowEl.querySelector(
+      '[data-action="toggle"]'
+    ) as HTMLButtonElement | null;
+    const saveButton = rowEl.querySelector(
+      '[data-action="save"]'
+    ) as HTMLButtonElement | null;
+    const cancelButton = rowEl.querySelector(
+      '[data-action="cancel"]'
+    ) as HTMLButtonElement | null;
+    const deleteButton = rowEl.querySelector(
+      '[data-action="delete"]'
+    ) as HTMLButtonElement | null;
+
+    if (editButton) {
+      editButton.setAttribute('aria-label', `Edit item ${itemNumber}`);
+      editButton.disabled = isDeleted || this.readonly;
+    }
+    if (saveButton) {
+      saveButton.setAttribute('aria-label', `Save item ${itemNumber}`);
+      saveButton.disabled = this.readonly;
+    }
+    if (cancelButton) {
+      cancelButton.setAttribute(
+        'aria-label',
+        `Cancel edits for item ${itemNumber}`
+      );
+    }
+    if (deleteButton) {
+      deleteButton.disabled = this.readonly;
+      if (isDeleted) {
+        deleteButton.textContent = this._getButtonRestoreText();
+        deleteButton.setAttribute('aria-label', `Restore item ${itemNumber}`);
+      } else {
+        deleteButton.textContent = this._getButtonDeleteText();
+        deleteButton.setAttribute('aria-label', `Delete item ${itemNumber}`);
+      }
+    }
+
+    // Move up/down buttons
+    const moveUpButton = rowEl.querySelector(
+      '[data-action="move-up"]'
+    ) as HTMLButtonElement | null;
+    const moveDownButton = rowEl.querySelector(
+      '[data-action="move-down"]'
+    ) as HTMLButtonElement | null;
+
+    if (moveUpButton) {
+      moveUpButton.setAttribute('aria-label', `Move item ${itemNumber} up`);
+      moveUpButton.disabled =
+        index === 0 || this.readonly || !this.allowReorder;
+    }
+    if (moveDownButton) {
+      moveDownButton.setAttribute('aria-label', `Move item ${itemNumber} down`);
+      moveDownButton.disabled =
+        index === this._data.length - 1 || this.readonly || !this.allowReorder;
+    }
+  }
+
   private _setEditState(
     rowData: unknown,
     rowIndex: number,
@@ -1800,62 +1818,15 @@ export class CkEditableArray extends HTMLElement {
     rowEl.setAttribute('data-row', String(index));
     rowEl.setAttribute('data-form-row-index', String(index));
 
-    const itemNumber = index + 1;
     const rowData = this._data[index];
-    const isDeleted = this._isRowDeleted(rowData);
     const boundEls = this._boundElsCache.get(rowEl) || [];
 
     // Refresh form control name/id to reflect new index
     this._setFormControlAttributes(boundEls, index);
     this._applyFormSemanticsOptimized(rowEl, boundEls, rowData, index);
 
-    // Update move buttons
-    const moveUpButton = rowEl.querySelector(
-      '[data-action="move-up"]'
-    ) as HTMLButtonElement | null;
-    const moveDownButton = rowEl.querySelector(
-      '[data-action="move-down"]'
-    ) as HTMLButtonElement | null;
-
-    if (moveUpButton) {
-      moveUpButton.setAttribute('aria-label', `Move item ${itemNumber} up`);
-      moveUpButton.disabled =
-        index === 0 || this.readonly || !this.allowReorder;
-    }
-    if (moveDownButton) {
-      moveDownButton.setAttribute('aria-label', `Move item ${itemNumber} down`);
-      moveDownButton.disabled =
-        index === this._data.length - 1 || this.readonly || !this.allowReorder;
-    }
-
-    // Update edit/save/cancel/delete button aria-labels
-    const editButton = rowEl.querySelector('[data-action="toggle"]');
-    const saveButton = rowEl.querySelector('[data-action="save"]');
-    const cancelButton = rowEl.querySelector('[data-action="cancel"]');
-    const deleteButton = rowEl.querySelector('[data-action="delete"]');
-
-    if (editButton) {
-      editButton.setAttribute('aria-label', `Edit item ${itemNumber}`);
-      (editButton as HTMLButtonElement).disabled = isDeleted || this.readonly;
-    }
-    if (saveButton) {
-      saveButton.setAttribute('aria-label', `Save item ${itemNumber}`);
-      (saveButton as HTMLButtonElement).disabled = this.readonly;
-    }
-    if (cancelButton) {
-      cancelButton.setAttribute(
-        'aria-label',
-        `Cancel editing item ${itemNumber}`
-      );
-    }
-    if (deleteButton) {
-      (deleteButton as HTMLButtonElement).disabled = this.readonly;
-      if (isDeleted) {
-        deleteButton.setAttribute('aria-label', `Restore item ${itemNumber}`);
-      } else {
-        deleteButton.setAttribute('aria-label', `Delete item ${itemNumber}`);
-      }
-    }
+    // Update all button aria-labels and disabled states
+    this._applyButtonSemantics(rowEl, index, rowData);
   }
 
   // Public move methods
