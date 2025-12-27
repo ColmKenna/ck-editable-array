@@ -78,6 +78,9 @@ export class CkEditableArray extends HTMLElement {
   private _animationTimerId: number | null = null;
   private static readonly ANIMATION_DURATION = 250; // ms
 
+  // Cache for bound elements per row (type-safe alternative to property attachment)
+  private _boundElsCache = new WeakMap<HTMLElement, HTMLElement[]>();
+
   // Lifecycle state
   private _clickListenerAttached = false;
 
@@ -745,7 +748,7 @@ export class CkEditableArray extends HTMLElement {
       boundEls = Array.from(
         rowEl.querySelectorAll('[data-bind]')
       ) as HTMLElement[];
-      (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls = boundEls;
+      this._boundElsCache.set(rowEl, boundEls);
 
       // Set name/id attributes on form controls during initial creation
       this._setFormControlAttributes(boundEls, index);
@@ -754,8 +757,7 @@ export class CkEditableArray extends HTMLElement {
       this._attachInputListeners(boundEls);
     } else {
       // Retrieve cached bound elements
-      boundEls =
-        (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls || [];
+      boundEls = this._boundElsCache.get(rowEl) || [];
     }
 
     if (!rowEl) return;
@@ -1121,8 +1123,7 @@ export class CkEditableArray extends HTMLElement {
     this._setNestedPath(this._data[rowIndex], bindPath, newValue);
 
     // Update only the display elements in this row
-    const boundEls =
-      (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls || [];
+    const boundEls = this._boundElsCache.get(rowEl) || [];
     this._applyBindingsOptimized(boundEls, this._data[rowIndex]);
 
     this._dispatchRowChanged(rowIndex);
@@ -1308,8 +1309,7 @@ export class CkEditableArray extends HTMLElement {
     // Clear internal edit state
     this._setEditState(this._data[rowIndex], rowIndex, null);
 
-    const boundEls =
-      (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls || [];
+    const boundEls = this._boundElsCache.get(rowEl) || [];
     this._applyBindingsOptimized(boundEls, this._data[rowIndex]);
 
     this._currentEditIndex = null;
@@ -1806,8 +1806,7 @@ export class CkEditableArray extends HTMLElement {
     const itemNumber = index + 1;
     const rowData = this._data[index];
     const isDeleted = this._isRowDeleted(rowData);
-    const boundEls =
-      (rowEl as unknown as { _boundEls?: HTMLElement[] })._boundEls || [];
+    const boundEls = this._boundElsCache.get(rowEl) || [];
 
     // Refresh form control name/id to reflect new index
     this._setFormControlAttributes(boundEls, index);
