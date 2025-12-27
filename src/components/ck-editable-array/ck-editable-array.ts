@@ -795,13 +795,6 @@ export class CkEditableArray extends HTMLElement {
     rowData: unknown,
     rowIndex: number
   ) {
-    // Mark bound elements as form cells
-    const boundEls = rowEl.querySelectorAll('[data-bind]');
-    boundEls.forEach(el => {
-      if (!(el instanceof HTMLElement)) return;
-      el.setAttribute('role', 'cell');
-    });
-
     // Store row index for form submission (accessible via data attribute)
     rowEl.setAttribute('data-form-row-index', String(rowIndex));
 
@@ -925,11 +918,6 @@ export class CkEditableArray extends HTMLElement {
     rowData: unknown,
     rowIndex: number
   ) {
-    // Optimized version: use pre-cached bound elements
-    boundEls.forEach(el => {
-      el.setAttribute('role', 'cell');
-    });
-
     rowEl.setAttribute('data-form-row-index', String(rowIndex));
 
     if (typeof rowData === 'object' && rowData !== null) {

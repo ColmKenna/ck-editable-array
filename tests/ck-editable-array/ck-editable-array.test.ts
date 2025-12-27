@@ -338,6 +338,21 @@ describe('CkEditableArray Component', () => {
     expect(rowsHost?.textContent).toContain('Dublin');
   });
 
+  test('should not assign grid cell roles when using list semantics', () => {
+    attachTemplates(element, 'name');
+
+    element.data = [{ name: 'List item' }];
+    element.connectedCallback();
+
+    const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+    const row = rowsHost?.querySelector('[data-row="0"]') as HTMLElement;
+    const bound = row?.querySelector('[data-bind="name"]') as HTMLElement;
+
+    expect(rowsHost?.getAttribute('role')).toBe('list');
+    expect(row?.getAttribute('role')).toBe('listitem');
+    expect(bound?.getAttribute('role')).toBeNull();
+  });
+
   test('should join bound arrays with comma+space', () => {
     element.appendChild(createDisplayTemplate('tags'));
 
@@ -4631,7 +4646,10 @@ describe('CkEditableArray Component', () => {
 
         deleteButton?.click();
 
-        const updatedData = element.data as { name: string; isDeleted?: boolean }[];
+        const updatedData = element.data as {
+          name: string;
+          isDeleted?: boolean;
+        }[];
         expect(updatedData[0].isDeleted).toBeUndefined();
         expect(datachangedHandler).not.toHaveBeenCalled();
 
@@ -5528,9 +5546,12 @@ describe('CkEditableArray Component', () => {
         element.data = [{ name: 'Alpha' }, { name: 'Beta' }];
         element.connectedCallback();
 
-        const internals = (element as unknown as { _internals: ElementInternals })
-          ._internals;
-        if (!(internals as unknown as { setFormValue?: () => void }).setFormValue) {
+        const internals = (
+          element as unknown as { _internals: ElementInternals }
+        )._internals;
+        if (
+          !(internals as unknown as { setFormValue?: () => void }).setFormValue
+        ) {
           (internals as unknown as { setFormValue: () => void }).setFormValue =
             () => undefined;
         }
@@ -5557,7 +5578,9 @@ describe('CkEditableArray Component', () => {
 
         // Simulate drag reorder: move index 1 to index 0
         (
-          element as unknown as { _reorderData: (from: number, to: number) => void }
+          element as unknown as {
+            _reorderData: (from: number, to: number) => void;
+          }
         )._reorderData(1, 0);
 
         const rowsAfter = rowsHost?.querySelectorAll(
