@@ -35,6 +35,7 @@ export class CkEditableArray extends HTMLElement {
   private _editStateMap = new WeakMap<object, EditState>();
   private _primitiveEditState: (EditState | null)[] = [];
   private _initialData: unknown[] = [];
+  private _initialDataCaptured = false;
 
   // Drag and drop state
   private _dragSourceIndex: number | null = null;
@@ -216,9 +217,10 @@ export class CkEditableArray extends HTMLElement {
     this._clearDataChangeTimer();
     this._data = Array.isArray(value) ? this._deepClone(value) : [];
 
-    // Store initial data for formResetCallback (only if not already set)
-    if (this._initialData.length === 0) {
+    // Store initial data for formResetCallback (only on first set)
+    if (!this._initialDataCaptured) {
       this._initialData = this._deepClone(this._data);
+      this._initialDataCaptured = true;
     }
 
     this._currentEditIndex = null;

@@ -3783,6 +3783,37 @@ describe('CkEditableArray Component', () => {
       expect(updateSpy).toHaveBeenCalled();
       updateSpy.mockRestore();
     });
+
+    test('should restore empty array when initial data was empty', () => {
+      const displayTemplate = document.createElement('template');
+      displayTemplate.setAttribute('slot', 'display');
+      displayTemplate.innerHTML = `<span data-bind="name"></span>`;
+      element.appendChild(displayTemplate);
+
+      const editTemplate = document.createElement('template');
+      editTemplate.setAttribute('slot', 'edit');
+      editTemplate.innerHTML = `<input type="text" data-bind="name" />`;
+      element.appendChild(editTemplate);
+
+      element.name = 'users';
+      // Set initial data to empty array
+      element.data = [];
+      element.connectedCallback();
+
+      // Modify data to non-empty
+      element.data = [{ name: 'Bob' }];
+
+      // Verify data was changed
+      expect(element.data).toEqual([{ name: 'Bob' }]);
+
+      // Call formResetCallback
+      (
+        element as unknown as { formResetCallback: () => void }
+      ).formResetCallback();
+
+      // Data should be restored to initial empty array
+      expect(element.data).toEqual([]);
+    });
   });
 
   // Phase 3.7: Integration Tests for Complete FACE Functionality
