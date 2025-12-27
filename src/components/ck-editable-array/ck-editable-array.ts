@@ -417,10 +417,6 @@ export class CkEditableArray extends HTMLElement {
       this._messageEl = document.createElement('h1');
       this._messageEl.className = 'message';
 
-      const subtitleEl = document.createElement('p');
-      subtitleEl.className = 'subtitle';
-      subtitleEl.textContent = 'Welcome to our Web Component Library';
-
       this._rowsHostEl = document.createElement('div');
       this._rowsHostEl.className = 'rows';
       this._rowsHostEl.setAttribute('role', 'list');
@@ -436,7 +432,6 @@ export class CkEditableArray extends HTMLElement {
       this._statusRegionEl.setAttribute('id', 'aria-status');
 
       this._containerEl.appendChild(this._messageEl);
-      this._containerEl.appendChild(subtitleEl);
       this._containerEl.appendChild(this._rowsHostEl);
       this._containerEl.appendChild(this._statusRegionEl);
       this._rootEl.appendChild(this._containerEl);
