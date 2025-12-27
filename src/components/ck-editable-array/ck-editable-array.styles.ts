@@ -61,6 +61,18 @@ export const ckEditableArrayCSS = `
   white-space: nowrap;
   border-width: 0;
 }
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .row {
+    transition: none !important;
+  }
+
+  .ck-animating {
+    transition: none !important;
+    transform: none !important;
+  }
+}
 `;
 
 // Try to create a constructable stylesheet where supported. Fall back to null.

@@ -6650,6 +6650,58 @@ describe('CkEditableArray Component', () => {
 
         document.body.removeChild(element);
       });
+
+      test('should skip animation when prefers-reduced-motion is set', () => {
+        // Mock matchMedia to simulate prefers-reduced-motion: reduce
+        const originalMatchMedia = window.matchMedia;
+        window.matchMedia = jest.fn().mockImplementation(query => ({
+          matches: query === '(prefers-reduced-motion: reduce)',
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        }));
+
+        const element = document.createElement('ck-editable-array') as any;
+        document.body.appendChild(element);
+
+        const displayTemplate = createDisplayTemplate('name');
+        element.appendChild(displayTemplate);
+
+        element.data = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+        element.connectedCallback();
+
+        // Trigger moveUp on row 1
+        element.moveUp(1);
+
+        const rowsHost = element.shadowRoot?.querySelector('[part="rows"]');
+        const rows = rowsHost?.querySelectorAll('[data-row]');
+
+        // Should NOT have animating class (animation skipped)
+        const hasAnimatingClass = Array.from(rows || []).some(row =>
+          (row as Element).classList.contains('ck-animating')
+        );
+        expect(hasAnimatingClass).toBe(false);
+
+        // Should NOT have transform styles (animation skipped)
+        const hasTransform = Array.from(rows || []).some(row => {
+          const style = (row as HTMLElement).style.transform;
+          return style && style !== 'none' && style !== '';
+        });
+        expect(hasTransform).toBe(false);
+
+        // Data should be reordered immediately (no animation delay)
+        expect(element.data[0].name).toBe('B');
+        expect(element.data[1].name).toBe('A');
+        expect(element.data[2].name).toBe('C');
+
+        // Restore original matchMedia
+        window.matchMedia = originalMatchMedia;
+        document.body.removeChild(element);
+      });
     });
 
     describe('Phase 10: Allow Reorder Attribute', () => {

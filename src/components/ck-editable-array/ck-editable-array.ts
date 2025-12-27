@@ -1818,6 +1818,17 @@ export class CkEditableArray extends HTMLElement {
 
   // Animated reorder using FLIP technique
   private _animatedReorderData(fromIndex: number, toIndex: number): void {
+    // Check if user prefers reduced motion
+    const prefersReducedMotion =
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion) {
+      // Skip animation and perform instant reorder
+      this._reorderData(fromIndex, toIndex);
+      return;
+    }
+
     const rowsHost = this._rowsHostEl;
     if (!rowsHost) {
       // Fallback to non-animated if no rows host
