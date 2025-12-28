@@ -368,6 +368,17 @@
         </table>
         <p><strong>Description:</strong> When present, disables editing, deleting, and reordering. Rows are not draggable, edit/save/delete/restore and move buttons are disabled, input changes are ignored, and cancel remains available to exit edit mode. Use this to display the array in a read-only view.</p>
         <p><strong>Examples:</strong> <code>&lt;ck-editable-array readonly&gt;</code></p>
+
+        <h3><code>allow-reorder</code></h3>
+        <table>
+          <tr><th>Property</th><td><code>allowReorder</code></td></tr>
+          <tr><th>Type</th><td>boolean</td></tr>
+          <tr><th>Default</th><td><code>true</code></td></tr>
+          <tr><th>Valid Values</th><td><code>"false"</code> to disable, or absent/any other value to enable</td></tr>
+        </table>
+        <p><strong>Description:</strong> Controls whether rows can be reordered. When set to <code>"false"</code>, disables drag-and-drop reordering, hides move up/down buttons, and blocks the <code>moveUp()</code>/<code>moveDown()</code> methods. Unlike <code>readonly</code>, this only affects reordering—editing and deleting remain available.</p>
+        <p><strong>Examples:</strong> <code>&lt;ck-editable-array allow-reorder="false"&gt;</code></p>
+        <p><strong>Interactive Example:</strong> <a href="examples/reordering.html">Reordering Demo</a></p>
       </section>
 
       <section id="css-properties">
@@ -609,6 +620,8 @@ ck-editable-array[theme="dark"] {
           <tr><th><code>rowClass</code></th><td>Mirrors <code>row-class</code>.</td></tr>
           <tr><th><code>datachangeMode</code></th><td>Mirrors <code>datachange-mode</code>.</td></tr>
           <tr><th><code>datachangeDebounce</code></th><td>Mirrors <code>datachange-debounce</code>.</td></tr>
+          <tr><th><code>readonly</code></th><td>Boolean property that mirrors the <code>readonly</code> attribute. When <code>true</code>, disables editing, deleting, and reordering.</td></tr>
+          <tr><th><code>allowReorder</code></th><td>Boolean property that mirrors the <code>allow-reorder</code> attribute. When <code>false</code>, disables drag-and-drop and move buttons.</td></tr>
         </table>
 
         <h3>Public methods</h3>

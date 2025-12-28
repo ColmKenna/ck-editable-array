@@ -181,6 +181,18 @@ console.log(element.name); // 'users'
 - **HTML**: `<ck-editable-array datachange-debounce="300"></ck-editable-array>`
 - **Description**: Debounce delay used when `datachange-mode="debounced"`
 
+### `readonly`
+- **Type**: Boolean
+- **Default**: `false`
+- **HTML**: `<ck-editable-array readonly></ck-editable-array>`
+- **Description**: Disables edit/save/delete/restore and move controls; input changes are ignored. Cancel remains available to exit edit mode. Drag and drop is also disabled.
+
+### `allow-reorder`
+- **Type**: Boolean
+- **Default**: `true`
+- **HTML**: `<ck-editable-array allow-reorder="false"></ck-editable-array>`
+- **Description**: Turns off drag-and-drop and move buttons when set to `"false"`.
+
 **Note**: The `data` property is not exposed as an attribute since arrays cannot be represented in HTML attributes.
 
 ## Row Actions
@@ -192,6 +204,8 @@ Each row in the component includes a set of action buttons:
 - **Cancel Button** (visible in edit mode): Discards changes and returns to display mode
 - **Delete Button**: Performs a soft delete by setting `isDeleted` property to `true`; changes to "Restore" when deleted
 - **Restore Button**: Restores a deleted row by setting `isDeleted` property to `false`
+
+When `readonly` is set, edit/save/delete/restore and move actions are disabled, input changes are ignored, and cancel remains available to exit edit mode.
 
 All action buttons include accessible `aria-label` attributes with row context (e.g., "Edit item 1", "Delete item 1", "Restore item 1").
 
@@ -253,6 +267,103 @@ Deleted rows automatically receive the `ck-deleted` CSS class. You can use this 
 ```
 
 The `ck-deleted` class is automatically added when a row is deleted and removed when restored, making it easy to provide visual feedback to users about the deletion status.
+
+## Drag and Drop Reordering
+
+Rows can be reordered by dragging and dropping them to new positions. This feature provides an intuitive way for users to reorder items in the list.
+
+### How It Works
+
+1. Click and drag any row to start dragging
+2. Move the row over the target position (visual feedback is provided)
+3. Release to drop the row at the new position
+4. The data array is automatically reordered
+
+### Guards
+
+- **Readonly**: Drag and drop is disabled when the `readonly` attribute is set
+- **Edit Mode**: Drag and drop is blocked when any row is in edit mode
+
+### Visual Feedback
+
+The component adds CSS classes during drag operations:
+- `.ck-dragging`: Applied to the row being dragged
+- `.ck-drag-over`: Applied to the row being dragged over
+
+### Styling Drag States
+
+```css
+/* Style the row being dragged */
+.row.ck-dragging {
+  opacity: 0.5;
+  background-color: #f0f0f0;
+}
+
+/* Style the drop target */
+.row.ck-drag-over {
+  border: 2px dashed #3b82f6;
+  background-color: #eff6ff;
+}
+```
+
+### Events
+
+When a row is successfully dropped at a new position:
+- `reorder` event fires with `{ fromIndex, toIndex, data }`
+- `datachanged` event fires with the updated data
+
+```javascript
+element.addEventListener('reorder', (e) => {
+  console.log(`Moved from ${e.detail.fromIndex} to ${e.detail.toIndex}`);
+  console.log('New order:', e.detail.data);
+});
+```
+
+### Accessibility
+
+The component provides comprehensive accessibility support:
+
+- **Valid ARIA Semantics**: Uses list pattern (`role="list"` + `role="listitem"`) for proper screen reader navigation
+- **Live Announcements**: Status region announces reorder actions (e.g., "Moved item from position 1 to 3")
+- **Contextual Labels**: All buttons have descriptive `aria-label` attributes with row context
+- **Keyboard Navigation**: Arrow keys navigate between rows
+- **Focus Management**: Focus returns to edit button after save/cancel operations
+- **Motion Preferences**: Respects `prefers-reduced-motion` for users sensitive to motion
+
+**Motion Sensitivity**: Users who have enabled "reduce motion" in their operating system settings will experience instant reordering without animations, protecting those with vestibular disorders.
+
+**Note**: The component uses list semantics (not grid/table) because it represents an array of items, not tabular data. For details on ARIA structure, see [spec.md](spec.md#accessibility).
+
+## Move Up/Down
+
+In addition to drag and drop, rows can be moved using dedicated buttons or programmatic methods. These methods include smooth CSS animations for better user experience.
+
+### Move Buttons
+
+Each row includes move up (↑) and move down (↓) buttons:
+- First row's move-up button is disabled
+- Last row's move-down button is disabled
+- Both are disabled in readonly mode
+- Rows slide smoothly to their new positions with a 250ms animation
+- Rapid consecutive clicks are blocked until the current animation completes
+
+### Programmatic Methods
+
+```javascript
+// Move row at index 1 up to position 0
+element.moveUp(1);
+
+// Move row at index 0 down to position 1
+element.moveDown(0);
+```
+
+Both methods return `true` on success, `false` if blocked (readonly, editing, animating, or invalid index).
+
+**Animation Details:**
+- Duration: 250ms with ease-in-out timing
+- Uses FLIP technique for smooth transitions
+- Both moving and adjacent rows animate simultaneously
+- Events fire after animation completes
 
 ## Templates (Light DOM)
 
@@ -582,19 +693,57 @@ class CkEditableArray extends HTMLElement {
   get datachangeDebounce(): number;
   set datachangeDebounce(value: number);
 
-  // Greeting display
+  // Component configuration
   get name(): string;
   set name(value: string);
+  get readonly(): boolean;
+  set readonly(value: boolean);
+  get allowReorder(): boolean;
+  set allowReorder(value: boolean);
+
+  // Wrapper class customization
+  get rootClass(): string;
+  set rootClass(value: string);
+  get rowsClass(): string;
+  set rowsClass(value: string);
+  get rowClass(): string;
+  set rowClass(value: string);
 }
 ```
 
 ### Methods
 
-Currently no custom methods beyond standard HTMLElement interface.
+#### `moveUp(index: number): boolean`
+
+Moves the row at the specified index up one position with a smooth 250ms animation.
+
+- **Parameters**: `index` - The 0-based index of the row to move up
+- **Returns**: `true` if the move was successful, `false` if blocked
+- **Guards**: Blocked if `readonly`, `allow-reorder="false"`, editing, animating, or index is 0 or invalid
+- **Events**: Dispatches `reorder` and `datachanged` after animation completes
+
+```javascript
+const el = document.querySelector('ck-editable-array');
+el.moveUp(1); // Moves row at index 1 up to index 0
+```
+
+#### `moveDown(index: number): boolean`
+
+Moves the row at the specified index down one position with a smooth 250ms animation.
+
+- **Parameters**: `index` - The 0-based index of the row to move down
+- **Returns**: `true` if the move was successful, `false` if blocked
+- **Guards**: Blocked if `readonly`, `allow-reorder="false"`, editing, animating, or index is at last position or invalid
+- **Events**: Dispatches `reorder` and `datachanged` after animation completes
+
+```javascript
+const el = document.querySelector('ck-editable-array');
+el.moveDown(0); // Moves row at index 0 down to index 1
+```
 
 ### Events
 
-The component emits `datachanged` when the `data` property is set and based on `datachange-mode` for user edits. It also emits `rowchanged` on each row update.
+The component emits `datachanged` when the `data` property is set and based on `datachange-mode` for user edits. It also emits `rowchanged` on each row update, and `reorder` when rows are reordered.
 
 - **Event**: `datachanged`
 - **Bubbles / Composed**: Yes / Yes
@@ -616,6 +765,18 @@ el.addEventListener('datachanged', (e) => {
 const el = document.querySelector('ck-editable-array');
 el.addEventListener('rowchanged', (e) => {
   console.log('rowchanged', e.detail.index, e.detail.row);
+});
+```
+
+- **Event**: `reorder`
+- **Bubbles / Composed**: Yes / Yes
+- **Payload**: `event.detail.fromIndex`, `event.detail.toIndex`, and `event.detail.data`
+
+```js
+const el = document.querySelector('ck-editable-array');
+el.addEventListener('reorder', (e) => {
+  console.log(`Moved from ${e.detail.fromIndex} to ${e.detail.toIndex}`);
+  console.log('New data order:', e.detail.data);
 });
 ```
 
