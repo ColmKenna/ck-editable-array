@@ -90,10 +90,7 @@ export class CkEditableArray extends HTMLElement {
     this.shadow = this.attachShadow({ mode: 'open' });
 
     // Pre-load stylesheet if available (good practice to do early)
-    if (
-      ckEditableArraySheet &&
-      'adoptedStyleSheets' in this.shadow
-    ) {
+    if (ckEditableArraySheet && 'adoptedStyleSheets' in this.shadow) {
       this.shadow.adoptedStyleSheets = [
         ...this.shadow.adoptedStyleSheets,
         ckEditableArraySheet,
