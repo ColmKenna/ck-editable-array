@@ -8,7 +8,15 @@
       "Bash(dir:*)",
       "Bash(mkdir:*)",
       "Bash(npm run lint:fix:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npm run build:*)",
+      "Skill(webcomponent.codereview)",
+      "Skill(webcomponent.codereview:*)",
+      "Bash(npx eslint:*)",
+      "Bash(findstr:*)",
+      "Bash(git commit:*)",
+      "Bash(npm config list:*)",
+      "Bash(echo:*)"
     ]
   }
 }

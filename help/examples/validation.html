@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Validation - &lt;ck-editable-array&gt;</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+    nav a { color: inherit; text-decoration: none; }
+    .example { margin: 28px 0; padding: 18px; border: 1px solid #ddd; border-radius: 10px; }
+    .demo { padding: 14px; background: #f5f5f5; border-radius: 8px; margin: 12px 0; }
+    .code { background: #111; color: #eaeaea; padding: 12px; border-radius: 10px; overflow-x: auto; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .panel { border: 1px solid #ddd; border-radius: 10px; padding: 12px; background: #fff; }
+    label { display: block; margin: 8px 0; }
+    input, select { padding: 6px; }
+    button { padding: 6px 10px; }
+    .note { background: #e7f5ff; padding: 10px; border-left: 4px solid #339af0; border-radius: 8px; margin: 10px 0; }
+    .warn { background: #fff3cd; border-left-color: #b45309; }
+    #eventLog { max-height: 200px; overflow-y: auto; font-size: 0.85em; }
+    #eventLog div { padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .pass { color: #22c55e; }
+    .fail { color: #ef4444; }
+
+    /* Style rows that fail validation (applied by the component) */
+    ck-editable-array [aria-invalid="true"] {
+      outline: 2px solid #ef4444;
+      background: rgba(239, 68, 68, 0.08);
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <nav><a href="../index.html">← Back to Documentation</a></nav>
+
+  <h1>Validation</h1>
+  <p>
+    The component validates form controls inside the edit template before committing a save.
+    If any control fails <code>checkValidity()</code>, the save is blocked and <code>reportValidity()</code> is called on the first invalid control.
+  </p>
+
+  <!-- ================================================================== -->
+  <!-- Example 1: Required Field Validation                               -->
+  <!-- ================================================================== -->
+  <div class="example" id="required">
+    <h2>1) Required field validation</h2>
+    <p>
+      The edit template below uses <code>required</code> on the Name field.
+      Try clearing the name and clicking Save — the save is blocked and browser validation UI appears.
+    </p>
+
+    <div class="row">
+      <div class="panel">
+        <ck-editable-array id="requiredEl" name="contacts" datachange-mode="save">
+          <template slot="display">
+            <div><strong>Name:</strong> <span data-bind="name"></span></div>
+            <div><strong>Email:</strong> <span data-bind="email"></span></div>
+          </template>
+          <template slot="edit">
+            <label>
+              Name <em>(required)</em>
+              <input data-bind="name" required placeholder="Enter name" />
+            </label>
+            <label>
+              Email <em>(type=email, required)</em>
+              <input data-bind="email" type="email" required placeholder="user@example.com" />
+            </label>
+          </template>
+        </ck-editable-array>
+
+        <div class="note">
+          <strong>Try it:</strong>
+          <ol style="margin: 4px 0 0 18px;">
+            <li>Click Edit on a row</li>
+            <li>Clear the Name field (leave it empty)</li>
+            <li>Click Save — the save is blocked, and the row gets a red outline (<code>.ck-invalid</code>)</li>
+            <li>Fill in the name and click Save again — success!</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 style="margin-top: 0;">Event Log</h3>
+        <pre class="code" style="margin:0;"><code id="eventLog"></code></pre>
+        <button id="clearLog" style="margin-top: 8px;">Clear Log</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- Example 2: Pattern & Min/Max Validation                            -->
+  <!-- ================================================================== -->
+  <div class="example" id="patterns">
+    <h2>2) Pattern, min/max, and type validation</h2>
+    <p>
+      Standard HTML validation attributes like <code>pattern</code>, <code>min</code>, <code>max</code>,
+      <code>minlength</code>, and <code>maxlength</code> all work automatically.
+    </p>
+
+    <div class="demo">
+      <ck-editable-array id="patternEl" name="products" datachange-mode="save">
+        <template slot="display">
+          <div><strong>SKU:</strong> <span data-bind="sku"></span></div>
+          <div><strong>Price:</strong> $<span data-bind="price"></span></div>
+          <div><strong>Qty:</strong> <span data-bind="qty"></span></div>
+        </template>
+        <template slot="edit">
+          <label>
+            SKU <em>(pattern: 3 uppercase letters + 3 digits)</em>
+            <input data-bind="sku" required pattern="[A-Z]{3}[0-9]{3}" placeholder="ABC123" title="3 uppercase letters followed by 3 digits" />
+          </label>
+          <label>
+            Price <em>(min: 0.01, step: 0.01)</em>
+            <input data-bind="price" type="number" required min="0.01" step="0.01" placeholder="9.99" />
+          </label>
+          <label>
+            Quantity <em>(min: 1, max: 999)</em>
+            <input data-bind="qty" type="number" required min="1" max="999" placeholder="1" />
+          </label>
+        </template>
+      </ck-editable-array>
+    </div>
+
+    <div class="note">
+      <strong>Try it:</strong> Edit a row and enter an invalid SKU (e.g. <code>abc</code>) or a negative price. The first invalid field gets reported.
+    </div>
+
+    <h3>Source</h3>
+    <pre class="code"><code>&lt;input data-bind="sku" required
+       pattern="[A-Z]{3}[0-9]{3}"
+       title="3 uppercase letters + 3 digits" /&gt;
+
+&lt;input data-bind="price" type="number"
+       required min="0.01" step="0.01" /&gt;
+
+&lt;input data-bind="qty" type="number"
+       required min="1" max="999" /&gt;</code></pre>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- Example 3: beforesave Custom Validation                            -->
+  <!-- ================================================================== -->
+  <div class="example" id="beforesave">
+    <h2>3) Custom validation with <code>beforesave</code></h2>
+    <p>
+      The <code>beforesave</code> event lets you run custom business-logic validation
+      <strong>before</strong> the built-in HTML validation runs. Call <code>event.preventDefault()</code> to block the save.
+    </p>
+
+    <div class="row">
+      <div class="panel">
+        <ck-editable-array id="customEl" name="users" datachange-mode="save">
+          <template slot="display">
+            <div><strong>Username:</strong> <span data-bind="username"></span></div>
+            <div><strong>Role:</strong> <span data-bind="role"></span></div>
+          </template>
+          <template slot="edit">
+            <label>
+              Username
+              <input data-bind="username" required placeholder="Enter username" />
+            </label>
+            <label>
+              Role
+              <select data-bind="role">
+                <option value="viewer">Viewer</option>
+                <option value="editor">Editor</option>
+                <option value="admin">Admin</option>
+              </select>
+            </label>
+          </template>
+        </ck-editable-array>
+
+        <div class="note warn">
+          <strong>Business rule:</strong> The username <code>admin</code> is reserved. Trying to save a row with
+          <code>username = "admin"</code> will be blocked by the <code>beforesave</code> handler.
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 style="margin-top: 0;">Custom Validation Log</h3>
+        <pre class="code" style="margin:0;"><code id="customLog"></code></pre>
+      </div>
+    </div>
+
+    <h3>Source</h3>
+    <pre class="code"><code>el.addEventListener('beforesave', (e) => {
+  const { rowData, rowIndex } = e.detail;
+
+  // Block reserved username
+  if (rowData.username.toLowerCase() === 'admin') {
+    e.preventDefault();
+    log(`⛔ Row ${rowIndex}: "admin" is reserved!`);
+  }
+
+  // Block duplicate usernames
+  const isDuplicate = el.data.some(
+    (item, i) => i !== rowIndex &&
+      item.username === rowData.username
+  );
+  if (isDuplicate) {
+    e.preventDefault();
+    log(`⛔ Row ${rowIndex}: duplicate username!`);
+  }
+});</code></pre>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- Example 4: Cancel Clears Invalid State                             -->
+  <!-- ================================================================== -->
+  <div class="example" id="cancel-clears">
+    <h2>4) Cancel clears invalid state</h2>
+    <p>
+      When a row fails validation, it receives the <code>ck-invalid</code> class and <code>aria-invalid="true"</code>.
+      Clicking <strong>Cancel</strong> clears both and restores the original data.
+    </p>
+    <div class="note">
+      <strong>Try it:</strong> Edit a row in Example 1 above, clear a required field, click Save (row turns red), then click Cancel — the red outline disappears.
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- Example 5: Styling invalid rows                                    -->
+  <!-- ================================================================== -->
+  <div class="example" id="styling">
+    <h2>5) Styling invalid rows</h2>
+    <p>Use the <code>.ck-invalid</code> class or <code>[aria-invalid="true"]</code> selector to style invalid rows:</p>
+    <pre class="code"><code>/* Red outline + light red background */
+ck-editable-array [aria-invalid="true"] {
+  outline: 2px solid #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: 6px;
+}
+
+/* Or target the CSS class */
+ck-editable-array .ck-invalid {
+  box-shadow: 0 0 0 2px #ef4444;
+}</code></pre>
+  </div>
+
+  <script type="module">
+    import '../../dist/ck-editable-array/ck-editable-array.esm.js';
+
+    // ── Example 1: Required field validation ──────────────────────────────
+    const requiredEl = document.querySelector('#requiredEl');
+    const eventLog = document.querySelector('#eventLog');
+
+    requiredEl.data = [
+      { name: 'Alice Johnson', email: 'alice@example.com' },
+      { name: 'Bob Smith', email: 'bob@example.com' },
+      { name: '', email: '' }
+    ];
+
+    function log(msg) {
+      const line = document.createElement('div');
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      eventLog.prepend(line);
+    }
+
+    requiredEl.addEventListener('beforesave', (e) => {
+      log(`beforesave → row ${e.detail.rowIndex}, data: ${JSON.stringify(e.detail.rowData)}`);
+    });
+
+    requiredEl.addEventListener('aftertogglemode', (e) => {
+      if (e.detail.mode === 'display') {
+        log(`✅ Saved row ${e.detail.rowIndex} successfully`);
+      }
+    });
+
+    document.querySelector('#clearLog').addEventListener('click', () => {
+      eventLog.innerHTML = '';
+    });
+
+    // ── Example 2: Pattern & type validation ──────────────────────────────
+    const patternEl = document.querySelector('#patternEl');
+    patternEl.data = [
+      { sku: 'ABC123', price: 19.99, qty: 10 },
+      { sku: 'XYZ789', price: 5.50, qty: 25 }
+    ];
+
+    // ── Example 3: beforesave custom validation ───────────────────────────
+    const customEl = document.querySelector('#customEl');
+    const customLog = document.querySelector('#customLog');
+
+    customEl.data = [
+      { username: 'alice', role: 'editor' },
+      { username: 'bob', role: 'viewer' },
+      { username: 'charlie', role: 'admin' }
+    ];
+
+    function clog(msg) {
+      const line = document.createElement('div');
+      const isBlocked = msg.includes('⛔');
+      line.className = isBlocked ? 'fail' : 'pass';
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      customLog.prepend(line);
+    }
+
+    customEl.addEventListener('beforesave', (e) => {
+      const { rowData, rowIndex } = e.detail;
+
+      // Block reserved username
+      if (rowData.username.toLowerCase() === 'admin') {
+        e.preventDefault();
+        clog(`⛔ Row ${rowIndex}: "admin" is a reserved username!`);
+        return;
+      }
+
+      // Block duplicate usernames
+      const isDuplicate = customEl.data.some(
+        (item, i) => i !== rowIndex && item.username === rowData.username
+      );
+      if (isDuplicate) {
+        e.preventDefault();
+        clog(`⛔ Row ${rowIndex}: username "${rowData.username}" already exists!`);
+        return;
+      }
+
+      clog(`✅ Row ${rowIndex}: validation passed for "${rowData.username}"`);
+    });
+  </script>
+</body>
+</html>

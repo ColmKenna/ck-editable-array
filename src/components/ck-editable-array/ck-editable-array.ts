@@ -1192,6 +1192,44 @@ export class CkEditableArray extends HTMLElement {
 
     const rowData = this._data[rowIndex];
 
+    // Dispatch cancelable beforesave event
+    const beforeSaveEvent = new CustomEvent('beforesave', {
+      detail: { rowIndex, rowData: this._cloneValue(rowData) },
+      bubbles: true,
+      composed: true,
+      cancelable: true,
+    });
+    this.dispatchEvent(beforeSaveEvent);
+    if (beforeSaveEvent.defaultPrevented) return;
+
+    // Validate form controls in the edit content
+    if (!this._validateEditRow(rowEl)) {
+      // Mark row as invalid
+      rowEl.classList.add('ck-invalid');
+      rowEl.setAttribute('aria-invalid', 'true');
+
+      // Update ElementInternals validity
+      if (typeof this._internals.setValidity === 'function') {
+        const firstInvalid = rowEl.querySelector(
+          '.edit-content :is(input, select, textarea):invalid'
+        ) as HTMLElement | null;
+        this._internals.setValidity(
+          { customError: true },
+          'Row has invalid fields',
+          firstInvalid || undefined
+        );
+      }
+      return;
+    }
+
+    // Clear invalid state on successful save
+    this._clearInvalidState(rowEl);
+
+    // Clear ElementInternals validity
+    if (typeof this._internals.setValidity === 'function') {
+      this._internals.setValidity({});
+    }
+
     // Clear internal edit state (don't pollute user data)
     this._setEditState(rowData, rowIndex, null);
 
@@ -1222,6 +1260,43 @@ export class CkEditableArray extends HTMLElement {
     this._updateFormValueFromControls();
   }
 
+  /**
+   * Validates all form controls inside the edit content of a row.
+   * Returns true if all controls are valid, false otherwise.
+   * Calls reportValidity() on the first invalid control.
+   */
+  private _validateEditRow(rowEl: HTMLElement): boolean {
+    const editContent = rowEl.querySelector('.edit-content');
+    if (!editContent) return true;
+
+    const controls = editContent.querySelectorAll(
+      'input, select, textarea'
+    ) as NodeListOf<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>;
+
+    if (controls.length === 0) return true;
+
+    for (const control of Array.from(controls)) {
+      if (
+        typeof control.checkValidity === 'function' &&
+        !control.checkValidity()
+      ) {
+        if (typeof control.reportValidity === 'function') {
+          control.reportValidity();
+        }
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Clears the invalid visual state from a row element.
+   */
+  private _clearInvalidState(rowEl: HTMLElement): void {
+    rowEl.classList.remove('ck-invalid');
+    rowEl.removeAttribute('aria-invalid');
+  }
+
   private _cancelRow(rowEl: HTMLElement, rowIndex: number) {
     if (this._currentEditIndex !== rowIndex) return;
 
@@ -1244,6 +1319,9 @@ export class CkEditableArray extends HTMLElement {
 
     // Clear internal edit state
     this._setEditState(this._data[rowIndex], rowIndex, null);
+
+    // Clear invalid state on cancel
+    this._clearInvalidState(rowEl);
 
     const boundEls = this._boundElsCache.get(rowEl) || [];
     this._applyBindingsOptimized(boundEls, this._data[rowIndex]);

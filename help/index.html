@@ -178,6 +178,7 @@
       <a href="#api">API (Properties/Methods)</a>
       <a href="#events">Events</a>
       <a href="#reordering">Reordering</a>
+      <a href="#validation">Validation</a>
       <a href="#examples">Examples</a>
       <a href="#faq">FAQ</a>
     </nav>
@@ -205,7 +206,7 @@
             <strong>Important</strong>
             <ul style="margin: 8px 0 0 18px;">
               <li>If no <code>slot="display"</code> template is provided, the component shows an “empty state” message.</li>
-              <li>There is no built-in constraint validation (no <code>internals.setValidity()</code> calls).</li>
+              <li>Built-in validation: save is blocked if form controls in the edit template are invalid. The component calls <code>checkValidity()</code>/<code>reportValidity()</code> and participates in native form validation via <code>internals.setValidity()</code>.</li>
               <li>Module examples require serving over HTTP (not <code>file://</code>).</li>
             </ul>
           </div>
@@ -743,6 +744,35 @@ el.moveDown(0);</code></pre>
   console.log('New data order:', e.detail.data);
 });</code></pre>
         <p><strong>Interactive Example:</strong> <a href="examples/reordering.html">Reordering Demo</a></p>
+
+        <h3><code>beforesave</code></h3>
+        <h4>Payload Structure</h4>
+        <pre><code>{
+  detail: {
+    rowIndex: number,
+    rowData: unknown   // deep-cloned snapshot of the row being saved
+  },
+  bubbles: true,
+  composed: true,
+  cancelable: true
+}</code></pre>
+        <h4>When Fired</h4>
+        <ul>
+          <li>Before a row is saved (when user clicks Save or triggers save programmatically)</li>
+          <li>Fires <strong>before</strong> built-in form control validation runs</li>
+        </ul>
+        <p><strong>Note:</strong> Call <code>event.preventDefault()</code> to block the save entirely (the row remains in edit mode). This is useful for custom async validation or confirmation dialogs.</p>
+        <h4>Example</h4>
+        <pre><code>el.addEventListener('beforesave', (e) => {
+  console.log(`Attempting to save row ${e.detail.rowIndex}`);
+  console.log('Row data:', e.detail.rowData);
+
+  // Custom validation: block save if name is &quot;admin&quot;
+  if (e.detail.rowData.name === 'admin') {
+    e.preventDefault(); // Save is blocked
+  }
+});</code></pre>
+        <p><strong>Interactive Example:</strong> <a href="examples/validation.html">Validation Demo</a></p>
       </section>
 
       <section id="reordering">
@@ -925,6 +955,79 @@ if (el.moveDown(0)) {
         <p><strong>Interactive Example:</strong> <a href="examples/reordering.html">Reordering Demo</a></p>
       </section>
 
+      <section id="validation">
+        <h2>Validation</h2>
+        <p>
+          The component validates form controls inside the edit template before allowing a save.
+          If any <code>input</code>, <code>select</code>, or <code>textarea</code> inside 
+          <code>.edit-content</code> fails <code>checkValidity()</code>, the save is blocked 
+          and <code>reportValidity()</code> is called on the first invalid control.
+        </p>
+
+        <h3>How It Works</h3>
+        <ol>
+          <li>User clicks <strong>Save</strong> (or triggers save programmatically).</li>
+          <li>A cancelable <code>beforesave</code> event is dispatched. If <code>preventDefault()</code> is called, save is blocked immediately.</li>
+          <li>All form controls inside the row's <code>.edit-content</code> are checked with <code>checkValidity()</code>.</li>
+          <li>If any control is invalid, <code>reportValidity()</code> is called on the <strong>first</strong> invalid control, a <code>ck-invalid</code> class and <code>aria-invalid="true"</code> are added to the row, and the component sets its own validity via <code>ElementInternals.setValidity()</code>.</li>
+          <li>If all controls pass, the invalid state is cleared, the row returns to display mode, and the save proceeds normally.</li>
+        </ol>
+
+        <h3>Visual Feedback</h3>
+        <div class="note">
+          <strong>Invalid Row Indicators</strong>
+          <ul style="margin: 8px 0 0 18px;">
+            <li><code>.ck-invalid</code> CSS class is added to the row element</li>
+            <li><code>aria-invalid="true"</code> attribute is set on the row for accessibility</li>
+            <li>Both are cleared on successful save or cancel</li>
+          </ul>
+        </div>
+        <p>Style invalid rows in your CSS:</p>
+        <pre><code>/* Style rows that failed validation */
+ck-editable-array [aria-invalid="true"] {
+  outline: 2px solid #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}</code></pre>
+
+        <h3>Using with Native HTML Validation</h3>
+        <p>Add standard HTML validation attributes to controls inside your edit template:</p>
+        <pre><code>&lt;ck-editable-array&gt;
+  &lt;template slot="display"&gt;
+    &lt;span data-bind="email"&gt;&lt;/span&gt;
+  &lt;/template&gt;
+  &lt;template slot="edit"&gt;
+    &lt;input type="email" data-bind="email" required
+           placeholder="Enter email" /&gt;
+  &lt;/template&gt;
+&lt;/ck-editable-array&gt;</code></pre>
+        <p>The component uses each control's native <code>checkValidity()</code>, so <code>required</code>, <code>pattern</code>, <code>min</code>, <code>max</code>, <code>minlength</code>, <code>maxlength</code>, <code>type="email"</code>, etc. all work automatically.</p>
+
+        <h3>Custom Validation with <code>beforesave</code></h3>
+        <p>For business logic that goes beyond HTML constraints, use the <code>beforesave</code> event:</p>
+        <pre><code>el.addEventListener('beforesave', (e) => {
+  const { rowData, rowIndex } = e.detail;
+
+  // Example: prevent saving duplicate names
+  const isDuplicate = el.data.some(
+    (item, i) => i !== rowIndex && item.name === rowData.name
+  );
+  if (isDuplicate) {
+    e.preventDefault();
+    alert('Name already exists!');
+  }
+});</code></pre>
+
+        <h3>ElementInternals Integration</h3>
+        <p>
+          When validation fails, the component calls 
+          <code>this._internals.setValidity({ customError: true }, 'Row has invalid fields', anchor)</code>,
+          making it participate in native <code>&lt;form&gt;</code> validation.
+          On successful save, validity is cleared with <code>setValidity({})</code>.
+        </p>
+
+        <p><strong>Interactive Example:</strong> <a href="examples/validation.html">Validation Demo</a></p>
+      </section>
+
       <section id="examples">
         <h2>Examples</h2>
         <h3>Basic Usage</h3>
@@ -964,6 +1067,11 @@ if (el.moveDown(0)) {
         <ul>
           <li><a href="examples/reordering.html">Reordering Demo</a> - Drag and drop, move up/down buttons, and programmatic API</li>
         </ul>
+
+        <h3>Validation</h3>
+        <ul>
+          <li><a href="examples/validation.html">Validation Demo</a> - Built-in form validation, <code>beforesave</code> event, custom validation, and visual feedback</li>
+        </ul>
       </section>
 
       <section id="faq">
@@ -998,7 +1106,7 @@ el.data = [{ title: 'Hello' }];</code></pre>
         <p><strong>Answer:</strong> Yes. Listen to <code>beforetogglemode</code> and call <code>preventDefault()</code>.</p>
 
         <h4>Does this component do validation?</h4>
-        <p><strong>Answer:</strong> Not currently. It does not call <code>internals.setValidity()</code>. You can implement validation in your application by listening to <code>rowchanged</code>/<code>datachanged</code> and setting UI outside the component.</p>
+        <p><strong>Answer:</strong> Yes! When the user clicks Save, the component checks all <code>input</code>, <code>select</code>, and <code>textarea</code> elements inside the edit template using <code>checkValidity()</code>. If any are invalid, the save is blocked, <code>reportValidity()</code> is called on the first invalid control, and the row is marked with <code>ck-invalid</code> / <code>aria-invalid</code>. You can also intercept saves with the cancelable <code>beforesave</code> event for custom validation logic. See the <a href="#validation">Validation</a> section for details.</p>
 
         <h4>Why did my form field names not update when I changed <code>name</code>?</h4>
         <p><strong>Answer:</strong> Bound form control <code>name</code>/<code>id</code> attributes are assigned when each row is first created. Changing <code>name</code> later updates only the greeting, not existing control names. Set <code>name</code> before first render or re-create rows by resetting <code>data</code>.</p>
